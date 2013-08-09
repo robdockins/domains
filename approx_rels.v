@@ -662,12 +662,505 @@ Definition pair_rel {A B C:preord} (HCeff:effective_order C)
             (fun x => PREORD_EQ_DEC _ (OrdDec _ (eff_ord_dec _ HCeff)) (fst (fst x)) (fst (snd x)))
     (eprod R S)).
 
+Definition pi1_rel {A B:preord}
+  (HA:effective_order A) (HB:effective_order B) 
+  : erel (A×B) A :=
+  esubset_dec 
+    ((A×B)×A) (fun x => fst (fst x) ≥ snd x)
+    (fun x => eff_ord_dec A HA (snd x) (fst (fst x)))
+  (eprod (eprod (eff_enum A HA) (eff_enum B HB)) (eff_enum A HA)).
+
+Definition pi2_rel {A B:preord}
+  (HA:effective_order A) (HB:effective_order B) 
+  : erel (A×B) B :=
+  esubset_dec 
+    ((A×B)×B) (fun x => snd (fst x) ≥ snd x)
+    (fun x => eff_ord_dec B HB (snd x) (snd (fst x)))
+  (eprod (eprod (eff_enum A HA) (eff_enum B HB)) (eff_enum B HB)).
+
+Lemma pi1_rel_elem A B (HA:effective_order A) (HB:effective_order B) :
+  forall a b a', ((a,b),a') ∈ pi1_rel HA HB <-> a ≥ a'.
+Proof.
+  intuition.
+  unfold pi1 in H.
+  apply esubset_dec_elem in H.
+  destruct H. auto.
+  clear; intros. destruct H as [[??][??]]. destruct H.
+  simpl in *; eauto.
+  unfold pi1.
+  apply esubset_dec_elem.
+  clear; intros. destruct H as [[??][??]]. destruct H.
+  simpl in *; eauto.
+  split; auto.
+  apply elem_eprod. split.
+  apply elem_eprod. split; apply eff_complete.
+  apply eff_complete.
+Qed.
+
+Lemma pi2_rel_elem A B (HA:effective_order A) (HB:effective_order B) :
+  forall a b b', ((a,b),b') ∈ pi2_rel HA HB <-> b ≥ b'.
+Proof.
+  intuition.
+  unfold pi2 in H.
+  apply esubset_dec_elem in H.
+  destruct H. auto.
+  clear; intros. destruct H as [[??][??]]. destruct H.
+  simpl in *; eauto.
+  unfold pi2.
+  apply esubset_dec_elem.
+  clear; intros. destruct H as [[??][??]]. destruct H.
+  simpl in *; eauto.
+  split; auto.
+  apply elem_eprod. split.
+  apply elem_eprod. split; apply eff_complete.
+  apply eff_complete.
+Qed.
+
+Lemma pair_rel_elem  A B C (HCeff:effective_order C)
+  (R:erel C A) (S:erel C B) :
+  forall c x y, (c,(x,y)) ∈ pair_rel HCeff R S <-> ((c,x) ∈ R /\ (c,y) ∈ S).
+Proof.
+  intros. split; intros.
+  unfold pair_rel in H.
+  apply image_axiom2 in H.
+  destruct H as [q [??]].
+  destruct q.
+  apply esubset_dec_elem in H. simpl in H0.
+  destruct H. simpl in H1.
+  apply elem_eprod in H.
+  destruct H. split.
+  apply member_eq with c0; auto.
+  destruct H0 as [[??][??]]. simpl in*.
+  destruct H1 as [??].
+  destruct H5; destruct H3.
+  split; split; simpl; auto.
+  apply member_eq with c1; auto.
+  destruct H0 as [[??][??]]. simpl in*.
+  destruct H5; destruct H3.
+  destruct H1.
+  split; split; simpl; eauto.
+  clear; intros.
+  destruct H as [[[??][??]][[??][??]]].
+  split; eauto.
+  unfold pair_rel.
+  change (c,(x,y)) with
+      ((mk_pair (π₁ ∘ π₁) (mk_pair (π₂ ∘ π₁) (π₂ ∘ π₂)))
+      #
+      ( ((c,x),(c,y))
+      :  (C × A) × (C×B)
+      )).
+  apply image_axiom1.
+  apply esubset_dec_elem.
+  clear; intros.
+  destruct H as [[[??][??]][[??][??]]].
+  split; eauto.
+  split.
+  apply elem_eprod. auto.
+  simpl. auto.
+Qed.
+
+Lemma pi1_rel_ordering A B (HA:effective_order A) (HB:effective_order B) :
+  forall x x' y y', x ≤ x' -> y' ≤ y ->
+    (x,y) ∈ pi1_rel HA HB -> (x',y') ∈ pi1_rel HA HB.
+Proof.
+  intros.
+  destruct x. destruct x'.
+  apply pi1_rel_elem in H1.
+  apply pi1_rel_elem.
+  destruct H; eauto.
+Qed.
+
+Lemma pi2_rel_ordering A B (HA:effective_order A) (HB:effective_order B) :
+  forall x x' y y', x ≤ x' -> y' ≤ y ->
+    (x,y) ∈ pi2_rel HA HB -> (x',y') ∈ pi2_rel HA HB.
+Proof.
+  intros.
+  destruct x. destruct x'.
+  apply pi2_rel_elem in H1.
+  apply pi2_rel_elem.
+  destruct H; eauto.
+Qed.
+
+Lemma pair_rel_ordering A B C (HCeff:effective_order C)
+  (R:erel C A) (S:erel C B)
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+  forall x x' y y', x ≤ x' -> y' ≤ y ->
+    (x,y) ∈ pair_rel HCeff R S -> (x',y') ∈ pair_rel HCeff R S.
+Proof.
+  repeat intro.
+  destruct y.
+  rewrite pair_rel_elem in H1.
+  destruct y'.
+  rewrite pair_rel_elem.
+  destruct H0. destruct H1. split.
+  apply HR with x c; auto.
+  apply HS with x c0; auto.
+Qed.
+
+Lemma pi1_rel_dir A B (HA:effective_order A) (HB:effective_order B) :
+  directed_rel (A×B) A (effective_prod HA HB) (pi1_rel HA HB).
+Proof.
+  repeat intro.
+  destruct x as [a b].
+  exists a. split.
+  red; intros.
+  apply H in H0.
+  apply erel_image_elem in H0.
+  apply pi1_rel_elem in H0. auto.
+  apply erel_image_elem.
+  apply pi1_rel_elem. auto.
+Qed.  
+
+Lemma pi2_rel_dir A B (HA:effective_order A) (HB:effective_order B) :
+  directed_rel (A×B) B (effective_prod HA HB) (pi2_rel HA HB).
+Proof.
+  repeat intro.
+  destruct x as [a b].
+  exists b. split.
+  red; intros.
+  apply H in H0.
+  apply erel_image_elem in H0.
+  apply pi2_rel_elem in H0. auto.
+  apply erel_image_elem.
+  apply pi2_rel_elem. auto.
+Qed.  
+
+Lemma pair_rel_dir
+ A B C (HCeff:effective_order C)
+  (R:erel C A) (S:erel C B)
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+  directed_rel C A HCeff R -> directed_rel C B HCeff S -> 
+  directed_rel C (A×B) HCeff (pair_rel HCeff R S).
+Proof.
+  repeat intro.
+  destruct (H x (image π₁ M)).
+  red; intros.
+  apply image_axiom2 in H2.
+  destruct H2 as [y [??]].
+  apply erel_image_elem.
+  apply H1 in H2.
+  apply erel_image_elem in H2.
+  destruct y.
+  apply pair_rel_elem in H2.
+  destruct H2.
+  simpl in H3.
+  apply HR with x c; auto.
+  destruct (H0 x (image π₂ M)).
+  red; intros.
+  apply image_axiom2 in H3.
+  destruct H3 as [y [??]].
+  apply erel_image_elem.
+  apply H1 in H3.
+  apply erel_image_elem in H3.
+  destruct y.
+  apply pair_rel_elem in H3.
+  destruct H3.
+  simpl in H4.
+  apply HS with x c0; auto.
+  exists (x0,x1).
+  split.
+  red; intros.
+  destruct x2.
+  destruct H2. destruct H3.  split; simpl.
+  apply H2.
+  change c with (π₁#((c,c0):(A×B))).
+  apply image_axiom1. auto.
+  apply H3.
+  change c0 with (π₂#((c,c0):(A×B))).
+  apply image_axiom1. auto.
+  destruct H2. destruct H3.
+  apply erel_image_elem in H4.
+  apply erel_image_elem in H5.
+  apply erel_image_elem.
+  apply pair_rel_elem. split; auto.
+Qed.
+
+Lemma pair_proj_commute1_le C A B
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  (R:erel C A) (S:erel C B) 
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+  compose_rel (effective_prod HA HB) (pi1_rel HA HB) (pair_rel HC R S) ≤ R.
+Proof.
+  red; simpl; intros.
+  destruct a as [c a].
+  apply compose_elem in H.
+  destruct H as [[a' b] [??]].
+  apply pair_rel_elem in H.
+  apply pi1_rel_elem in H0.
+  destruct H.
+  apply HR with c a'; auto.
+  apply pair_rel_ordering; auto.
+Qed.
+
+Lemma pair_proj_commute1 C A B
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  (R:erel C A) (S:erel C B) 
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S)
+  (HSdir:directed_rel C B HC S) :
+  compose_rel (effective_prod HA HB) (pi1_rel HA HB) (pair_rel HC R S) ≈ R.
+Proof.
+  split.
+  apply pair_proj_commute1_le; auto.
+  red; simpl; intros.
+  destruct a as [c a].
+  apply compose_elem; auto.
+  apply pair_rel_ordering; auto.
+  destruct (HSdir c nil).
+  red; intros. apply nil_elem in H0. elim H0.
+  exists (a,x). split.
+  apply pair_rel_elem. split; auto.
+  destruct H0.
+  apply erel_image_elem in H1. auto.
+  apply pi1_rel_elem. auto.
+Qed.
+
+Lemma pair_proj_commute2_le C A B
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  (R:erel C A) (S:erel C B) 
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+  compose_rel (effective_prod HA HB) (pi2_rel HA HB) (pair_rel HC R S) ≤ S.
+Proof.
+  red; simpl; intros.
+  destruct a as [c b].
+  apply compose_elem in H.
+  destruct H as [[a b'] [??]].
+  apply pair_rel_elem in H.
+  apply pi2_rel_elem in H0.
+  destruct H.
+  apply HS with c b'; auto.
+  apply pair_rel_ordering; auto.
+Qed.
+
+Lemma pair_proj_commute2 C A B
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  (R:erel C A) (S:erel C B) 
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S)
+  (HRdir:directed_rel C A HC R) :
+  compose_rel (effective_prod HA HB) (pi2_rel HA HB) (pair_rel HC R S) ≈ S.
+Proof.
+  split.
+  apply pair_proj_commute2_le; auto.
+  red; simpl; intros.
+  apply compose_elem.
+  apply pair_rel_ordering; auto.
+  destruct a as [c b].
+  destruct (HRdir c nil).
+  red; intros. apply nil_elem in H0. elim H0.
+  destruct H0.
+  exists (x,b).
+  split. apply pair_rel_elem. split; auto.
+  apply erel_image_elem in H1. auto.
+  apply pi2_rel_elem. auto.
+Qed.
+
+Lemma pair_rel_universal C A B
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  (R:erel C A) (S:erel C B) 
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S)
+  (PAIR:erel C (A×B))
+  (HPAIR :
+   forall (x x' : C) (y y' : A × B),
+     x ≤ x' -> y' ≤ y -> (x, y) ∈ PAIR -> (x', y') ∈ PAIR)
+  (HPAIRdir : directed_rel C (A×B) HC PAIR)
+  (HCOMM1 : compose_rel (effective_prod HA HB) (pi1_rel HA HB) PAIR ≈ R)
+  (HCOMM2 : compose_rel (effective_prod HA HB) (pi2_rel HA HB) PAIR ≈ S) :
+  PAIR ≈ pair_rel HC R S.
+Proof.
+  split; red; simpl; intros.
+  destruct a as [c [a b]].
+  apply pair_rel_elem.
+  split.
+  rewrite <- HCOMM1.
+  apply compose_elem; auto.
+  exists (a,b). split; auto.
+  apply pi1_rel_elem. auto.
+  rewrite <- HCOMM2.
+  apply compose_elem; auto.
+  exists (a,b). split; auto.
+  apply pi2_rel_elem. auto.
+  destruct a as [c [a b]].
+  apply pair_rel_elem in H.    
+  destruct H.
+  rewrite <- HCOMM1 in H.
+  rewrite <- HCOMM2 in H0.
+  apply compose_elem in H; auto.
+  apply compose_elem in H0; auto.
+  destruct H as [[x y] [??]].
+  destruct H0 as [[x' y'] [??]].
+  apply pi1_rel_elem in H1.
+  apply pi2_rel_elem in H2.
+  destruct (HPAIRdir c ((x,y)::(x',y')::nil)%list).  
+  red; intros.
+  apply erel_image_elem.
+  apply cons_elem in H3. destruct H3.
+  apply member_eq with (c,(x,y)); auto.
+  destruct H3. split; split; auto.
+  apply cons_elem in H3. destruct H3.
+  apply member_eq with (c,(x',y')); auto.
+  destruct H3. split; split; auto.
+  apply nil_elem in H3. elim H3.
+  destruct H3.
+  apply erel_image_elem in H4.
+  apply HPAIR with c x0; auto.
+  assert ((x,y) ≤ x0).
+  apply H3. apply cons_elem; auto.
+  assert ((x',y') ≤ x0).
+  apply H3. apply cons_elem. right. apply cons_elem; auto.
+  split; simpl.
+  transitivity x; auto. destruct H5; auto.
+  transitivity y'; auto. destruct H6; auto.
+Qed.
+
+(*
+Program Definition effective_unit : effective_order unitpo
+   := EffectiveOrder unitpo (fun _ _ => left I) (single tt) _.
+Next Obligation.
+  intro. apply single_axiom. destruct x; auto.
+Qed.
+
+Definition associator {A B C:preord} 
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  : erel ((A×B)×C) (A×(B×C)).
+
+Definition associator_inv {A B C:preord} 
+  (HA:effective_order A) (HB:effective_order B) (HC:effective_order C)
+  : erel (A×(B×C)) ((A×B)×C).
+
+Definition unitor1 {A:preord} (HA:effective_order A) : erel (unitpo×A) A :=
+  esubset_dec
+    ((unitpo×A)×A) (fun x => snd (fst x) ≥ snd x)
+    (fun x => eff_ord_dec A HA (snd x) (snd (fst x)))
+  (eprod (eprod (eff_enum unitpo effective_unit) (eff_enum A HA)) (eff_enum A HA)).
+  
+Definition unitor1_inv {A:preord} (HA:effective_order A) : erel A (unitpo×A) :=
+  esubset_dec
+    (A×(unitpo×A)) (fun x => snd (snd x) ≥ fst x)
+    (fun x => eff_ord_dec A HA (fst x) (snd (snd x)))
+  (eprod (eff_enum A HA) (eprod (eff_enum unitpo effective_unit) (eff_enum A HA))).
+
+Definition unitor2 {A:preord} (HA:effective_order A) : erel (A×unitpo) A :=
+  esubset_dec
+    ((A×unitpo)×A) (fun x => fst (fst x) ≥ snd x)
+    (fun x => eff_ord_dec A HA (snd x) (fst (fst x)))
+  (eprod (eprod (eff_enum A HA) (eff_enum unitpo effective_unit)) (eff_enum A HA)).
+  
+Definition unitor2_inv {A:preord} (HA:effective_order A) : erel (unitpo×A) A :=
+  esubset_dec
+    ((unitpo×A)×A) (fun x => snd (fst x) ≥ snd x)
+    (fun x => eff_ord_dec A HA (snd x) (snd (fst x)))
+  (eprod (eprod (eff_enum unitpo effective_unit) (eff_enum A HA)) (eff_enum A HA)).
+*)
+
 Definition pair_rel' {A B C D:preord}
   (R:erel A B) (S:erel C D) : erel (A×C) (B×D) :=
   image (mk_pair 
           (mk_pair (π₁ ∘ π₁) (π₁ ∘ π₂))           
           (mk_pair (π₂ ∘ π₁) (π₂ ∘ π₂)))
     (eprod R S).
+
+Lemma image_axiom1' (T:set.theory) (A B:preord) (f:A → B)
+  (P:set T A) (x:B) : (exists a, x ≈ f#a /\ a ∈ P) -> x ∈ image f P.
+Proof.
+  intros [a [??]]. rewrite H. apply image_axiom1. auto.
+Qed.
+
+Lemma pair_rel_elem' A B C D (R:erel A B) (S:erel C D)
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+  forall a b c d, ((a,b),(c,d)) ∈ pair_rel' R S <->
+    ((a,c) ∈ R /\ (b,d) ∈ S).
+Proof.
+  intros; split; intros.
+  unfold pair_rel' in H.
+  apply image_axiom2 in H.
+  destruct H as [[[x y][z w]] [??]].
+  simpl in H0.
+
+  apply elem_eprod in H.
+  destruct H.
+  destruct H0 as [[[??][??]][[??][??]]]. simpl in *.
+  split.
+  apply HR with x y; auto.
+  apply HS with z w; auto.
+
+  unfold pair_rel'.
+  apply image_axiom1'.
+  exists ((a,c),(b,d)). split; simpl; auto.
+  apply elem_eprod. auto.
+Qed.    
+
+Lemma pair_rel_order' A B C D (R:erel A B) (S:erel C D)
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+   forall x x' y y',
+   x ≤ x' ->
+   y' ≤ y ->
+   (x, y) ∈ pair_rel' R S ->
+   (x', y') ∈ pair_rel' R S.
+Proof.
+  intros.
+  destruct x; destruct y.
+  apply (pair_rel_elem' _ _ _ _ R S) in H1.
+  destruct x'; destruct y'.
+  apply (pair_rel_elem' _ _ _ _ R S).
+  auto. auto.
+  destruct H1. split.
+  apply HR with c c1; auto.
+  destruct H; auto. destruct H0; auto.
+  apply HS with c0 c2; auto.
+  destruct H; auto. destruct H0; auto.
+  auto. auto.
+Qed.    
+
+
+
+
+Lemma pair_rel_eq
+ A B C D (R:erel A B) (S:erel C D)
+  (HA:effective_order A) (HC:effective_order C)
+  (HR:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ R -> (x',y') ∈ R)
+  (HS:forall x x' y y', x ≤ x' -> y' ≤ y -> (x,y) ∈ S -> (x',y') ∈ S) :
+  pair_rel' R S ≈
+  pair_rel (effective_prod HA HC) 
+    (compose_rel HA R (pi1_rel HA HC)) (compose_rel HC S (pi2_rel HA HC)).
+Proof.
+  split; repeat intro.
+  destruct a as [[a c][b d]].
+  apply pair_rel_elem' in H; auto.
+  destruct H.
+  apply pair_rel_elem. split.
+  apply compose_elem; auto.
+  apply pi1_rel_ordering.
+  exists a. split; auto.
+  apply pi1_rel_elem. auto.
+  apply compose_elem; auto.
+  apply pi2_rel_ordering.
+  exists c. split; auto.
+  apply pi2_rel_elem. auto.
+
+  destruct a as [[a c][b d]].
+  apply pair_rel_elem in H; auto.
+  destruct H.
+  apply compose_elem in H; auto.
+  apply compose_elem in H0; auto.
+  destruct H as [y [??]].
+  destruct H0 as [y' [??]].
+  apply pair_rel_elem'; auto.
+  apply pi1_rel_elem in H.
+  apply pi2_rel_elem in H0.
+  split.
+  apply HR with y b; auto.
+  apply HS with y' d; auto.
+  apply pi2_rel_ordering.
+  apply pi1_rel_ordering.
+Qed.
 
 Program Definition const {A B:preord} (b:B) : A → B :=
   Preord.Hom A B (fun _ => b) _.
@@ -930,6 +1423,116 @@ Section curry.
     auto.
   Qed.
 
+  Lemma curry_universal
+    (CURRY:erel C (joinable_rel_order A B))
+    (HC : forall x x' y y',
+      x ≤ x' -> y' ≤ y ->
+      (x,y) ∈ CURRY -> (x',y') ∈ CURRY)
+    (HCdir : directed_rel C (joinable_rel_order A B) HCeff CURRY) :
+    (compose_rel (effective_prod (joinable_rel_effective A B HAeff HBeff HAplt) HAeff)
+           (apply_rel A B HAeff HBeff HAplt)
+           (pair_rel' CURRY (ident_rel HAeff)))
+    ≈ R ->
+    CURRY ≈ curry_rel.
+  Proof.
+    intros; split; red; simpl; intros.
+    destruct a as [c S].
+    apply curry_rel_elem. intros.
+    rewrite <- H.
+    apply compose_elem.
+    apply pair_rel_order'; auto.
+    apply ident_ordering.
+
+    exists (S,a).
+    split.
+    apply pair_rel_elem'. auto.
+    apply ident_ordering.
+    split; auto.
+    apply ident_elem. auto.
+    apply apply_rel_elem.
+    exists a. exists b. auto.
+
+    destruct a as [c S].
+    rewrite curry_rel_elem in H0.
+    assert (exists M:finset (joinable_rel_order A B),
+      (forall a b, (a,b) ∈ proj1_sig S -> exists T, (c,T) ∈ CURRY /\ T ∈ M /\ mkrel _ _ T (a,b))
+      /\ 
+      (forall T, T ∈ M -> (c,T) ∈ CURRY)).
+    destruct S as [S HS]. simpl in *. clear HS.
+    induction S.
+    exists nil.
+    split.
+    intros. apply nil_elem in H1. elim H1.
+    intros. apply nil_elem in H1. elim H1.
+
+    destruct IHS as [M ?].
+    intros. apply H0; auto.
+    apply cons_elem; auto.
+    destruct a as [a b].
+    assert ((c,a,b) ∈ R).
+    apply H0. apply cons_elem; auto.
+    rewrite <- H in H2.
+    apply compose_elem in H2.
+    destruct H2 as [[T a'] [??]].
+    apply pair_rel_elem' in H2.
+    destruct H2.
+    exists (T::M)%list.
+    split.
+    intros.
+    apply cons_elem in H5. destruct H5.
+    exists T. split. auto. split.
+    apply cons_elem. auto.
+    apply apply_rel_elem in H3.
+    destruct H3 as [m [n [?[??]]]].
+    red. simpl.
+    exists m. exists n. split; auto.
+    split.
+    transitivity a'; auto.
+    transitivity a.
+    apply ident_elem in H4. auto.
+    destruct H5 as [[??][??]]; auto. 
+    transitivity b; auto.
+    destruct H5 as [[??][??]]; auto. 
+    destruct H1.
+    destruct (H1 a0 b0) as [T' [??]]; auto.
+    exists T'. split; auto.
+    destruct H8. split; auto.
+    apply cons_elem; auto.
+
+    intros. apply cons_elem in H5.
+    destruct H5.
+    apply member_eq with (c,T); auto.
+    destruct H5; split; split; auto.
+    destruct H1. apply H6; auto.
+
+    auto.
+    apply ident_ordering.
+    apply pair_rel_order'; auto.
+    apply ident_ordering.
+
+    destruct H1 as [M ?].
+    destruct (HCdir c M).
+    red; intros.
+    apply erel_image_elem.
+    destruct H1. apply H3; auto.
+    destruct H2.
+    apply erel_image_elem in H3.
+    apply HC with c x; auto.
+    red; simpl; intros.
+    red; simpl; intros.
+    destruct H1.
+    destruct (H1 a b) as [T [?[??]]]; auto.
+    assert (T ≤ x).
+    apply H2. auto.
+    destruct H8 as [a' [b' [?[??]]]].
+    simpl in H10, H11.
+    destruct (H9 a' b') as [a'' [b'' [?[??]]]]; auto.
+    exists a''. exists b''. split; auto.
+    split.
+    transitivity a'; auto.
+    transitivity b'; auto.
+  Qed.
+    
   Lemma curry_apply :
     (compose_rel (effective_prod (joinable_rel_effective A B HAeff HBeff HAplt) HAeff)
            (apply_rel A B HAeff HBeff HAplt)

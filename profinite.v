@@ -36,12 +36,14 @@ Module PLT.
     }.
   Arguments hom_rel [A] [B] h n.
 
-  Program Definition eq_mixin (A B:ob) : Eq.mixin_of (hom A B) :=
-    Eq.Mixin (hom A B) (fun f g => hom_rel f ≈ hom_rel g) _ _ _.
-  Solve Obligations of eq_mixin using (intros; eauto).
+  Program Definition hom_ord_mixin (A B:ob) : Preord.mixin_of (hom A B) :=
+    Preord.Mixin (hom A B) (fun f g => hom_rel f ≤ hom_rel g) _ _.
+  Solve Obligations of hom_ord_mixin using (intros; eauto).
+  
+  Canonical Structure hom_ord (A B:ob) := Preord.Pack (hom A B) (hom_ord_mixin A B).
 
-  Canonical Structure eq (A B:ob) := Eq.Pack (hom A B) (eq_mixin A B).
-
+  Definition hom_eq_mixin (A B:ob) := Preord.ord_eq (hom_ord A B).
+  Canonical Structure hom_eq (A B:ob) := Eq.Pack (hom A B) (hom_eq_mixin A B).
 
   Definition ident (A:ob) : hom A A :=
     Hom A A (ident_rel (effective A))
@@ -62,7 +64,7 @@ Module PLT.
   Definition comp_mixin : Comp.mixin_of ob hom := Comp.Mixin ob hom ident compose.
   Canonical Structure comp : Comp.type := Comp.Pack ob hom comp_mixin.
 
-  Lemma cat_axioms : Category.category_axioms ob hom (eq_mixin) (comp_mixin).
+  Lemma cat_axioms : Category.category_axioms ob hom hom_eq_mixin comp_mixin.
   Proof.
     constructor.
 
@@ -92,8 +94,7 @@ Module PLT.
   Qed.
 
   Definition cat_class : Category.class_of ob hom :=
-    Category.Class ob hom eq_mixin comp_mixin cat_axioms.
-
+    Category.Class ob hom hom_eq_mixin comp_mixin cat_axioms.
 
   Definition prod (A B:ob) : ob :=
     Ob (carrier A * carrier B)
@@ -110,7 +111,7 @@ Module PLT.
          (joinable_rel_effective (ord A) (ord B) (effective A) (effective B) (plotkin A))
          (joinable_rel_plt (ord A) (ord B) (effective A) (plotkin A) (effective B) (plotkin B))).
 
-  Definition app A B : hom (prod (exp A B) A) B :=
+  Definition app {A B} : hom (prod (exp A B) A) B :=
     Hom (prod (exp A B) A) B
       (apply_rel (ord A) (ord B) (effective A) (effective B) (plotkin A))
       (apply_rel_ordering (ord A) (ord B) (effective A) (effective B) (plotkin A))
@@ -129,91 +130,147 @@ Module PLT.
         f (hom_order _ _ f) (hom_directed _ _ f)
         (plotkin B)).
 
-  Program Definition pair_map {A B C D} (f:hom A C) (g:hom B D) : hom (prod A B) (prod C D) :=
+  Definition pair {C A B} (f:hom C A) (g:hom C B) : hom C (prod A B) :=
+    Hom C (prod A B) 
+      (pair_rel (effective C) f g)
+      (pair_rel_ordering _ _ _ (effective C) f g (hom_order _ _ f) (hom_order _ _ g))
+      (pair_rel_dir _ _ _ (effective C) f g 
+        (hom_order _ _ f) (hom_order _ _ g)
+        (hom_directed _ _ f) (hom_directed _ _ g)).
+
+  Definition pi1 {A B} : hom (prod A B) A :=
+    Hom (prod A B) A 
+      (pi1_rel (effective A) (effective B))
+      (pi1_rel_ordering _ _ (effective A) (effective B))
+      (pi1_rel_dir _ _ (effective A) (effective B)).
+
+  Definition pi2 {A B} : hom (prod A B) B :=
+    Hom (prod A B) B 
+      (pi2_rel (effective A) (effective B))
+      (pi2_rel_ordering _ _ (effective A) (effective B))
+      (pi2_rel_dir _ _ (effective A) (effective B)).
+
+  Definition pair_map {A B C D} (f:hom A C) (g:hom B D) : hom (prod A B) (prod C D) :=
+    pair (f ∘ pi1) (g ∘ pi2).
+
+  Program Definition pair_map' {A B C D} (f:hom A C) (g:hom B D) : hom (prod A B) (prod C D) :=
     Hom (prod A B) (prod C D) (pair_rel' f g) _ _.
   Next Obligation.
-    unfold pair_rel'; intros.
-    apply image_axiom2 in H1.
-    destruct H1 as [q [??]].
-    destruct q as [[a c][b d]].
-    simpl in H2.
-    destruct x. destruct y.
-    destruct x'. destruct y'.
-    change (c4,c5,(c6,c7)) with
-       ((mk_pair (mk_pair (π₁ ∘ π₁) (π₁ ∘ π₂)) (mk_pair (π₂ ∘ π₁) (π₂ ∘ π₂)))#
-         (((c4,c6),(c5,c7)) : ((ord A×ord C)×(ord B×ord D)))).
-    apply image_axiom1.
-    apply elem_eprod in H1.
-    apply elem_eprod.
-    destruct H1; split.
-    apply hom_order with a c; auto.
-    transitivity c0; auto.
-    destruct H2. destruct H4. destruct H4; auto.
-    destruct H; auto.
-    transitivity c2.
-    destruct H0; auto.
-    destruct H2.
-    destruct H2.
-    destruct H5; auto.
-    apply hom_order with b d; auto.
-    transitivity c1.
-    destruct H; auto.
-    destruct H2. destruct H5. destruct H5; auto.
-    destruct H; auto.
-    transitivity c3.
-    destruct H0; auto.
-    destruct H2.
-    destruct H2. destruct H5; auto.
-  Qed.
+    intros A B C D f g.
+    apply pair_rel_order'; auto.
+    apply hom_order.
+    apply hom_order.
+  Qed.    
   Next Obligation.
     repeat intro.
-    destruct x as [a b].
-    destruct (hom_directed A C f a (image π₁ M)).
-    red; intros.
-    apply image_axiom2 in H0.
-    destruct H0 as [[p q] [??]]. simpl in H1. rewrite H1.
+    destruct (hom_directed _ _ f (fst x) (image π₁ M)).
+    red; intros. apply image_axiom2 in H0. destruct H0 as [y[??]].
     apply erel_image_elem.
     apply H in H0.
     apply erel_image_elem in H0.
- admit.
-    destruct (hom_directed B D g b (image π₂ M)).
-    red; intros.
-    apply image_axiom2 in H1.
-    destruct H1 as [[p q] [??]]. simpl in H2. rewrite H2.
+    destruct x; destruct y.
+    apply (pair_rel_elem' _ _ _ _ f g) in H0.
+    simpl. destruct H0.
+    apply member_eq with (c,c1); auto.
+    simpl in H1.
+    destruct H1; split; split; auto.
+    apply hom_order.
+    apply hom_order.
+    destruct (hom_directed _ _ g (snd x) (image π₂ M)).
+    red; intros. apply image_axiom2 in H1. destruct H1 as [y[??]].
     apply erel_image_elem.
     apply H in H1.
     apply erel_image_elem in H1.
-admit.    
-    exists (x,x0).
+    destruct x; destruct y.
+    apply (pair_rel_elem' _ _ _ _ f g) in H1.
+    simpl. destruct H1.
+    apply member_eq with (c0,c2); auto.
+    simpl in H2.
+    destruct H2; split; split; auto.
+    apply hom_order.
+    apply hom_order.
+    exists (x0,x1).
+    destruct H0. destruct H1.
     split.
     red; intros.
-    split; simpl.
-    destruct H0. apply H0.
-    change (fst x1) with (π₁#x1).
-    apply image_axiom1. auto.
-    destruct H1. apply H1.
-    change (snd x1) with (π₂#x1).
-    apply image_axiom1. auto.
+    split.
+    apply H0. apply image_axiom1'.
+    exists x2. split; auto.
+    apply H1. apply image_axiom1'.
+    exists x2. split; auto.
     apply erel_image_elem.
-    destruct H0. destruct H1.
     apply erel_image_elem in H2.
     apply erel_image_elem in H3.
-admit.
-  Qed.  
+    destruct x.
+    apply (pair_rel_elem' _ _ _ _ f g).
+    apply hom_order. apply hom_order.
+    split; auto.
+  Qed.
+
+  Lemma pair_map_eq {A B C D} (f:hom A C) (g:hom B D) :
+    pair_map f g ≈ pair_map' f g.
+  Proof.
+    red. simpl. symmetry.
+    apply pair_rel_eq.
+    apply hom_order.
+    apply hom_order.
+  Qed.
+
+  Canonical Structure PLT : category := Category PLT.ob PLT.hom PLT.cat_class.
+
+  Theorem pair_commute1 C A B (f:hom C A) (g:hom C B) :
+    pi1 ∘ pair f g ≈ f.
+  Proof.
+    apply pair_proj_commute1.
+    apply hom_order.
+    apply hom_order.
+    apply hom_directed.
+  Qed.
+
+  Theorem pair_commute2 C A B (f:hom C A) (g:hom C B) :
+    pi2 ∘ pair f g ≈ g.
+  Proof.
+    apply pair_proj_commute2.
+    apply hom_order.
+    apply hom_order.
+    apply hom_directed.
+  Qed.
+
+  Theorem pair_universal C A B (f:hom C A) (g:hom C B) (PAIR:hom C (prod A B)) :
+    pi1 ∘ PAIR ≈ f -> pi2 ∘ PAIR ≈ g -> PAIR ≈ pair f g.
+  Proof.
+    apply pair_rel_universal.
+    apply hom_order.
+    apply hom_order.
+    apply hom_order.
+    apply hom_directed.
+  Qed.
 
   Theorem curry_apply A B C (f:hom (prod C A) B) :
-    app A B ∘ pair_map (curry f) (ident A) ≈ f.
+    app ∘ pair_map (curry f) id ≈ f.
   Proof.
-    apply curry_apply. apply hom_directed. apply plotkin.
+    rewrite pair_map_eq.
+    apply curry_apply. 
+    apply hom_directed. 
+    apply plotkin.
   Qed. 
 
+  Theorem curry_universal A B C (f:hom (prod C A) B) (CURRY:hom C (exp A B)) :
+    app ∘ pair_map CURRY id ≈ f -> CURRY ≈ curry f.
+  Proof.
+    intro. apply curry_universal; auto.
+    apply (hom_order _ _ CURRY).
+    apply (hom_directed _ _ CURRY).
+    rewrite pair_map_eq in H. apply H.
+  Qed.
 End PLT.
+
+Notation PLT := PLT.PLT.
 
 Canonical Structure PLT.ord.
 Canonical Structure PLT.dec.
-Canonical Structure PLT.eq.
+Canonical Structure PLT.hom_ord.
+Canonical Structure PLT.hom_eq.
 Canonical Structure PLT.prod.
 Canonical Structure PLT.comp.
-
-Canonical Structure PLT : category := Category PLT.ob PLT.hom PLT.cat_class.
-
+Canonical Structure PLT.
