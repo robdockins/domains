@@ -594,27 +594,6 @@ Next Obligation.
 Qed.  
 
 
-Definition lift_ord (A:preord) (x:option A) (y:option A) : Prop :=
-   match x with None => True | Some x' =>
-     match y with None => False | Some y' => x' ≤ y' end end.
-
-Program Definition lift_mixin (A:preord) : Preord.mixin_of (option A) :=
-  Preord.Mixin (option A) (lift_ord A) _ _.
-Next Obligation.
-  destruct x; simpl; auto.
-Qed.
-Next Obligation.
-  destruct x; destruct y; destruct z; simpl in *; intuition. eauto.
-Qed.
-
-Canonical Structure lift (A:preord) : preord :=
-  Preord.Pack (option A) (lift_mixin A).
-
-Program Definition liftup (A:preord) : A → lift A :=
-  Preord.Hom A (lift A) (@Some A) _.
-Next Obligation. auto. Qed.
-
-
 Program Definition lift_abstract_basis
   (AB:abstract_basis semidirected)
   : abstract_basis directed :=

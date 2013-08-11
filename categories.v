@@ -532,16 +532,15 @@ Section pullback_lemma.
   Variable C:category.
 
   (*     f1 
-     R ---→ S
+     R ----> S
      |        |
   g1 |        | h1
      v   f2   v
-     W ---→ Y
+     W ----> Y
      |        |
   g2 |        | h2
      V   f3   v
-     X ---→ Z
-
+     X ----> Z
   *)
 
   Variables X Y Z W R S:ob C.

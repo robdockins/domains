@@ -114,6 +114,14 @@ Proof.
   intro T. apply (set.image_axiom1 _ _ _ _ _ (set.mixin T)).
 Qed.
 
+Lemma image_axiom1' (T:set.theory) (A B:preord) (f:A → B)
+  (P:set T A) (x:B) : (exists a, x ≈ f#a /\ a ∈ P) -> x ∈ image f P.
+Proof.
+  intros [a [??]]. 
+  apply member_eq with (f#a); auto.
+  apply image_axiom1. auto.
+Qed.
+
 Lemma image_axiom2 : forall (T:set.theory)
   (A B:preord) (f:A → B) (P:set T A) (x:B),
   x ∈ image f P -> exists y, y ∈ P /\ x ≈ f#y.

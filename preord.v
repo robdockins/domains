@@ -335,3 +335,68 @@ Canonical Structure PREORD_EQ_DEC (A:preord) (OD:ord_dec A) :=
           end
       | right H => right (fun HEQ => H (proj1 HEQ))
       end).
+
+Program Definition unitpo := Preord.Pack unit (Preord.Mixin _ (fun _ _ => True) _ _).
+Canonical Structure unitpo.
+
+Program Definition emptypo := Preord.Pack False (Preord.Mixin _ (fun _ _ => False) _ _).
+Canonical Structure emptypo.
+
+Definition lift_ord (A:preord) (x:option A) (y:option A) : Prop :=
+   match x with None => True | Some x' =>
+     match y with None => False | Some y' => x' ≤ y' end end.
+
+Program Definition lift_mixin (A:preord) : Preord.mixin_of (option A) :=
+  Preord.Mixin (option A) (lift_ord A) _ _.
+Next Obligation.
+  destruct x; simpl; auto.
+Qed.
+Next Obligation.
+  destruct x; destruct y; destruct z; simpl in *; intuition. eauto.
+Qed.
+
+Canonical Structure lift (A:preord) : preord :=
+  Preord.Pack (option A) (lift_mixin A).
+
+Program Definition liftup (A:preord) : A → lift A :=
+  Preord.Hom A (lift A) (@Some A) _.
+
+Program Definition lift_map {A B:preord} (f:A → B) : lift A → lift B :=
+  Preord.Hom (lift A) (lift B) (option_map (Preord.map A B f)) _.
+Next Obligation.
+  red; intros. destruct a; destruct b; simpl in *; auto.
+Qed.
+
+Lemma lift_map_id (A:preord) : lift_map id(A) ≈ id(lift A).
+Proof.
+  split; hnf; destruct x; simpl; auto.
+Qed.
+
+Lemma lift_map_compose (A B C:preord) (g:B → C) (f:A → B) :
+  lift_map (g ∘ f) ≈ lift_map g ∘ lift_map f.
+Proof.
+  split; hnf; destruct x; simpl; auto.
+Qed.
+
+Lemma lift_map_eq (A B:preord) (f f':A → B) : f ≈ f' -> lift_map f ≈ lift_map f'.
+Proof.
+  intros.
+  split; hnf; destruct x; simpl; auto.
+  apply H. apply H.
+Qed.
+
+Program Definition liftF : functor PREORD PREORD :=
+  (Functor PREORD PREORD lift (@lift_map) _ _ _).
+Next Obligation.
+  transitivity (lift_map id(A)).
+  apply lift_map_eq; auto.
+  apply lift_map_id.
+Qed.
+Next Obligation.
+  transitivity (lift_map (f ∘ g)).
+  apply lift_map_eq; auto.
+  apply lift_map_compose.
+Qed.
+Next Obligation.
+  apply lift_map_eq. auto.
+Qed.

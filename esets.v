@@ -171,9 +171,6 @@ Arguments einhabited {A} P.
 Definition cl_eset_theory CL := cset_theory eset_theory CL.
 Notation cl_eset CL := (set_preord (cl_eset_theory CL)).
 
-Program Definition unitpo := Preord.Pack unit (Preord.Mixin _ (fun _ _ => True) _ _).
-Solve Obligations of unitpo using (intros; auto).
-Canonical Structure unitpo.
 
 Definition intersection {A:preord} (eqdec:forall x y:A, {x ≈ y}+{x ≉ y}) (P Q:eset A) : eset A :=
     fun n => let (p,q) := unpairing n in 

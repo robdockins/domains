@@ -22,6 +22,12 @@ Proof.
   apply eff_to_ord_dec. auto.
 Qed.
 
+Program Definition effective_unit : effective_order unitpo
+   := EffectiveOrder unitpo (fun _ _ => left I) (single tt) _.
+Next Obligation.
+  intro. apply single_axiom. destruct x; auto.
+Qed.
+
 Program Definition effective_prod {A B:preord}
   (HA:effective_order A)
   (HB:effective_order B)
@@ -42,3 +48,24 @@ Next Obligation.
   split; apply eff_complete.
 Qed.
 
+Definition enum_lift (A:preord) (X:eset A) : eset (lift A) :=
+  union2 (single None) (image (liftup A) X).
+
+Program Definition effective_lift {A:preord}
+  (HA:effective_order A)
+  : effective_order (lift A) :=
+  EffectiveOrder _ _ (enum_lift A (eff_enum A HA)) _.
+Next Obligation.
+  intros.
+  destruct x; destruct y; simpl; auto.
+  destruct (eff_ord_dec A HA c c0); auto.
+  left. hnf. auto.
+Qed.
+Next Obligation.
+  intros. unfold enum_lift.
+  apply elem_union2.
+  destruct x. right.
+  apply image_axiom1'. exists c. split; auto.
+  apply eff_complete.
+  left. apply single_axiom; auto.
+Qed.
