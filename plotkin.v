@@ -1,3 +1,5 @@
+Require Import List.
+
 Require Import basics.
 Require Import preord.
 Require Import categories.
@@ -67,21 +69,18 @@ Record plotkin_order (hf:bool) (A:preord) :=
   ; mub_closure : finset A -> finset A
   ; mub_clos_incl : forall M:finset A, M ⊆ mub_closure M
   ; mub_clos_mub : forall (M:finset A), inh hf M -> mub_closed hf A (mub_closure M)
-(*
   ; mub_clos_smallest : forall (M X:finset A),
         inh hf M ->
         M ⊆ X ->
         mub_closed hf A X -> 
         mub_closure M ⊆ X
-*)
   }.
 Arguments mub_closure [hf] [A] p _.
 Arguments mub_complete [hf] [A] p _ _ _ _.
 Arguments mub_clos_incl [hf] [A] p _ _ _.
 Arguments mub_clos_mub [hf] [A] p _ _ _ _ _ _ _.
-(*Arguments mub_clos_smallest [hf] [A] p _ _ _ _ _ _ _.*)
+Arguments mub_clos_smallest [hf] [A] p _ _ _ _ _ _ _.
 
-(*
 Lemma mub_clos_mono : forall hf A (H:plotkin_order hf A),
   forall (M N:finset A), inh hf M ->
     M ⊆ N -> mub_closure H M ⊆ mub_closure H N.
@@ -105,7 +104,7 @@ Proof.
   red; auto.
   apply mub_clos_mub; auto.
 Qed.
-*)
+
 
 Section dec_lemmas.
   Variable hf:bool.
@@ -190,216 +189,7 @@ Section dec_lemmas.
   Qed.
 End dec_lemmas.
 
-Require Import List.
 
-Fixpoint unlift_list {A} (x:list (option A)) :=
-  match x with
-  | nil => nil
-  | None :: x' => unlift_list x'
-  | Some a :: x' => a :: unlift_list x'
-  end.
-
-Lemma unlift_app A (l l':list (option A)) :
-  unlift_list (l++l') = unlift_list l ++ unlift_list l'.
-Proof.
-  induction l; simpl; intuition.
-  destruct a; simpl; auto.
-  f_equal; auto.
-Qed.
-
-Lemma in_unlift A (l:list (option A)) x :
-  In x (unlift_list l) <-> In (Some x) l.
-Proof.
-  induction l; simpl; intuition.
-  destruct a; simpl in *.
-  intuition subst; auto.
-  right; auto.
-  subst. simpl; auto.
-  destruct a; simpl; auto.
-Qed.
-
-Lemma incl_unlift A (l l':list (option A)) :
-  incl l l' -> incl (unlift_list l) (unlift_list l').
-Proof.
-  induction l; repeat intro; simpl in *; intuition.
-  destruct a; simpl in *; intuition subst; auto.
-  rewrite in_unlift.
-  apply H; simpl; auto.
-  rewrite in_unlift.
-  rewrite in_unlift in H1.
-  apply H; simpl; auto.
-  apply IHl; auto.
-  hnf; intros. apply H; simpl; auto.
-Qed.
-
-Definition lift_mub_closure hf (A:preord) (HA:plotkin_order hf A) (M:finset (lift A)) 
-  : finset (lift A):=
-  match unlift_list M with
-  | nil => single None
-  | X => None :: image (liftup A) (mub_closure HA X)
-  end.
-
-Program Definition lift_plotkin hf1 hf2 (A:preord)
-  (Hplt:plotkin_order hf1 A) : plotkin_order hf2 (lift A) :=
-  PlotkinOrder hf2 (lift A) _ (lift_mub_closure hf1 A Hplt) _ _.
-Next Obligation.  
-  repeat intro.
-  destruct x.
-  set (M' := unlift_list M : finset A).
-  assert (forall a, a ∈ M' <-> Some a ∈ M).
-  intro; split; intros.
-  destruct H1 as [q [??]].
-  apply in_unlift in H1.
-  exists (Some q). split; auto.
-  destruct H1 as [q [??]].
-  destruct q.
-  exists c0. split; auto.
-  apply in_unlift. auto.
-  destruct H2. elim H2.
-  destruct (inh_dec A true M').
-  destruct (mub_complete Hplt M' c); auto.
-  destruct hf1; auto.
-  red. auto.
-  red; intros.
-  change (Some x ≤ Some c).
-  apply H0.
-  apply H1; auto.
-  destruct H2.
-  exists (Some x). split; auto.
-  split.
-  red; intros.
-  destruct x0; auto.
-  apply H1 in H4.
-  red. simpl.
-  apply H2; auto.
-  red; simpl; auto.
-  intros.
-  destruct b.
-  red; simpl.
-  destruct H2. apply H6; auto.
-  red; intros.
-  change (Some x0 ≤ Some c0).
-  apply H4. apply H1; auto.
-  destruct i as [q ?].
-  apply H1 in H6.
-  apply H4 in H6.  elim H6.
-  exists None. split; auto.
-  split.
-  red; intros.
-  destruct x; simpl; auto.
-  apply H1 in H2.
-  elim n. red; eauto.
-  intros. destruct b; simpl; auto.
-  red; simpl; auto.
-  red; simpl; auto.
-  exists None. split; auto.
-  split; auto.
-  intros. red; simpl; auto.
-Qed.
-Next Obligation.
-  repeat intro.
-  unfold lift_mub_closure.
-  case_eq (unlift_list M).
-  intros.
-  destruct H as [q [??]].
-  destruct a.
-  destruct q.
-  assert (In c0 (unlift_list M)).
-  apply in_unlift. auto.
-  rewrite H0 in H2. elim H2.
-  destruct H1. elim H1.
-  apply single_axiom; auto.
-  intros.
-  destruct a.
-  apply cons_elem. right.
-  apply image_axiom1'.
-  exists c0. split; auto.
-  apply mub_clos_incl.
-  destruct H as [q [??]].
-  destruct q.
-  exists c1. split; auto.
-  rewrite <- H0.
-  apply in_unlift. auto.
-  destruct H1. elim H1.
-  apply cons_elem; auto.
-Qed.
-Next Obligation.
-  repeat intro.
-  unfold lift_mub_closure in *.
-  case_eq (unlift_list M); intros.
-  rewrite H3 in H1.
-  apply single_axiom.
-  split.
-  destruct H2.
-  apply H4.
-  red; intros.
-  apply H1 in H5.
-  apply single_axiom in H5. rewrite H5; auto.
-  red; simpl; auto.
-  red; simpl; auto.
-  rewrite <- H3.
-  rewrite H3 in H1.
-  rewrite <- H3 in H1.
-  destruct x.
-  apply cons_elem. right.
-  apply image_axiom1'.
-  exists c0. split; auto.
-  apply (mub_clos_mub Hplt (unlift_list M)) with (unlift_list M0).
-  rewrite H3.
-  destruct hf1; simpl; auto.
-  exists c. apply cons_elem; auto.
-  destruct hf1; simpl; auto.
-  destruct H2.
-  case_eq (unlift_list M0). intro.
-  assert (Some c0 ≤ None).
-  apply H4.
-  red; intros.
-  destruct x; auto.
-  destruct H6 as [q [??]].
-  destruct q.
-  assert (In c2  (unlift_list M0)).
-  apply in_unlift; auto.
-  rewrite H5 in H8. elim H8.
-  destruct H7; auto.
-  red; simpl; auto.
-  elim H6.
-  intros.
-  exists c1. apply cons_elem; auto.
-  red; intros.
-  destruct H4 as [q [??]].
-  apply in_unlift in H4.
-  assert (Some a ∈ M0).
-  exists (Some q); split; auto.
-  apply H1 in H6.
-  apply cons_elem in H6.
-  destruct H6.
-  destruct H6. elim H6.
-  apply image_axiom2 in H6.
-  destruct H6 as [?[??]].
-  apply member_eq with x; auto.
-  split.
-  red; intros.
-  destruct H4 as [q [??]].
-  apply in_unlift in H4.
-  assert (Some x ∈ M0).
-  exists (Some q); auto.
-  change (Some x ≤ Some c0).
-  apply H2. auto.
-  intros.
-  destruct H2.
-  change (Some c0 ≤ Some b).
-  apply H6; auto.
-  red; intros.
-  destruct x.
-  apply H4.
-  destruct H7 as [q [??]].
-  destruct q.
-  exists c2. split; auto.
-  apply in_unlift; auto.
-  destruct H8. elim H8.
-  red; simpl; auto.
-  apply cons_elem; auto.
-Qed.
 
 Lemma upper_bound_ok : forall A (G:finset A) (x y:A),
   x ≈ y -> upper_bound x G -> upper_bound y G.
@@ -421,6 +211,40 @@ Qed.
 Definition directed {T:set.theory} {A:preord} (hf:bool) (X:set T A) :=
   forall (M:finset A) (Hinh:inh hf M),
     M ⊆ X -> exists x, upper_bound x M /\ x ∈ X.
+
+Lemma prove_directed (T:set.theory) (A:preord) (b:bool) (X:set T A) :
+  (if b then True else exists x, x ∈ X) ->
+  (forall x y, x ∈ X -> y ∈ X -> exists z, x ≤ z /\ y ≤ z /\ z ∈ X) ->
+  directed b X.
+Proof.
+  intros. intro M.
+  induction M.
+  simpl; intros.
+  destruct b; simpl in *.
+  destruct Hinh. apply nil_elem in H2. elim H2.
+  destruct H as [x ?]. exists x. split; auto.
+  hnf. simpl; intros. apply nil_elem in H2. elim H2.
+  intros.
+  destruct M.
+  exists a. split; auto.
+  hnf; simpl; intros.
+  apply cons_elem in H2. destruct H2.
+  rewrite H2. auto.
+  apply nil_elem in H2. elim H2.
+  apply H1. apply cons_elem. auto.
+  destruct IHM as [q [??]].
+  destruct b; auto.
+  hnf. exists c. apply cons_elem; auto.
+  hnf; intros. apply H1; auto.
+  apply cons_elem; auto.
+  destruct (H0 a q) as [z [?[??]]]; auto.
+  apply H1; auto. apply cons_elem; auto.
+  exists z. split; auto.
+  hnf; intros.
+  apply cons_elem in H7.
+  destruct H7. rewrite H7; auto.
+  transitivity q; auto.
+Qed.
 
 Section normal_sets.
   Variable A:preord.
@@ -1031,7 +855,7 @@ Section normal_sets.
     end.
 
   Program Definition norm_plt : plotkin_order hf A :=
-    PlotkinOrder hf A _ norm_closure _ _.
+    PlotkinOrder hf A _ norm_closure _ _ _.
   Next Obligation.
     red; intros.
     destruct (Hnorm M) as [Q [??]]; auto.
@@ -1063,6 +887,17 @@ Section normal_sets.
     destruct a. 
     destruct H4.
     apply H4 with M0; auto.
+  Qed.    
+  Next Obligation.
+    repeat intro.
+    unfold norm_closure in *.
+    destruct (check_inh M).
+    apply nil_elem in H2. elim H2.
+    destruct (Hnorm M i) as [Q [??]].
+    destruct (normal_set_mub_closure Q n M i i0).
+    simpl in *.
+    destruct a0 as [?[??]].
+    apply H5; auto.
   Qed.    
 End normal_sets.
 
@@ -1211,3 +1046,221 @@ Definition plotkin_prod hf (A B:preord)
   : plotkin_order hf (A×B)
   := norm_plt (A×B) (effective_prod HAeff HBeff) hf
          (prod_has_normals hf A B HAeff HBeff HA HB).
+
+
+Fixpoint unlift_list {A} (x:list (option A)) :=
+  match x with
+  | nil => nil
+  | None :: x' => unlift_list x'
+  | Some a :: x' => a :: unlift_list x'
+  end.
+
+Lemma unlift_app A (l l':list (option A)) :
+  unlift_list (l++l') = unlift_list l ++ unlift_list l'.
+Proof.
+  induction l; simpl; intuition.
+  destruct a; simpl; auto.
+  f_equal; auto.
+Qed.
+
+Lemma in_unlift A (l:list (option A)) x :
+  In x (unlift_list l) <-> In (Some x) l.
+Proof.
+  induction l; simpl; intuition.
+  destruct a; simpl in *.
+  intuition subst; auto.
+  right; auto.
+  subst. simpl; auto.
+  destruct a; simpl; auto.
+Qed.
+
+Lemma incl_unlift A (l l':list (option A)) :
+  List.incl l l' -> List.incl (unlift_list l) (unlift_list l').
+Proof.
+  induction l; repeat intro; simpl in *; intuition.
+  destruct a; simpl in *; intuition subst; auto.
+  rewrite in_unlift.
+  apply H; simpl; auto.
+  rewrite in_unlift.
+  rewrite in_unlift in H1.
+  apply H; simpl; auto.
+  apply IHl; auto.
+  hnf; intros. apply H; simpl; auto.
+Qed.
+
+Definition lift_mub_closure hf (A:preord) (HA:plotkin_order hf A) (M:finset (lift A)) 
+  : finset (lift A):=
+  match unlift_list M with
+  | nil => single None
+  | X => None :: image (liftup A) (mub_closure HA X)
+  end.
+
+Lemma lift_has_normals hf1 hf2 (A:preord)
+  (Heff:effective_order A)
+  (Hplt:plotkin_order hf1 A) :
+  has_normals (lift A) (effective_lift Heff) hf2.
+Proof.
+  red; intros.
+  set (X' := unlift_list X : finset A).
+  assert (forall a, a ∈ X' <-> Some a ∈ X).
+  intro; split; intros.
+  destruct H as [q [??]].
+  apply in_unlift in H.
+  exists (Some q). split; auto.
+  destruct H as [q [??]].
+  destruct q.
+  exists c. split; auto.
+  apply in_unlift. auto.
+  destruct H0. elim H0.
+  exists (lift_mub_closure hf1 A Hplt X).
+  split.
+  red; intros.
+  unfold lift_mub_closure.
+  case_eq (unlift_list X).
+  intros.
+  destruct H0 as [q [??]].
+  destruct a.
+  destruct q.
+  assert (In c0 (unlift_list X)).
+  apply in_unlift. auto.
+  rewrite H1 in H3. elim H3.
+  destruct H2. elim H2.
+  apply single_axiom; auto.
+  intros.
+  destruct a.
+  apply cons_elem. right.
+  apply image_axiom1'.
+  exists c0. split; auto.
+  apply mub_clos_incl.
+  destruct H0 as [q [??]].
+  destruct q.
+  exists c1. split; auto.
+  rewrite <- H1.
+  apply in_unlift. auto.
+  destruct H2. elim H2.
+  apply cons_elem; auto.
+
+  hnf; intros.
+  split.
+  unfold lift_mub_closure.
+  destruct hf2; simpl; auto.
+  exists None.
+  destruct (unlift_list X); simpl.
+  apply single_axiom. auto.
+  apply cons_elem; auto.
+  
+  repeat intro.
+  case_eq (unlift_list M); intros.
+  exists (None : lift A).
+  split.
+  hnf; intros.
+  destruct x; auto.
+  destruct H2 as [q [??]].
+  destruct q.
+  assert (In c0 (unlift_list M)).
+  apply in_unlift. auto.
+  rewrite H1 in H4. elim H4.
+  destruct H3. elim H3.
+  apply finsubset_elem.
+  intuition. rewrite <- H2; auto.
+  split; auto.
+  unfold lift_mub_closure.
+  destruct (unlift_list X); auto.
+  apply single_axiom; auto.
+  apply cons_elem; auto.
+  red. simpl; auto.
+
+  destruct z.
+  destruct (mub_complete Hplt (unlift_list M) c0) as [ub [??]].
+  rewrite H1.
+  destruct hf1; simpl; auto.
+  exists c. apply cons_elem; auto.
+  hnf; intros.
+  assert (Some x ∈ M).
+  destruct H2 as [q [??]].
+  apply in_unlift in H2.
+  exists (Some q). split; auto.
+  generalize H3; intros.
+  apply H0 in H3.
+  apply finsubset_elem in H3.
+  destruct H3. auto.
+  intros. rewrite <- H5; auto.
+  exists (Some ub).
+  split.
+  hnf; intros.
+  destruct H2.
+  destruct x; auto.
+  assert (c1 ∈ (unlift_list M : finset A)).
+  destruct H4 as [q [??]].
+  destruct q.
+  exists c2.
+  split; auto.
+  apply in_unlift. auto.
+  destruct H6. elim H6.
+  apply H2 in H6. auto.
+  red; simpl; auto.
+  apply finsubset_elem.
+  intros. rewrite <- H4; auto.
+  split; auto.
+  unfold lift_mub_closure.
+  case_eq (unlift_list X).
+  intros.
+  assert (Some c ∈ M).
+  exists (Some c); split; auto.
+  apply in_unlift. rewrite H1. simpl; auto.
+  apply H0 in H5.
+  apply finsubset_elem in H5.
+  destruct H5.
+  unfold lift_mub_closure in H5.
+  rewrite H4 in H5.
+  apply single_axiom in H5. destruct H5. elim H5.
+  intros. rewrite <- H6; auto.
+  intros.
+  apply cons_elem. right.
+  apply image_axiom1'.
+  exists ub. split; auto.
+  rewrite <- H4.
+  apply mub_clos_mub with (unlift_list M); auto.
+  rewrite H4.
+  destruct hf1; simpl; auto.
+  exists c1. apply cons_elem; auto.
+  rewrite H1.
+  destruct hf1; simpl; auto.
+  exists c. apply cons_elem; auto.
+
+  hnf; intros.
+  assert (Some a ∈ M).
+  destruct H5 as [q [??]].
+  exists (Some q). split; auto.
+  apply in_unlift; auto.
+  apply H0 in H6.
+  apply finsubset_elem in H6.
+  destruct H6.
+  unfold lift_mub_closure in H6.
+  rewrite H4 in H6.
+  rewrite <- H4 in H6.
+  apply cons_elem in H6.
+  destruct H6.
+  destruct H6. elim H6.
+  apply image_axiom2 in H6.
+  destruct H6 as [y [??]].
+  simpl in H8.
+  apply member_eq with y; auto.
+  intros. rewrite <- H7; auto.
+  
+  assert (Some c ∈ M).
+  exists (Some c); split; auto.
+  apply in_unlift. rewrite H1. simpl; auto.
+  apply H0 in H2.
+  apply finsubset_elem in H2.
+  destruct H2. elim H3.
+  intros. rewrite <- H3. auto.
+Qed.
+
+
+Program Definition lift_plotkin hf1 hf2 (A:preord)
+  (Hplt:plotkin_order hf1 A) 
+  (Heff:effective_order A)
+  : plotkin_order hf2 (lift A)
+  := norm_plt (lift A) (effective_lift Heff) hf2
+         (lift_has_normals hf1 hf2 A Heff Hplt).

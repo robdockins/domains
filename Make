@@ -1,3 +1,5 @@
+# coq_makefile -f Make -o Makefile
+
 pairing.v
 basics.v
 categories.v
@@ -12,4 +14,5 @@ algebraic.v
 ideal.v
 joinable.v
 approx_rels.v
+finord.v
 profinite.v

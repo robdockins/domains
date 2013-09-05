@@ -602,7 +602,7 @@ Next Obligation.
   apply empty_elem in H. auto.
 Qed.
 
-Program Definition semidec_disj (A:preord) (P Q:A ->Prop) (HP:semidec P) (HQ:semidec Q)
+Program Definition semidec_dij (A:preord) (P Q:A ->Prop) (HP:semidec P) (HQ:semidec Q)
   : semidec (fun x => P x \/ Q x)
   := Semidec _ _ (fun x => union2 (decset P HP x) (decset Q HQ x)) _ _.
 Next Obligation.
@@ -640,6 +640,47 @@ Next Obligation.
   destruct H. apply intersection_elem.
   split; apply decset_correct; auto.
 Qed.
+
+Lemma semidec_iff (A:preord) (P Q:A -> Prop)  :
+  (forall x:A, P x <-> Q x) ->
+  semidec P -> semidec Q.
+Proof.
+  intros.
+  destruct X.
+  apply Semidec with decset0.
+  intros.
+  apply H. apply (decset_prop_ok0 x); auto.
+  apply H; auto.
+  intros. rewrite <- H. apply decset_correct0.
+Qed.
+
+Program Definition const {A B:preord} (x:B) : A → B :=
+  Preord.Hom A B (fun _ => x) _.
+Next Obligation.
+  intros; auto.
+Qed.
+
+
+Lemma semidec_in (A:preord) (HA:ord_dec A) (X:eset A) :
+  semidec (fun x => x ∈ X).
+Proof.
+  apply Semidec with (fun x => image (const tt) 
+    (intersection (PREORD_EQ_DEC A HA) X (eset.esingle A x))).
+  intros. rewrite <- H; auto.
+  intros. split; intro.
+  apply image_axiom2 in H.
+  destruct H as [y [??]].
+  apply intersection_elem in H.
+  destruct H.
+  apply single_axiom in H1. rewrite <- H1. auto.
+  apply image_axiom1'.
+  exists a. split.
+  destruct x; simpl; auto.
+  apply intersection_elem.
+  split; auto.
+  apply single_axiom. auto.
+Qed.
+
 
 Fixpoint all_finset_setdec
   (A:preord) (DECSET:A -> eset unitpo) (X:finset A) : eset unitpo :=
@@ -722,12 +763,6 @@ Next Obligation.
   right. apply IHa.
   exists b. split; auto.
   exists q. split; auto.
-Qed.
-
-Program Definition const {A B:preord} (x:B) : A → B :=
-  Preord.Hom A B (fun _ => x) _.
-Next Obligation.
-  intros; auto.
 Qed.
 
 Definition eimage' (A B:preord) (f:A -> B) (P:eset A) : eset B :=

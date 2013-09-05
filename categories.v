@@ -1010,6 +1010,36 @@ Coercion SET.carrier  : SET.set_ob >-> Sortclass.
 Coercion SET.hom_map : SET.hom >-> Funclass.
 Canonical Structure SET.set_ob_Eq.
 
+
+Program Definition SET_concrete : concrete SET :=
+  Concrete SET
+  SET.carrier
+  (fun X => SET.mixin X)
+  SET.hom_map _ _.
+Next Obligation.
+  transitivity (f y).
+  apply SET.hom_axiom; auto.
+  apply H.
+Qed.
+Next Obligation.
+  apply eq_refl.
+Qed.
+
+
+Add Parametric Morphism (A B:ob SET) :
+  (@SET.hom_map A B)
+    with signature (eq_op (SET_EQ A B)) ==>
+                   (eq_op (SET.set_ob_Eq A)) ==>
+                   (eq_op (SET.set_ob_Eq B))
+     as SET_morphism.
+Proof.
+  intros.
+  transitivity (x y0).
+  apply SET.hom_axiom. auto.
+  apply H.
+Qed.
+
+
 Definition SET1 : ob SET := SET.Set_ob unit (lib_eq _).
 
 Definition elem (X:ob SET) (x:X) : SET1 → X :=
