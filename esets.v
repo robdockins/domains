@@ -135,26 +135,45 @@ Section eset_lemmas.
     apply IHn. auto.
   Qed.    
 
-  Definition find_inhabitant : forall P (H:einhabited P), { a:A | a ∈ P }.
+  Definition find_inhabitant : forall P (H:einhabited P),
+    { a:A & { n | P n = Some a /\
+      forall n' a', P n' = Some a' -> (n <= n')%N} }.
   Proof.
     fix 2. intros.
     case H.
     generalize (refl_equal (P N0)).
     pattern (P N0) at 2 3.
     case (P N0); intros.
-    exists c. exists N0. rewrite H0. auto.
+    exists c. exists N0.
+    split; auto.
+    intros. 
+    intros. compute. destruct n'; discriminate.
+
     case (find_inhabitant _ (H1 (refl_equal _))). intros x Hx.
-    exists x.
     case Hx as [n ?].
-    exists (N.succ n). apply H2.
+    exists x. exists (N.succ n). 
+    destruct a.
+    split; auto.
+    intros.
+    revert H4.
+    pattern n'.
+    apply (N.case_analysis).
+    hnf. simpl. intuition. subst; auto.
+    subst; auto.
+    intros. rewrite H4 in H0. discriminate.
+    intros.
+    apply H3 in H4; auto.
+    rewrite <- N.succ_le_mono; auto.
   Qed.
 
   Definition choose P (H:einhabited P) : A
-    := proj1_sig (find_inhabitant P H).
+    := projT1 (find_inhabitant P H).
 
   Lemma choose_elem : forall P H, (choose P H) ∈ P.
   Proof.
     intros. unfold choose. destruct (find_inhabitant); auto.
+    simpl. destruct s as [n ?]. exists n. 
+    destruct a. rewrite H0; auto.
   Qed.
 
   Lemma inhabited_einhabited : forall P, color_prop inhabited P <-> einhabited P.
@@ -163,6 +182,7 @@ Section eset_lemmas.
     apply member_inhabited; auto.
     apply find_inhabitant in H.
     destruct H as [a H]. exists a; auto.
+    destruct H as [n ?]. exists n. destruct a0. rewrite H. auto.
   Qed.
 End eset_lemmas.
 Arguments elist {A} l _.

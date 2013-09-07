@@ -336,6 +336,16 @@ Import PARAM.
   Canonical Structure XPLT_EP :=
     Category ob ep_pair ep_cat_class.
 
+  Definition find_inhabitant' : forall A (P:eset A) (H:einhabited P),
+    { a:A | a ∈ P }.
+  Proof.
+    intros. destruct (find_inhabitant A P H).
+    exists x.
+    destruct s as [n [??]].
+    exists n. rewrite H0. auto.
+  Qed.
+
+  Definition choose' A P H := proj1_sig (find_inhabitant' A P H).
 
   Section ep_pair_embed_func.
     Variables X Y:ob.
@@ -385,14 +395,15 @@ Import PARAM.
     
     Program Definition embed_func : Preord.hom (ord X) (ord Y) :=
       Preord.Hom (ord X) (ord Y)
-        (fun x => choose (ord Y) (embed_image x) (embed_image_inhabited x)) _.
+        (fun x => choose' (ord Y) (embed_image x) (embed_image_inhabited x)) _.
     Next Obligation.
       intros.
-      unfold choose.
-      destruct (find_inhabitant (ord Y) (embed_image a) (embed_image_inhabited a))
+      unfold choose'.
+      destruct (find_inhabitant' (ord Y) (embed_image a) (embed_image_inhabited a))
         as [y ?]. simpl.
-      destruct (find_inhabitant (ord Y) (embed_image b) (embed_image_inhabited b))
+      destruct (find_inhabitant' (ord Y) (embed_image b) (embed_image_inhabited b))
         as [y' ?]. simpl.
+
       unfold embed_image in *.
       apply esubset_elem in m.
       apply esubset_elem in m0.
@@ -413,10 +424,10 @@ Import PARAM.
     Lemma embed_func_reflects : forall x x',
       embed_func#x ≤ embed_func#x' -> x ≤ x'.
     Proof.
-      intros x x'. unfold embed_func. simpl. unfold choose.
-      destruct (find_inhabitant (ord Y) (embed_image x) (embed_image_inhabited x))
+      intros x x'. unfold embed_func. simpl. unfold choose'.
+      destruct (find_inhabitant' (ord Y) (embed_image x) (embed_image_inhabited x))
         as [y ?]. simpl.
-      destruct (find_inhabitant (ord Y) (embed_image x') (embed_image_inhabited x'))
+      destruct (find_inhabitant' (ord Y) (embed_image x') (embed_image_inhabited x'))
         as [y' ?]. simpl.
       intros.
       unfold embed_image in *.
@@ -443,8 +454,8 @@ Import PARAM.
       destruct H0.
       exists x. apply erel_image_elem in H1.
       unfold embed_func; simpl.
-      unfold choose.
-      destruct (find_inhabitant (ord Y) (embed_image x) (embed_image_inhabited x))
+      unfold choose'.
+      destruct (find_inhabitant' (ord Y) (embed_image x) (embed_image_inhabited x))
         as [y' ?]. simpl in *.
       unfold embed_image in m.
       apply esubset_elem in m.
@@ -466,10 +477,10 @@ Import PARAM.
     Proof.
       intro. intros.
       unfold embed_func in *. simpl in *.
-      unfold choose in *.
-      destruct (find_inhabitant (ord Y) (embed_image a) (embed_image_inhabited a))
+      unfold choose' in *.
+      destruct (find_inhabitant' (ord Y) (embed_image a) (embed_image_inhabited a))
         as [ya ?]. simpl in *.
-      destruct (find_inhabitant (ord Y) (embed_image b) (embed_image_inhabited b))
+      destruct (find_inhabitant' (ord Y) (embed_image b) (embed_image_inhabited b))
         as [yb ?]. simpl in *.
       unfold embed_image in m.
       unfold embed_image in m0.
@@ -496,7 +507,7 @@ Import PARAM.
       rename x into q.
       exists q.
       split.
-      destruct (find_inhabitant (ord Y) (embed_image q) (embed_image_inhabited q))
+      destruct (find_inhabitant' (ord Y) (embed_image q) (embed_image_inhabited q))
         as [yq ?]. simpl in *.
       unfold embed_image in m.
       apply esubset_elem in m.
@@ -681,6 +692,16 @@ Import PARAM.
   ; ds_compose : forall i j k (Hij:i≤j) (Hjk:j≤k) (Hik:i≤k),
                        ds_hom j k Hjk ∘ ds_hom i j Hij ≈ ds_hom i k Hik
   ; ds_ident : forall i (Hii:i≤i), ds_hom i i Hii ≈ ep_id (ds_F i)
+  }.
+
+  Record is_bilimit (I:preord) (DS:directed_system I) (V:ob) :=
+  IsBilimit
+  { bilimit_spoke : forall i:I, ep_pair (ds_F I DS i) V
+  ; bilimit_commute : forall i j (Hij:i≤j),
+           bilimit_spoke j ∘ ds_hom I DS i j Hij ≈ bilimit_spoke i
+  ; bilimit_sup : forall x y:V, exists i,
+          x ≥ y -> 
+          (x,y) ∈ hom_rel (embed (bilimit_spoke i) ∘ project (bilimit_spoke i))
   }.
 
   Lemma ds_ident' I (Hds:directed_system I) :
@@ -892,9 +913,9 @@ Import PARAM.
       generalize (natset_ok x m).
       destruct (eff_enum _ (effective (ds_F I DS (idx x))) m).
       intros. exists c. exists c. intuition.
-      simpl. unfold choose.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y] ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      simpl. unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       apply esubset_elem in m0.
@@ -931,15 +952,15 @@ Import PARAM.
       assert( b=b' ) by congruence. subst b'. clear H3.
       exists a. exists c. intuition.
       clear Hxy' Hyz'. simpl in *.
-      unfold choose in *.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y] ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in *.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in *.
       rewrite esubset_elem in m0.
@@ -1022,12 +1043,12 @@ Import PARAM.
       exists a. exists b.  split; auto. split; auto.
       clear -H4.
       simpl in *.
-      unfold choose in *.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y] ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in *.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in *.
       rewrite esubset_elem in m0.
@@ -1079,9 +1100,9 @@ Import PARAM.
       rewrite H.
       destruct (eff_enum _ (effective (ds_F I DS (idx y))) m).
       intros. exists c. exists c. intuition.
-      simpl. unfold choose.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y] ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      simpl. unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       apply esubset_elem in m0.
@@ -1254,17 +1275,17 @@ Qed.
       clear.
       simpl.
       intro z.
-      unfold choose at 1.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y] ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' at 1.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m.
       apply esubset_elem in m.
       destruct m as [?[??]].
       simpl in *.
-      unfold choose in *.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in *.
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       rewrite esubset_elem in m.
       intuition.
@@ -1366,12 +1387,12 @@ Qed.
       rewrite H10 in H8.
       clear -H8.
       simpl in H8.
-      unfold choose in *.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in *.
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y] ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in *.
       rewrite esubset_elem in m.
@@ -1824,9 +1845,9 @@ Qed.
       exists c. exists c0. split; auto. split; auto.
       unfold embed_func' in H0.
       unfold embed_func in H0. simpl in H0.
-      unfold choose in H0.
-      match goal with [ H0 : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in H0.
+      match goal with [ H0 : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       rewrite esubset_elem in m0.
@@ -1848,9 +1869,9 @@ Qed.
       simpl fst. simpl snd.
       rewrite H1. rewrite H2.
       unfold embed_func'. unfold embed_func. simpl.
-      unfold choose.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y]] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y]] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       apply esubset_elem in m0.
@@ -1889,9 +1910,9 @@ Qed.
       exists c. exists c0. split; auto. split; auto.
       unfold embed_func' in H0.
       unfold embed_func in H0. simpl in H0.
-      unfold choose in H0.
-      match goal with [ H0 : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in H0.
+      match goal with [ H0 : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       rewrite esubset_elem in m0.
@@ -1913,9 +1934,9 @@ Qed.
       simpl fst. simpl snd.
       rewrite H1. rewrite H2.
       unfold embed_func'. unfold embed_func. simpl.
-      unfold choose.
-      match goal with [ |- appcontext[find_inhabitant ?A ?X ?Y]] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y]] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       apply esubset_elem in m0.
@@ -2196,9 +2217,9 @@ Qed.
       destruct (e x0) as [q [??]]; auto.
       destruct H5 as [b' [c [?[??]]]].
       assert (b=b') by congruence. subst b'. clear H5.
-      unfold choose in H7.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in H7.
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m.
       apply esubset_elem in m.
@@ -2308,9 +2329,9 @@ Qed.
       destruct (Hij' n) as [q [??]]; auto.
       destruct H5 as [a' [z [?[??]]]].
       assert (a=a') by congruence. subst a'. clear H5.
-      unfold choose in H7.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in H7.
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       rewrite esubset_elem in m0.
@@ -2318,9 +2339,9 @@ Qed.
       destruct (Hjk' q) as [q' [??]]; auto.
       destruct H11 as [z' [y [?[??]]]].
       assert (z=z') by congruence. subst z'. clear H11.
-      unfold choose in H13.
-      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
-        destruct (find_inhabitant A X Y); simpl in *
+      unfold choose' in H13.
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m0.
       rewrite esubset_elem in m0.
@@ -2366,6 +2387,245 @@ Qed.
             (lim_ord_mixin hf reindex' reindex_fds)
             (lim_ord_effective hf reindex' reindex_fds)
             (lim_ord_plotkin hf reindex' reindex_fds)).
+    
+    Program Definition build_reindex (i:I) (x:ds_F I DS i) : reindex :=
+      Reindex i 
+        (List.map (unenumerate _ (effective (ds_F I DS i)))
+               (mub_closure (plotkin (ds_F I DS i)) (x::nil)%list))
+        _ _ _.
+    Next Obligation.
+      repeat intro.
+      destruct H as [n [??]].
+      apply List.in_map_iff in H.
+      destruct H as [q [??]].
+      destruct H1. hnf in H1. subst m. clear H3.
+      unfold unenumerate in H.
+      match goal with [ _ : appcontext[find_inhabitant ?A ?X ?Y] |- _ ] =>
+        destruct (find_inhabitant A X Y); simpl in *
+      end.
+      destruct s as [m [??]].
+      simpl in *.
+      unfold unenumerate_set in e.
+      case_eq (eff_enum _ (effective (ds_F I DS i)) m); intros.
+      rewrite H1 in e.
+      destruct ((PREORD_EQ_DEC (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+               (eff_to_ord_dec (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+                  (effective (ds_F I DS i)))) q c).
+      inversion e. subst x0; clear e.
+      subst m.
+      rewrite H0 in H1. discriminate.
+      discriminate.
+      rewrite H1 in e. discriminate.
+    Qed.
+    Next Obligation.
+      intros.
+      generalize (refl_equal hf).
+      pattern hf at 2.
+      case hf. intros. 
+      rewrite H at 1.
+      hnf.
+      exists ((unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+        (effective (ds_F I DS i))) x).
+      exists ((unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+        (effective (ds_F I DS i))) x).
+      split.
+      apply List.in_map_iff.
+      assert (x ∈ mub_closure (plotkin (ds_F I DS i)) (x :: nil)%list).
+      apply mub_clos_incl.
+      apply cons_elem. auto.
+      destruct H0 as [n [??]].
+      exists n.
+      split; auto.
+      apply unenumerate_uniq. auto.
+      auto.
+      intro. rewrite H at 1.
+      hnf. auto.
+    Qed.
+    Next Obligation.
+      repeat intro.
+      apply clip_set_elem.
+      exists (unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+          (effective (ds_F I DS i)) x0).
+      case_eq (eff_enum (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+       (effective (ds_F I DS i))
+       (unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+          (effective (ds_F I DS i)) x0)).
+      simpl; intros. exists c. split; auto.
+      exists (unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+          (effective (ds_F I DS i)) x0).
+      split; auto.
+      apply List.in_map_iff.
+      assert (x0 ∈ mub_closure (plotkin (ds_F I DS i)) (x :: nil)%list).
+      apply mub_clos_mub with M; auto.
+      apply elem_inh with x. apply cons_elem; auto.
+      hnf; intros.
+      apply H0 in H3.
+      apply clip_set_elem in H3.
+      destruct H3 as [n [a' [?[??]]]].
+      destruct H3 as [q [??]].
+      destruct H6. hnf in H6. subst q. clear H7.
+      apply List.in_map_iff in H3.
+      destruct H3 as [z [??]].
+      exists z. split; auto.
+      destruct (unenumerate_correct _ (effective (ds_F I DS i)) z)
+        as [q [??]].
+      rewrite H3 in H7.
+      rewrite H4 in H7.
+      inversion H7. subst q.
+      rewrite H5; auto.
+      destruct H3 as [q [??]].
+      exists q; split; auto.
+      apply unenumerate_uniq; auto. 
+      split; auto.
+      destruct (unenumerate_correct _ (effective (ds_F I DS i)) x0)
+        as [q [??]].
+      rewrite H2 in H3.
+      inversion H3. subst q. auto.
+      intros.
+      destruct (unenumerate_correct _ (effective (ds_F I DS i)) x0)
+        as [q [??]].
+      rewrite H2 in H3. discriminate.
+    Qed.
+
+
+    Program Definition build_bilimit_elem (i:I) (x:ds_F I DS i) : bilimit :=
+      LimSet hf reindex' reindex_fds
+          (build_reindex i x)
+          (unenumerate _ (effective (ds_F I DS i)) x)
+          _.
+    Next Obligation.
+      simpl.
+      intros. apply reindex_finord_elem.
+      assert (unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+        (effective (ds_F I DS i)) x ∈ natset (build_reindex i x)).
+      simpl.
+      exists (unenumerate (cls_ord (ds_F I DS i) (class (ds_F I DS i)))
+        (effective (ds_F I DS i)) x).
+      split; auto.
+      apply List.in_map_iff.
+      assert (x ∈ mub_closure (plotkin (ds_F I DS i)) (x :: nil)%list).
+      apply mub_clos_incl. apply cons_elem; auto.
+      destruct H as [z [??]].
+      exists z; split; auto.
+      apply unenumerate_uniq. auto.
+      split; auto. split; auto.
+      destruct (unenumerate_correct _ (effective (ds_F I DS i)) x)
+        as [q [??]].
+      exists q. exists q.
+      split; auto.
+    Qed.
+
+
+
+    Variables X Y:ob.
+    Variable embed : ord X → ord Y.
+    Hypothesis embed_reflects : forall x x',
+      embed#x ≤ embed#x' -> x ≤ x'.
+    Hypothesis embed_func_directed0 : forall y,
+      if hf then True else exists x, embed#x ≤ y.
+    Hypothesis embed_directed2 : forall y, forall a b,
+      embed#a ≤ y ->
+      embed#b ≤ y ->
+      exists c, embed#c ≤ y /\ a ≤ c /\ b ≤ c.
+
+    Definition bilimit_spoke_embed (i:I) (x:ds_F I DS i) (y:bilimit) :=
+      exists n:reindex, exists x':reindex_finord n, exists c:ds_F I DS i,
+        idx n = i /\
+        lim_embed_spec hf _ reindex_fds n x' y /\
+        eff_enum _ (effective (ds_F I DS i)) (proj1_sig x') = Some c /\
+        c ≤ x.
+      
+    Definition bilimit_spoke_project (i:I) (x:ord bilimit) (y:ord (ds_F I DS i)) :=
+      exists n:reindex, exists y':reindex_finord n, exists c:ds_F I DS i,
+        idx n = i /\
+        lim_proj_spec hf _ reindex_fds n x y' /\
+        eff_enum _ (effective (ds_F I DS i)) (proj1_sig y') = Some c /\
+        y ≤ c.
+
+    Lemma bilimit_pe (i:I) x y :
+      (exists q,
+        bilimit_spoke_project i x q /\
+        bilimit_spoke_embed i q y) ->
+      x ≥ y.
+    Proof.
+      intros [q[??]].
+      destruct H as [n [y' [c [?[?[??]]]]]].
+      destruct H0 as [m [x' [d [?[?[??]]]]]].
+      destruct (reindex_directed (n::m::nil)%list) as [k [??]].
+      case_eq hf; simpl; intros; auto.
+      exists n. apply cons_elem; auto.
+      hnf; intros. apply eff_complete.
+      assert (n ≤ k).
+      apply H7. apply cons_elem; auto.
+      assert (m ≤ k).
+      apply H7. apply cons_elem; right. apply cons_elem; auto.
+      clear H7 H8.
+      generalize (lim_proj_cone hf reindex' reindex_fds n k H9 x y').
+      intros.
+      generalize H1; intros.
+      rewrite H7 in H1. clear H7.
+      destruct H1 as [w [??]].
+      simpl in H7.
+      generalize (lim_embed_cocone hf reindex' reindex_fds m k H10 x' y).
+      intros. generalize H8; intros.
+      rewrite H11 in H4; clear H11.
+      destruct H4 as [v [??]].
+      simpl in H4.
+      apply reindex_embed_elem in H4.
+      destruct H4 as [?[? [ww [qq [?[??]]]]]].
+      simpl in H4.
+      revert ww H14 H16.
+      simpl.
+      generalize (reindex_out H10).
+      rewrite H0. intros.
+      simpl in H5. simpl in H14.
+      rewrite H5 in H14.
+      assert (ww = d) by congruence. subst ww; clear H14.
+      apply reindex_project_elem in H7.
+      destruct H7 as [? [? [ww [zz [?[??]]]]]].
+      revert ww H17 H19.
+      generalize (reindex_out H9).
+      rewrite H. intros.
+      simpl in H17. simpl in H2. rewrite H2 in H17.
+      assert (ww = c) by congruence. subst ww; clear H17.
+      assert ((zz,qq) ∈ hom_rel id).
+      generalize (ep_correct _ _ (ds_hom I DS i (idx k) o)).
+      intros [??].
+      apply ep_ident0. clear pe_ident0 ep_ident0.
+      simpl. apply compose_elem. apply hom_order.
+      exists d. split; auto.
+      generalize (ds_compose' I DS i i (idx k) (ord_refl _ _) o0 o). 
+      intros [??]. apply H17. clear H17 H20.
+      simpl. apply compose_elem. apply hom_order.
+      exists c. split; auto.
+      generalize (ds_ident' I DS i (ord_refl _ _)).
+      intros [??]. apply H20. clear H17 H20.
+      simpl. apply ident_elem.
+      transitivity q; auto.
+      simpl in H17.
+      apply ident_elem in H17.
+      assert ((v:fds_F hf _ reindex_fds k) ≤ w).
+      red. simpl. red. simpl.
+      apply reindex_finord_elem.
+      intuition.
+      exists qq. exists zz. intuition.
+      assert (lim_proj_spec hf _ reindex_fds k x v).
+      apply lim_proj_spec_order with x w; auto.
+      
+      revert H21 H11.
+      admit. (* pe lemma at finord level *)
+    Qed.
+
+    Lemma bilimit_ep1 (i:I) x y :
+      (exists q,
+        bilimit_spoke_embed i x q /\
+        bilimit_spoke_project i q y)
+      ->
+      x ≥ y.
+    Proof.
+      intros [q [??]].
+      
+    Qed.
 
   End fds.
 

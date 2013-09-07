@@ -24,28 +24,11 @@ Proof.
 Qed.  
 
 
-
 Local Open Scope N_scope.
 
 Lemma N2_eq_dec : forall (x y:N*N), { x = y }+{x <> y}.
 Proof.
   decide equality; apply N_eq_dec.
-Qed.
-
-
-Program Definition Ndisc_ord : preord :=
-  Preord.Pack N (Preord.Mixin N (@eq N) _ _).
-Solve Obligations of Ndisc_ord using intros; subst; auto.
-Canonical Structure Ndisc_ord.
-
-Program Definition effective_Nord : effective_order Ndisc_ord
-  := EffectiveOrder Ndisc_ord _ (fun n => Some n) _.
-Next Obligation.
-  simpl. unfold Preord.ord_op. simpl.
-  apply N_eq_dec.
-Qed.
-Next Obligation.
-  intros. exists x. auto.
 Qed.
 
 Definition N2 := Ndisc_ord × Ndisc_ord.
@@ -1218,9 +1201,12 @@ Section finite_limit.
       split; auto.
       destruct (find_inhabitant I M' H) as [k ?].
       exists k.
-      unfold M' in m.
-      apply esubset_dec_elem in m.
-      destruct m; auto.
+      destruct s as [n [??]].
+      assert (k ∈ M').
+      exists n. rewrite H0. auto.
+      unfold M' in H2.
+      apply esubset_dec_elem in H2.
+      destruct H2; auto.
       apply upper_bound_ok.
     Qed.
 

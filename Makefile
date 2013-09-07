@@ -82,6 +82,7 @@ endif
 
 VFILES:=profinite.v\
   finord.v\
+  bilimit.v\
   approx_rels.v\
   joinable.v\
   ideal.v\
