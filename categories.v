@@ -235,6 +235,68 @@ Canonical Structure EPI_CONCRETE
 Arguments EPI_CONCRETE [C] [CC].
 *)
 
+Section iso.
+  Variable C:category.
+
+  Record isomorphism (A B:ob C) :=
+    Isomorphism
+    { iso_hom : A → B
+    ; iso_inv : B → A
+    ; iso_axiom1 : iso_inv ∘ iso_hom ≈ id
+    ; iso_axiom2 : iso_hom ∘ iso_inv ≈ id
+    }.
+End iso.
+Arguments iso_hom [C] [A] [B] i.
+Arguments iso_inv [C] [A] [B] i.
+Arguments iso_axiom1 [C] [A] [B] i.
+Arguments iso_axiom2 [C] [A] [B] i.
+
+Coercion iso_hom : isomorphism >-> hom.
+Notation "A ↔ B" := (isomorphism _ A B) (at level 65).
+
+Program Definition iso_eq (C:category) (A B:ob C) :=
+  Eq.Mixin (isomorphism C A B)
+     (fun f g => iso_hom f ≈ iso_hom g) _ _ _.
+Next Obligation.
+  eauto.
+Qed.
+
+Program Definition iso_id (C:category) (A:ob C) :=
+  Isomorphism C A A (id(A)) (id(A)) _ _.  
+Next Obligation.
+  apply cat_ident1.  
+Qed.
+Next Obligation.
+  apply cat_ident1.  
+Qed.
+
+Program Definition iso_compose
+  (C:category) (X Y Z:ob C) (g:Y ↔ Z) (f:X ↔ Y) :=
+  Isomorphism C X Z (iso_hom g ∘ iso_hom f) (iso_inv f ∘ iso_inv g) _ _.
+Next Obligation.
+  intros. 
+  rewrite <- (cat_assoc (iso_inv f) (iso_inv g) (iso_hom g ∘ iso_hom f)).
+  rewrite (cat_assoc (iso_inv g) (iso_hom g) (iso_hom f)).
+  rewrite (iso_axiom1 g).
+  rewrite (cat_ident2 f).
+  rewrite (iso_axiom1 f).
+  auto.
+Qed.
+Next Obligation.
+  rewrite <- (cat_assoc (iso_hom g) (iso_hom f) (iso_inv f ∘ iso_inv g)).
+  rewrite (cat_assoc (iso_hom f) (iso_inv f) (iso_inv g)).
+  rewrite (iso_axiom2 f).
+  rewrite (cat_ident2 (iso_inv g)).
+  rewrite (iso_axiom2 g).
+  auto.
+Qed.
+
+Canonical Structure ISO_EQ (C:category) A B
+  := Eq.Pack (isomorphism C A B) (iso_eq C A B).
+Canonical Structure ISO_COMP (C:category)
+  := Comp.Pack (ob C) (isomorphism C)
+      (Comp.Mixin _ _ (iso_id C) (iso_compose C)).
+
 Module Functor.
 Section functor.  
   Variable C D:category.
