@@ -10,6 +10,17 @@ Require Import esets.
 Require Import effective.
 Require Import plotkin.
 
+(*FIXME*)
+Lemma use_ord (A:preord) (a b c d:A) :
+  b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
+Proof.
+  intros.
+  transitivity b; auto.
+  transitivity c; auto.
+Qed.
+Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
+
+
 Module PLT.
   Record class_of hf (A:Type) :=
     Class
@@ -196,6 +207,47 @@ Proof.
   intros. split; apply embed_morphism; auto.
 Qed.
 
+Lemma embed_unlift hf (A B:PLT.ob hf) (f g:A ⇀ B) x :
+  f ≤ g -> f x ≤ g x.
+Proof.
+  intros. apply H; auto.
+Qed.
+
+Lemma embed_unlift' hf (A B:PLT.ob hf) (f g:A ⇀ B) x :
+  f ≈ g -> f x ≈ g x.
+Proof.
+  intros. 
+  destruct H; split; auto.
+Qed.
+
+Lemma embed_lift hf (A B:PLT.ob hf) (f g:A ⇀ B) :
+  (forall x, f x ≤ g x) -> f ≤ g.
+Proof.
+  repeat intro; auto.
+Qed.  
+
+Lemma embed_lift' hf (A B:PLT.ob hf) (f g:A ⇀ B) :
+  (forall x, f x ≈ g x) -> f ≈ g.
+Proof.
+  intros; split; hnf; auto.
+Qed.  
+
+Program Definition empty_bang X : empty_plt true ⇀ X :=
+  Embedding true (empty_plt true) X (fun x => False_rect _ x) _ _ _ _.
+Next Obligation.
+  intros. elim a.
+Qed.
+Next Obligation.
+  intros. elim a.
+Qed.
+Next Obligation.
+  intros. auto.
+Qed.
+Next Obligation.
+  intros. elim a.
+Qed.
+
+
 Record directed_system (hf:bool) (I:preord) :=
   DirSys
   { ds_Ieff : effective_order I
@@ -216,39 +268,27 @@ Record cocone (hf:bool) (I:preord) (DS:directed_system hf I) :=
   ; cocone_commute : forall i j (Hij:i≤j),
        cocone_spoke i ≈ cocone_spoke j ∘ ds_hom DS i j Hij
   }.
+Arguments cocone [hf] [I] DS.
+Arguments Cocone [hf] [I] DS _ _ _.
 Arguments cocone_point [hf] [I] [DS] _.
 Arguments cocone_spoke [hf] [I] [DS] _ _.
 Arguments cocone_commute [hf] [I] [DS] _ _ _ _.
 
-Record bilimit (hf:bool) (I:preord) (DS:directed_system hf I) 
-  (XC:cocone hf I DS) :=
-  Bilimit
-  { bilim_univ : forall (YC:cocone hf I DS), XC ⇀ YC
-  ; bilim_commute : forall (YC:cocone hf I DS) i,
+Record is_bilimit (hf:bool) (I:preord) (DS:directed_system hf I) 
+  (XC:cocone DS) :=
+  IsBilimit
+  { bilim_univ : forall (YC:cocone DS), XC ⇀ YC
+  ; bilim_commute : forall (YC:cocone DS) i,
        cocone_spoke YC i ≈ bilim_univ YC ∘ cocone_spoke XC i
-  ; bilim_uniq : forall (YC:cocone hf I DS) (f:XC ⇀ YC),
+  ; bilim_uniq : forall (YC:cocone DS) (f:XC ⇀ YC),
        (forall i, cocone_spoke YC i ≈ f ∘ cocone_spoke XC i) ->
        f ≈ bilim_univ YC
   }.
-Arguments bilim_univ [hf] [I] [DS] [XC] b YC.
-Arguments bilim_commute [hf] [I] [DS] [XC] b YC i.
-Arguments bilim_uniq [hf] [I] [DS] [XC] b YC f _.
-
-Lemma embed_unlift hf (A B:PLT.ob hf) (f g:A ⇀ B) x :
-  f ≤ g -> f x ≤ g x.
-Proof.
-  intros. apply H; auto.
-Qed.
-
-Lemma use_ord (A:preord) (a b c d:A) :
-  b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
-Proof.
-  intros.
-  transitivity b; auto.
-  transitivity c; auto.
-Qed.
-Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
-
+Arguments is_bilimit [hf] [I] DS XC.
+Arguments IsBilimit [hf] [I] DS XC _ _ _.
+Arguments bilim_univ [hf] [I] [DS] [XC] _ YC.
+Arguments bilim_commute [hf] [I] [DS] [XC] _ _ _.
+Arguments bilim_uniq [hf] [I] [DS] [XC] _ YC f _.
 
 Section bilimit.
   Variable hf:bool.
@@ -623,14 +663,14 @@ Section bilimit.
     intros. rewrite <- H1. auto.
   Qed.
 
-  Definition limset_plotkin : plotkin_order hf limord :=
+  Definition limord_plotkin : plotkin_order hf limord :=
     norm_plt limord limord_effective hf limord_has_normals.
 
-  Definition bilim : PLT.ob hf :=
-    PLT.Ob hf limset (PLT.Class _ _ limord_mixin limord_effective limset_plotkin).
+  Definition bilimit : PLT.ob hf :=
+    PLT.Ob hf limset (PLT.Class _ _ limord_mixin limord_effective limord_plotkin).
   
-  Program Definition limset_spoke (i:I) : hom (EMBED hf) (ds_F DS i) bilim
-    := Embedding hf (ds_F DS i) bilim (fun x => LimSet i x) _ _ _ _.
+  Program Definition limset_spoke (i:I) : hom (EMBED hf) (ds_F DS i) bilimit
+    := Embedding hf (ds_F DS i) bilimit (fun x => LimSet i x) _ _ _ _.
   Next Obligation.
     intros. hnf. simpl. exists i. exists (ord_refl _ _). exists (ord_refl _ _).
     rewrite (ds_ident hf I DS i (ord_refl I i)). simpl. auto.
@@ -688,14 +728,14 @@ Section bilimit.
     rewrite (ds_ident hf I DS j (ord_refl _ _)). simpl; auto.
   Qed.
 
-  Definition bilimit_cocone : cocone hf I DS :=
-    Cocone hf I DS bilim limset_spoke limset_spoke_commute.
+  Definition bilimit_cocone : cocone DS :=
+    Cocone DS bilimit limset_spoke limset_spoke_commute.
 
   Section bilimit_univ.
-    Variable YC:cocone hf I DS.
+    Variable YC:cocone DS.
 
-    Program Definition limord_univ : bilim ⇀ YC :=
-      Embedding hf bilim YC
+    Program Definition limord_univ : bilimit ⇀ YC :=
+      Embedding hf bilimit YC
         (fun x => let (i,x') := x in cocone_spoke YC i x')
         _ _ _ _.
     Next Obligation.
@@ -768,7 +808,7 @@ Section bilimit.
       simpl; intros; auto.
     Qed.
 
-    Lemma limord_univ_uniq (f:bilim ⇀ YC) :
+    Lemma limord_univ_uniq (f:bilimit ⇀ YC) :
       (forall i, cocone_spoke YC i ≈ f ∘ limset_spoke i) ->
       f ≈ limord_univ.
     Proof.
@@ -781,9 +821,8 @@ Section bilimit.
     Qed.
   End bilimit_univ.
 
-  Definition bilimit_construction : bilimit hf I DS bilimit_cocone :=
-    Bilimit hf I DS
-      bilimit_cocone
+  Definition bilimit_construction : is_bilimit DS bilimit_cocone :=
+    IsBilimit DS bilimit_cocone
       limord_univ
       limord_univ_commute
       limord_univ_uniq.
@@ -814,9 +853,9 @@ Qed.
 Arguments dir_sys_app [hf] [I] DS F.
 
 Program Definition cocone_app hf I (DS:directed_system hf I)
-  (CC:cocone hf I DS) (F:functor (EMBED hf) (EMBED hf))
-  : cocone hf I (dir_sys_app DS F) :=
-  Cocone hf I (dir_sys_app DS F) (F CC) (fun i => F@cocone_spoke CC i) _.
+  (CC:cocone DS) (F:functor (EMBED hf) (EMBED hf))
+  : cocone (dir_sys_app DS F) :=
+  Cocone (dir_sys_app DS F) (F CC) (fun i => F@cocone_spoke CC i) _.
 Next Obligation.
   simpl; intros.
   rewrite <- (Functor.compose F). 2: reflexivity.
@@ -826,9 +865,9 @@ Qed.
 Arguments cocone_app [hf] [I] [DS] CC F.
 
 Definition continuous_functor hf (F:functor (EMBED hf) (EMBED hf)) :=
-  forall I (DS:directed_system hf I) CC,
-    bilimit hf I DS CC ->
-    bilimit hf I (dir_sys_app DS F) (cocone_app CC F).
+  forall I (DS:directed_system hf I) (CC:cocone DS),
+    is_bilimit DS CC ->
+    is_bilimit (dir_sys_app DS F) (cocone_app CC F).
 Arguments continuous_functor [hf] F.
 
 Require Import Arith.
@@ -869,21 +908,6 @@ Section fixpoint.
     inversion Hij.
   Qed.
 
-  Program Definition empty_bang X : empty_plt true ⇀ X :=
-    Embedding true (empty_plt true) X (fun x => False_rect _ x) _ _ _ _.
-  Next Obligation.
-    intros. elim a.
-  Qed.
-  Next Obligation.
-    intros. elim a.
-  Qed.
-  Next Obligation.
-    intros. auto.
-  Qed.
-  Next Obligation.
-    intros. elim a.
-  Qed.
-
   Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i ⇀ iterF j :=
     match i as i' return forall (j:nat) (Hij:i' <= j), iterF i' ⇀ iterF j with
     | O => fun j Hij => empty_bang _
@@ -908,13 +932,12 @@ Section fixpoint.
     DirSys true nat_ord nat_eff (nat_dir true) iterF iter_hom _ _.
   Next Obligation.      
     induction i; simpl; intros.
-    split; hnf; intros.
-    elim x. elim x.
+    apply embed_lift'. intro x; elim x.
     apply Functor.ident; auto.
   Qed.
   Next Obligation.
     induction i. simpl; intros.
-    split; hnf; intro x; elim x.
+    apply embed_lift'. intro x; elim x.
     intros. destruct j.
     elimtype False. inversion Hij.
     destruct k.
@@ -924,7 +947,7 @@ Section fixpoint.
     reflexivity. auto.
   Qed.
 
-  Definition fixpoint := bilim true nat_ord kleene_chain.
+  Definition fixpoint := bilimit true nat_ord kleene_chain.
 
   Hypothesis Fcontinuous : continuous_functor F.
   
@@ -932,16 +955,14 @@ Section fixpoint.
       (bilimit_cocone true nat_ord kleene_chain)
       (bilimit_construction true nat_ord kleene_chain).
 
-  Program Definition cocone_up : 
-    cocone true nat_ord (dir_sys_app kleene_chain F)
-    := Cocone _ _ _ _
+  Program Definition cocone_plus1 : 
+    cocone (dir_sys_app kleene_chain F)
+    := Cocone _
+      fixpoint
       (fun i => limset_spoke _ _ kleene_chain (S i)) _.
   Next Obligation.
     simpl; intros.
-    cut (forall x,
-      limset_spoke true nat_ord kleene_chain (S i) x
-      ≈ limset_spoke true nat_ord kleene_chain (S j) ((F @ iter_hom i j Hij) x)).
-    intro H. split; intro x; destruct (H x); auto.
+    apply embed_lift'.
     simpl; intros.
     split; hnf; simpl.
     exists (S j).
@@ -970,11 +991,8 @@ Section fixpoint.
       (gt_S_le i j (le_n_S i j Hij))); auto.
   Qed.
 
-  Definition fixpoint_roll : F fixpoint ⇀ fixpoint := bilim_univ BL cocone_up.
-
-
   Definition fixpoint_alg : alg (EMBED true) F
-    := Alg (fixpoint : ob (EMBED true)) fixpoint_roll.
+    := @Alg _ F fixpoint (bilim_univ BL cocone_plus1).
 
   Section cata.
     Variable AG : alg (EMBED true) F.
@@ -989,21 +1007,11 @@ Section fixpoint.
       cata_hom' i ≈ cata_hom' j ∘ (iter_hom i j Hij).
     Proof.
       induction i; intros.
-      split; hnf; intros x; elim x.
+      apply embed_lift'. intro x; elim x.
       destruct j. inversion Hij.
       simpl.
-      split; hnf; intro.
-      simpl. apply embed_mono.
-      change ((F@cata_hom' i) x ≤
-        (F @ cata_hom' j ∘ F @ iter_hom i j (gt_S_le i j Hij)) x).
-      apply embed_unlift.
-      rewrite <- (Functor.compose F).
-      2: reflexivity.
-      rewrite IHi; eauto.
-      simpl. apply embed_mono.
-      change ((F @ cata_hom' j ∘ F @ iter_hom i j (gt_S_le i j Hij)) x
-        ≤ (F@cata_hom' i) x).
-      apply embed_unlift.
+      rewrite <- (cat_assoc (Alg.iota AG)).
+      apply cat_respects; auto.
       rewrite <- (Functor.compose F).
       2: reflexivity.
       rewrite IHi; eauto.
@@ -1092,8 +1100,8 @@ Section fixpoint.
     Qed.      
 
     Program Definition AG_cocone :
-      cocone true nat_ord (dir_sys_app kleene_chain F) :=
-      Cocone _ _ _ _ (fun i => cata_hom' (S i)) _.
+      cocone (dir_sys_app kleene_chain F) :=
+        Cocone _ (Alg.carrier AG) (fun i => cata_hom' (S i)) _.
     Next Obligation.
       simpl; intros.
       rewrite (cata_hom_iter_hom i j Hij).
@@ -1105,34 +1113,31 @@ Section fixpoint.
     Program Definition cata_alg_hom : Alg.alg_hom fixpoint_alg AG :=
       Alg.Alg_hom cata_hom _.
     Next Obligation.
-      simpl. unfold fixpoint_roll.
+      simpl.
       generalize (bilim_uniq BL AG_cocone).
       intros.
-      rewrite (H (cata_hom ∘ bilim_univ BL cocone_up)).
+      rewrite (H (cata_hom ∘ bilim_univ BL cocone_plus1)).
       symmetry. apply H.
 
       intros. simpl.
       rewrite <- (cat_assoc (Alg.iota AG)).
       rewrite <- (Functor.compose F). 2: reflexivity.
-      assert (cata_hom' i ≈ cata_hom ∘ limset_spoke _ _ kleene_chain i).
+      apply cat_respects; auto.
+      apply Functor.respects.
       split; hnf; simpl; auto.
-      rewrite <- H0; auto.
 
       intros.
       rewrite <- (cat_assoc cata_hom).
-      rewrite <- (bilim_commute BL cocone_up).
+      rewrite <- (bilim_commute BL cocone_plus1).
       split; hnf; simpl; auto.
     Qed.
-
   End cata.
 
   Program Definition fixpoint_initial : Alg.initial_alg (EMBED true) F :=
     Alg.Initial_alg fixpoint_alg cata_alg_hom _.
   Next Obligation.
     simpl; intros.
-    cut (forall x, Alg.hom_map h x ≈ cata_hom M x).
-    intro H. split; intro x; destruct (H x); auto.
-    
+    apply embed_lift'.
     simpl; intro x.
     destruct x as [i x].
     cut (Alg.hom_map h ∘ limset_spoke _ _ kleene_chain i ≈ cata_hom' M i).
@@ -1151,25 +1156,21 @@ Section fixpoint.
     simpl.
     intros.
     cut (limset_spoke true nat_ord kleene_chain (S i)
-      ≈ fixpoint_roll ∘ F @ limset_spoke true nat_ord kleene_chain i).
+      ≈ bilim_univ BL cocone_plus1 ∘ F @ limset_spoke true nat_ord kleene_chain i).
     intros.
     split; hnf; intros; simpl; apply (embed_mono h).
     destruct H0. apply (H0 x).
     destruct H0. apply (H1 x).
-    unfold fixpoint_roll.
-    generalize (bilim_commute BL cocone_up). simpl; intros.
-    apply (H0 i).
+    apply (bilim_commute BL cocone_plus1).
   Qed.
   
   Program Definition fixpoint_iso :
     F fixpoint ↔ fixpoint :=
 
     Isomorphism (EMBED true) (F fixpoint) fixpoint 
-      fixpoint_roll (Alg.out _ F fixpoint_initial)
+      (bilim_univ BL cocone_plus1)
+      (Alg.out _ F fixpoint_initial)
       (Alg.out_in _ F fixpoint_initial)
       (Alg.in_out _ F fixpoint_initial).
 
 End fixpoint.
-
-Check fixpoint.
-Check fixpoint_iso.
