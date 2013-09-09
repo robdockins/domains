@@ -9,6 +9,7 @@ Require Import finsets.
 Require Import esets.
 Require Import effective.
 Require Import plotkin.
+Require Import profinite.
 
 (*FIXME*)
 Lemma use_ord (A:preord) (a b c d:A) :
@@ -19,233 +20,6 @@ Proof.
   transitivity c; auto.
 Qed.
 Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
-
-
-Module PLT.
-  Record class_of hf (A:Type) :=
-    Class
-    { cls_preord : Preord.mixin_of A
-    ; cls_ord := Preord.Pack A cls_preord
-    ; cls_effective : effective_order cls_ord
-    ; cls_plotkin : plotkin_order hf cls_ord
-    }.
-
-  Record ob hf := Ob { carrier :> Type; class : class_of hf carrier }.
-
-  Definition effective hf (X:ob hf) := cls_effective _ _ (class hf X).
-  Definition plotkin hf (X:ob hf)   := cls_plotkin _ _ (class hf X).
-  Definition ord hf (X:ob hf)       := cls_ord _ _ (class hf X).
-
-  Arguments effective [hf] X.
-  Arguments plotkin [hf] X.
-  Arguments ord [hf] X.
-
-  Canonical Structure ord.
-  Canonical Structure dec hf (X:ob hf) := eff_to_ord_dec (ord X) (effective X).
-
-  Arguments dec [hf] X.
-End PLT.
-Canonical Structure PLT.ord.
-Canonical Structure PLT.dec.
-Coercion PLT.ord : PLT.ob >-> preord.
-
-Program Definition empty_eff : effective_order emptypo :=
-  EffectiveOrder _ _ (fun x => None) _.
-Next Obligation.
-  intros. elim x.
-Qed.
-Next Obligation.
-  intros. elim x.
-Qed.
-
-Program Definition empty_plotkin hf : plotkin_order hf emptypo :=
-  PlotkinOrder hf emptypo _ (fun _ => nil) _ _ _.
-Next Obligation.
-  repeat intro. elim x.
-Qed.
-Next Obligation.
-  repeat intro. elim a.
-Qed.
-Next Obligation.  
-  repeat intro. elim x.
-Qed.
-Next Obligation.
-  repeat intro. elim a.
-Qed.
-
-Definition empty_plt hf : PLT.ob hf :=
-  PLT.Ob hf False (PLT.Class _ _ (Preord.mixin emptypo) empty_eff (empty_plotkin hf)).
-
-Record embedding (hf:bool) (A B:PLT.ob hf) :=
-  Embedding
-  { embed :> A -> B
-  ; embed_mono : forall a a', a ≤ a' -> embed a ≤ embed a'
-  ; embed_reflects : forall a a', embed a ≤ embed a' -> a ≤ a'
-  ; embed_directed0 : forall y,
-      if hf then True else exists x, embed x ≤ y
-  ; embed_directed2 : forall y a b,
-      embed a ≤ y ->
-      embed b ≤ y ->
-      exists c, embed c ≤ y /\ a ≤ c /\ b ≤ c
-  }.
-Arguments embed [hf] [A] [B] e a.
-Arguments embed_mono [hf] [A] [B] e _ _ _.
-Arguments embed_reflects [hf] [A] [B] e _ _ _.
-Arguments embed_directed0 [hf] [A] [B] e _.
-Arguments embed_directed2 [hf] [A] [B] e _ _ _ _ _.
-
-Program Definition embed_ident (hf:bool) (A:PLT.ob hf) : embedding hf A A :=
-  Embedding hf A A (fun x => x) _ _ _ _.
-Solve Obligations using (intros; auto).
-Next Obligation.
-  intros. destruct hf; auto. exists y; auto.
-Qed.
-Next Obligation.
-  intros. exists y. intuition.
-Qed.
-
-Program Definition embed_compose (hf:bool) A B C
-  (g:embedding hf B C) (f:embedding hf A B) : embedding hf A C :=
-  Embedding hf A C (fun x => embed g (embed f x)) _ _ _ _.
-Next Obligation.  
-  intros. apply embed_mono. apply embed_mono. auto.
-Qed.
-Next Obligation.
-  intros. apply (embed_reflects f). apply (embed_reflects g); auto.
-Qed.
-Next Obligation.
-  intros. 
-  generalize (refl_equal hf).
-  pattern hf at 2. case hf; intros.
-  pattern hf at 1. rewrite H. auto.
-  pattern hf at 1. rewrite H.
-  generalize (embed_directed0 g y).
-  rewrite H at 1.
-  intros [q ?].
-  generalize (embed_directed0 f q).
-  rewrite H at 1.
-  intros [q' ?].
-  exists q'.
-  transitivity (embed g q); auto.
-  apply embed_mono. auto.
-Qed.
-Next Obligation.
-  intros.
-  destruct (embed_directed2 g y (embed f a) (embed f b)) as [c [?[??]]]; auto.
-  destruct (embed_directed2 f c a b) as [q [?[??]]]; auto.
-  exists q. split; auto.
-  transitivity (embed g c); auto.
-  apply embed_mono; auto.
-Qed.
-  
-Definition embed_order hf A B (E G:embedding hf A B) :=
-  forall x, embed E x ≤ embed G x.
-
-Program Definition embed_order_mixin hf A B : Preord.mixin_of (embedding hf A B) :=
-  Preord.Mixin (embedding hf A B) (embed_order hf A B) _ _ .
-Solve Obligations using (unfold embed_order; intros; eauto).
-
-Canonical Structure embed_ord hf A B :=
-  Preord.Pack (embedding hf A B) (embed_order_mixin hf A B).
-
-Definition embed_comp_mixin hf :=
-    (Comp.Mixin _ _ (embed_ident hf) (embed_compose hf)).
-
-Canonical Structure embed_comp hf :=
-  Comp.Pack (PLT.ob hf) (embedding hf) (embed_comp_mixin hf).
-
-Program Definition embed_func {hf A B} (E:embedding hf A B) : PLT.ord A → PLT.ord B :=
-  Preord.Hom A B (embed E) (embed_mono E).
-Coercion embed_func : embedding >-> hom.
-
-Program Definition embed_cat_class hf :
-  Category.class_of (PLT.ob hf) (embedding hf) :=
-  Category.Class _ _
-    (fun A B => (Preord.ord_eq (embed_ord hf A B)))
-    (embed_comp_mixin hf) _.
-Next Obligation.
-  intros. constructor.
-
-  intros. split; hnf; simpl; intros; auto.
-  intros. split; hnf; simpl; intros; auto.
-  intros. split; hnf; simpl; intros; auto.
-  intros. split; hnf; simpl; intros.
-  transitivity (embed f' (embed g x)).
-  destruct H. apply H.
-  apply embed_mono.  
-  destruct H0. apply H0.
-  transitivity (embed f' (embed g x)).
-  apply embed_mono.
-  destruct H0. apply H1.
-  destruct H. apply H1.
-Qed.
-
-Definition EMBED hf :=
-  Category (PLT.ob hf) (embedding hf) (embed_cat_class hf).
-
-Notation "A ⇀ B" := (hom (EMBED _) A B) (at level 70, no associativity).
-
-Add Parametric Morphism hf A B :
-  (@embed hf A B) with signature
-        (@Preord.ord_op (embed_ord hf A B)) ==>
-        (@Preord.ord_op A) ==>
-        (@Preord.ord_op B)
-    as embed_morphism.
-Proof.
-  intros.
-  transitivity (y x0).
-  apply H. apply embed_mono. auto.
-Qed.
-
-Add Parametric Morphism hf A B :
-  (@embed hf A B) with signature
-        (@eq_op (CAT_EQ (EMBED hf) A B)) ==>
-        (@eq_op (Preord_Eq A)) ==>
-        (@eq_op (Preord_Eq B))
-    as embed_eq_morphism.
-Proof.
-  intros. split; apply embed_morphism; auto.
-Qed.
-
-Lemma embed_unlift hf (A B:PLT.ob hf) (f g:A ⇀ B) x :
-  f ≤ g -> f x ≤ g x.
-Proof.
-  intros. apply H; auto.
-Qed.
-
-Lemma embed_unlift' hf (A B:PLT.ob hf) (f g:A ⇀ B) x :
-  f ≈ g -> f x ≈ g x.
-Proof.
-  intros. 
-  destruct H; split; auto.
-Qed.
-
-Lemma embed_lift hf (A B:PLT.ob hf) (f g:A ⇀ B) :
-  (forall x, f x ≤ g x) -> f ≤ g.
-Proof.
-  repeat intro; auto.
-Qed.  
-
-Lemma embed_lift' hf (A B:PLT.ob hf) (f g:A ⇀ B) :
-  (forall x, f x ≈ g x) -> f ≈ g.
-Proof.
-  intros; split; hnf; auto.
-Qed.  
-
-Program Definition empty_bang X : empty_plt true ⇀ X :=
-  Embedding true (empty_plt true) X (fun x => False_rect _ x) _ _ _ _.
-Next Obligation.
-  intros. elim a.
-Qed.
-Next Obligation.
-  intros. elim a.
-Qed.
-Next Obligation.
-  intros. auto.
-Qed.
-Next Obligation.
-  intros. elim a.
-Qed.
 
 
 Record directed_system (hf:bool) (I:preord) :=
@@ -289,6 +63,7 @@ Arguments IsBilimit [hf] [I] DS XC _ _ _.
 Arguments bilim_univ [hf] [I] [DS] [XC] _ YC.
 Arguments bilim_commute [hf] [I] [DS] [XC] _ _ _.
 Arguments bilim_uniq [hf] [I] [DS] [XC] _ YC f _.
+
 
 Section bilimit.
   Variable hf:bool.
@@ -1101,7 +876,7 @@ Section fixpoint.
 
     Program Definition AG_cocone :
       cocone (dir_sys_app kleene_chain F) :=
-        Cocone _ (Alg.carrier AG) (fun i => cata_hom' (S i)) _.
+        Cocone _ _ (fun i => cata_hom' (S i)) _.
     Next Obligation.
       simpl; intros.
       rewrite (cata_hom_iter_hom i j Hij).
