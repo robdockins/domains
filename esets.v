@@ -224,7 +224,7 @@ Definition eprod {A B} (P:eset A) (Q:eset B) : eset (prod_preord A B) :=
     | _, _ => None
     end.
 
-Lemma elem_union2 : forall A (P Q:eset A) x,
+Lemma union2_elem : forall A (P Q:eset A) x,
   x ∈ (union2 P Q) <-> (x ∈ P \/ x ∈ Q).
 Proof.
   intros. split; intro.
@@ -248,7 +248,7 @@ Proof.
   exists (Npos (xI p)); auto.
 Qed.
 
-Lemma elem_esum_left :  forall A B (P:eset A) (Q:eset B) x,
+Lemma esum_left_elem :  forall A B (P:eset A) (Q:eset B) x,
   (inl B x) ∈ (esum P Q) <-> x ∈ P.
 Proof.
   intuition.
@@ -290,7 +290,7 @@ Proof.
   rewrite H0 in H. elim H.
 Qed.
 
-Lemma elem_esum_right :  forall (A B:preord) (P:eset A) (Q:eset B) (y:B),
+Lemma esum_right_elem :  forall (A B:preord) (P:eset A) (Q:eset B) (y:B),
   (inr _ y) ∈ (esum P Q) <-> y ∈ Q.
 Proof.
   intuition.
@@ -332,7 +332,7 @@ Proof.
   rewrite H0 in H. elim H.
 Qed.
 
-Lemma elem_eprod : forall (A B:preord) (P:eset A) (Q:eset B) (x:A) (y:B),
+Lemma eprod_elem : forall (A B:preord) (P:eset A) (Q:eset B) (x:A) (y:B),
   (x,y) ∈ (eprod P Q) <-> x ∈ P /\ y ∈ Q.
 Proof.
   intros. split; intros.
@@ -622,7 +622,7 @@ Next Obligation.
   apply empty_elem in H. auto.
 Qed.
 
-Program Definition semidec_dij (A:preord) (P Q:A ->Prop) (HP:semidec P) (HQ:semidec Q)
+Program Definition semidec_disj (A:preord) (P Q:A ->Prop) (HP:semidec P) (HQ:semidec Q)
   : semidec (fun x => P x \/ Q x)
   := Semidec _ _ (fun x => union2 (decset P HP x) (decset Q HQ x)) _ _.
 Next Obligation.
@@ -632,13 +632,13 @@ Next Obligation.
 Qed.
 Next Obligation.
   intuition.
-  apply elem_union2 in H.
+  apply union2_elem in H.
   destruct H.
   apply decset_correct in H. auto.
   apply decset_correct in H. auto.
-  apply elem_union2.
+  apply union2_elem.
   left. apply decset_correct. auto.
-  apply elem_union2.
+  apply union2_elem.
   right. apply decset_correct. auto.
 Qed.
 
@@ -763,7 +763,7 @@ Next Obligation.
   apply empty_elem in H0. elim H0.
   destruct H0 as [a [??]]. destruct H0 as [?[??]]. elim H0.
   split; simpl; intros.
-  apply elem_union2 in H0.
+  apply union2_elem in H0.
   destruct H0.
   apply decset_correct in H0.
   exists a. split; auto.
@@ -776,10 +776,10 @@ Next Obligation.
   destruct H0 as [b [??]].
   destruct H0 as [q[??]].
   destruct H0; subst.
-  apply elem_union2.
+  apply union2_elem.
   left. apply decset_correct; auto.
   apply decset_prop_ok with b; auto.
-  apply elem_union2.
+  apply union2_elem.
   right. apply IHa.
   exists b. split; auto.
   exists q. split; auto.

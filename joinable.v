@@ -346,7 +346,7 @@ Next Obligation.
   apply finsubsets_complete.
   red; intros.
   destruct a as [a b].
-  apply elem_eprod.
+  apply eprod_elem.
   split; apply eff_complete.
   destruct H0 as [n ?].
   exists n.

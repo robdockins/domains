@@ -621,26 +621,26 @@ Defined.
 Next Obligation.
   simpl; intros. intuition. subst x.
   exists None.
-  apply elem_union2.
+  apply union2_elem.
   left. apply single_axiom. auto.
-  apply elem_union2 in H.
-  apply elem_union2 in H0.
+  apply union2_elem in H.
+  apply union2_elem in H0.
   intuition.
   apply single_axiom in H.
   apply single_axiom in H1.
   exists None.
   split.
-  apply elem_union2. left. apply single_axiom. auto.
+  apply union2_elem. left. apply single_axiom. auto.
   split; auto.
   apply single_axiom in H1.
   exists b. split; auto.
-  apply elem_union2. right; auto.
+  apply union2_elem. right; auto.
   split; auto.
   transitivity (@None (ab_ord _ AB)).
   destruct H1; auto. hnf. auto.
   apply single_axiom in H.
   exists a.
-  split. apply elem_union2. right; auto.
+  split. apply union2_elem. right; auto.
   split; auto.
   transitivity (@None (ab_ord _ AB)).
   destruct H; auto.
@@ -654,7 +654,7 @@ Next Obligation.
   destruct (H3 y1 y2) as [y3 [?[??]]]; auto.
   exists (liftup (ab_ord _ AB)#y3).
   split.
-  apply elem_union2. right.
+  apply union2_elem. right.
   apply image_axiom1. auto.
   split.
   transitivity (liftup _#y2).
@@ -668,7 +668,7 @@ Next Obligation.
   simpl. intuition.
   destruct k; simpl.
   red; simpl.
-  apply elem_union2.
+  apply union2_elem.
   destruct x. red in H. simpl in H.
   right.
   apply (image_axiom1 _ _ _ (liftup _) (proj1_sig (ab_enum _ AB a))).
@@ -683,7 +683,7 @@ Next Obligation.
   red; simpl.
   red in H.
   simpl in H.
-  apply elem_union2 in H.
+  apply union2_elem in H.
   destruct H.
   apply single_axiom in H.
   destruct H. elim H.

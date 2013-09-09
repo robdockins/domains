@@ -31,7 +31,7 @@ Proof.
   apply esubset_dec_elem.
   clear; intros. destruct H as [[??][??]]; eauto.
   split; auto.
-  apply elem_eprod. split; apply eff_complete.
+  apply eprod_elem. split; apply eff_complete.
 Qed.
 
 Lemma compose_elem A B C (HBeff:effective_order B) (S:erel B C) (R:erel A B) :
@@ -47,7 +47,7 @@ Proof.
   destruct H.
   simpl in H1.
   simpl in H0.
-  apply elem_eprod in H.
+  apply eprod_elem in H.
   destruct H.
   destruct p as [m n].
   destruct q as [r s].
@@ -73,7 +73,7 @@ Proof.
   destruct H as [[[??][??]][[??][??]]].
   eauto.
   split.
-  apply elem_eprod; auto.
+  apply eprod_elem; auto.
   simpl. auto.
 Qed.
 
@@ -87,7 +87,7 @@ Proof.
   apply esubset_dec_elem.
   clear. intros. destruct H as [[??][??]]; eauto.
   split; simpl; auto.
-  apply elem_eprod; split; apply eff_complete.
+  apply eprod_elem; split; apply eff_complete.
   transitivity y; auto.
   transitivity x; auto.
   clear. intros. destruct H as [[??][??]]; eauto.
@@ -112,7 +112,7 @@ Proof.
   apply esubset_dec_elem.
   clear; intros. destruct H as [[??][??]]; eauto.
   split; auto.
-  apply elem_eprod; split; apply eff_complete.
+  apply eprod_elem; split; apply eff_complete.
 Qed.  
 
 Lemma compose_ordering A B C (HBeff:effective_order B) (S:erel B C) (R:erel A B) :
@@ -127,7 +127,7 @@ Proof.
   apply esubset_dec_elem in H3.
   destruct H3.
   destruct q as [q1 q2].
-  apply elem_eprod in H3.
+  apply eprod_elem in H3.
   simpl in H5.
   simpl in H4.
   destruct H3.
@@ -147,7 +147,7 @@ Proof.
   clear. intros.
   destruct H as [[[??][??]][[??][??]]]; eauto.
   split; simpl; auto.
-  apply elem_eprod. split; auto.
+  apply eprod_elem. split; auto.
   clear. intros.
   destruct H as [[[??][??]][[??][??]]]; eauto.
 Qed.  
@@ -270,13 +270,13 @@ Proof.
   apply esubset_dec_elem in H.
   destruct H.
   destruct q as [q1 q2]; simpl in *.
-  apply elem_eprod in H. destruct H.
+  apply eprod_elem in H. destruct H.
   apply image_axiom2 in H.
   destruct H as [q' [??]].
   apply esubset_dec_elem in H.
   destruct H.
   destruct q' as [q1' q2']. simpl in *.
-  apply elem_eprod in H. destruct H.
+  apply eprod_elem in H. destruct H.
   assert ((a:A×D) ≈ (fst q1', snd q2)).
   rewrite H0.
   split; split; simpl; auto.
@@ -291,7 +291,7 @@ Proof.
   intros. destruct H as [[[??][??]][[??][??]]].
   eauto.
   split.
-  apply elem_eprod. split.
+  apply eprod_elem. split.
   auto.
   change (fst q2',snd q2) with
     ((mk_pair (π₁ ∘ π₁) (π₂ ∘ π₂))# ((q2',q2) : (B×C)×(C×D))).
@@ -300,7 +300,7 @@ Proof.
   clear. intros.
   destruct H as [[[??][??]][[??][??]]]; eauto.
   split; simpl; auto.
-  apply elem_eprod; auto.
+  apply eprod_elem; auto.
   transitivity (snd q1); auto.
   rewrite H0 in H6.
   destruct H3.
@@ -315,12 +315,12 @@ Proof.
   destruct H as [q [??]].
   apply esubset_dec_elem in H. destruct H.
   destruct q as [q1 q2].
-  apply elem_eprod in H. destruct H.
+  apply eprod_elem in H. destruct H.
   apply image_axiom2 in H2.
   destruct H2 as [q' [??]].
   apply esubset_dec_elem in H2. destruct H2.
   destruct q' as [q1' q2'].
-  apply elem_eprod in H2. destruct H2.
+  apply eprod_elem in H2. destruct H2.
   simpl in *.
   assert ((a:A×D) ≈ 
     (mk_pair (π₁ ∘ π₁) (π₂ ∘ π₂))#
@@ -336,7 +336,7 @@ Proof.
   clear. intros.
   destruct H as [[[??][??]][[??][??]]]; eauto.
   split; simpl; auto.
-  apply elem_eprod. split; auto.
+  apply eprod_elem. split; auto.
   change (fst q1, snd q1') with
     ((mk_pair (π₁ ∘ π₁) (π₂ ∘ π₂))#
      ((q1, q1'):((A×B)×(B×C)))).
@@ -345,7 +345,7 @@ Proof.
   clear. intros.
   destruct H as [[[??][??]][[??][??]]]; eauto.
   split; simpl; auto.
-  apply elem_eprod; auto.
+  apply eprod_elem; auto.
   transitivity (fst q2); auto.
   destruct H3.
   destruct H7; auto.
@@ -367,7 +367,7 @@ Proof.
   apply esubset_dec_elem in H0.
   destruct H0.
   destruct q.
-  apply elem_eprod in H0. destruct H0.
+  apply eprod_elem in H0. destruct H0.
   simpl in *.
   unfold ident_rel in H0.
   apply esubset_dec_elem in H0.
@@ -395,13 +395,13 @@ Proof.
   clear.
   intros. destruct H as [[[??][??]][[??][??]]]. eauto.
   simpl; split; auto.
-  apply elem_eprod. split; auto.
+  apply eprod_elem. split; auto.
   unfold ident_rel.
   apply esubset_dec_elem.
   clear.
   intros. destruct H as [[??][??]]. eauto.
   split; simpl; auto.
-  apply elem_eprod; split; apply eff_complete; auto.
+  apply eprod_elem; split; apply eff_complete; auto.
 Qed.
 
 Lemma compose_ident_rel1 : forall A B HAeff (f:erel A B),
@@ -416,7 +416,7 @@ Proof.
   apply esubset_dec_elem in H0.
   destruct H0.
   destruct q.
-  apply elem_eprod in H0. destruct H0.
+  apply eprod_elem in H0. destruct H0.
   simpl in *.
   unfold ident_rel in H3.
   apply esubset_dec_elem in H3.
@@ -450,13 +450,13 @@ Proof.
   destruct H3. destruct H3. destruct H7.
   eauto.
   simpl; split; auto.
-  apply elem_eprod. split; auto.
+  apply eprod_elem. split; auto.
   unfold ident_rel.
   apply esubset_dec_elem.
   intros.
   destruct H1. destruct H1. destruct H3. eauto.
   split; simpl; auto.
-  apply elem_eprod; split; apply eff_complete; auto.
+  apply eprod_elem; split; apply eff_complete; auto.
 Qed.
 
 
@@ -542,8 +542,8 @@ Proof.
   apply esubset_dec_elem.
   apply apply_acceptable_ok.
   split.
-  apply elem_eprod. split.
-  apply elem_eprod.
+  apply eprod_elem. split.
+  apply eprod_elem.
   split; apply eff_complete.
   apply eff_complete.
   red. eauto.
@@ -675,8 +675,8 @@ Proof.
   unfold apply_rel.
   apply esubset_dec_elem.
   apply apply_acceptable_ok.
-  split. apply elem_eprod. split.
-  apply elem_eprod. split; apply eff_complete. apply eff_complete.
+  split. apply eprod_elem. split.
+  apply eprod_elem. split; apply eff_complete. apply eff_complete.
   red. exists x. exists y.
   split; auto.
 Qed.
@@ -718,8 +718,8 @@ Proof.
   clear; intros. destruct H as [[??][??]]. destruct H.
   simpl in *; eauto.
   split; auto.
-  apply elem_eprod. split.
-  apply elem_eprod. split; apply eff_complete.
+  apply eprod_elem. split.
+  apply eprod_elem. split; apply eff_complete.
   apply eff_complete.
 Qed.
 
@@ -737,8 +737,8 @@ Proof.
   clear; intros. destruct H as [[??][??]]. destruct H.
   simpl in *; eauto.
   split; auto.
-  apply elem_eprod. split.
-  apply elem_eprod. split; apply eff_complete.
+  apply eprod_elem. split.
+  apply eprod_elem. split; apply eff_complete.
   apply eff_complete.
 Qed.
 
@@ -753,7 +753,7 @@ Proof.
   destruct q.
   apply esubset_dec_elem in H. simpl in H0.
   destruct H. simpl in H1.
-  apply elem_eprod in H.
+  apply eprod_elem in H.
   destruct H. split.
   apply member_eq with c0; auto.
   destruct H0 as [[??][??]]. simpl in*.
@@ -781,7 +781,7 @@ Proof.
   destruct H as [[[??][??]][[??][??]]].
   split; eauto.
   split.
-  apply elem_eprod. auto.
+  apply eprod_elem. auto.
   simpl. auto.
 Qed.
 
@@ -1121,7 +1121,7 @@ Proof.
   destruct H as [[[x y][z w]] [??]].
   simpl in H0.
 
-  apply elem_eprod in H.
+  apply eprod_elem in H.
   destruct H.
   destruct H0 as [[[??][??]][[??][??]]]. simpl in *.
   split.
@@ -1131,7 +1131,7 @@ Proof.
   unfold pair_rel'.
   apply image_axiom1'.
   exists ((a,c),(b,d)). split; simpl; auto.
-  apply elem_eprod. auto.
+  apply eprod_elem. auto.
 Qed.    
 
 Lemma pair_rel_order' A B C D (R:erel A B) (S:erel C D)
@@ -1358,7 +1358,7 @@ Section curry.
     apply H1 in H0. auto.
     unfold curry_rel.
     apply esubset_elem. split.
-    apply elem_eprod.
+    apply eprod_elem.
     split; apply eff_complete.
     red; simpl; intros.
     destruct ab. simpl.
@@ -1591,7 +1591,7 @@ Section curry.
     apply esubset_dec_elem in H. destruct H.
     destruct q as [q1 q2].
     simpl in H1.
-    apply elem_eprod in H. destruct H.
+    apply eprod_elem in H. destruct H.
     rewrite H0.
     simpl.
     unfold pair_rel' in H.
@@ -1599,7 +1599,7 @@ Section curry.
     destruct H as [q' [??]].
     simpl in H3.
     destruct q' as [q1' q2']. simpl in H3.
-    apply elem_eprod in H. destruct H.
+    apply eprod_elem in H. destruct H.
     unfold ident_rel in H4.
     apply esubset_dec_elem in H4. destruct H4.
     clear H4.    
@@ -1690,7 +1690,7 @@ Section curry.
     clear. intros.
     destruct H as [[[??][??]][[??][??]]]; eauto.
     split; simpl; auto.
-    apply elem_eprod. split.
+    apply eprod_elem. split.
     unfold pair_rel'.
     change (c,a,(S,a)) with
       ((mk_pair (mk_pair (π₁ ∘ π₁) (π₁ ∘ π₂)) (mk_pair (π₂ ∘ π₁) (π₂ ∘ π₂)))
@@ -1699,7 +1699,7 @@ Section curry.
       :  (C × joinable_rel_order hf A B) × (A×A)
       )).
     apply image_axiom1.
-    apply elem_eprod. split.
+    apply eprod_elem. split.
     rewrite curry_rel_elem.
     intros.
     destruct H0; auto.
@@ -1707,7 +1707,7 @@ Section curry.
     apply esubset_dec_elem.
     clear. intros. destruct H as [[??][??]]; eauto.
     split; simpl; auto.
-    apply elem_eprod. split; apply eff_complete.
+    apply eprod_elem. split; apply eff_complete.
     apply apply_rel_elem.
     exists a. exists b. intuition.
   Qed.

@@ -882,7 +882,7 @@ Section alg.
     reflexivity. reflexivity.
   Qed.    
 
-  Lemma initial_inj_injective : forall (I:initial_alg) B (g h: I → B),
+  Lemma initial_inj_epic : forall (I:initial_alg) B (g h: I → B),
     g ∘ iota I ≈ h ∘ iota I ->
     g ≈ h.
   Proof.
@@ -937,7 +937,7 @@ Section forget.
   Variable (C:category).
   Variable (F:functor C C).
 
-  Program Definition forget  : functor (ALG F) C :=
+  Program Definition forget : functor (ALG F) C :=
     Functor (ALG F) C (@carrier C F) (@hom_map C F) _ _ _.
 End forget.
 Arguments forget [C] F.

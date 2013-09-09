@@ -187,7 +187,7 @@ Qed.
 Next Obligation.
   intros.
   destruct x as [a b].
-  apply elem_eprod.
+  apply eprod_elem.
   split; apply eff_complete.
 Qed.
 
@@ -206,7 +206,7 @@ Next Obligation.
 Qed.
 Next Obligation.
   intros. unfold enum_lift.
-  apply elem_union2.
+  apply union2_elem.
   destruct x. right.
   apply image_axiom1'. exists c. split; auto.
   apply eff_complete.

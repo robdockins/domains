@@ -128,8 +128,8 @@ Lemma liftPPLT_rel_elem X Y HX f :
 Proof.
   unfold liftPPLT_rel.
   intuition.
-  apply elem_union2 in H. destruct H.
-  apply elem_union2 in H. destruct H.
+  apply union2_elem in H. destruct H.
+  apply union2_elem in H. destruct H.
   apply single_axiom in H.
   left.
   destruct H as [[??][??]]; split; auto.
@@ -145,9 +145,9 @@ Proof.
   exists p. exists q.
   split; auto.
   destruct H0 as [[??][??]]; split; split; auto.
-  apply elem_union2.
+  apply union2_elem.
   left.
-  apply elem_union2.
+  apply union2_elem.
   destruct x.
   right.
   apply image_axiom1'.
@@ -158,7 +158,7 @@ Proof.
   apply single_axiom.
   split; split; auto.
   destruct H0 as [a [b [?[??]]]].
-  apply elem_union2. right.
+  apply union2_elem. right.
   apply image_axiom1'.
   exists (a,b). split; auto.
   simpl.
@@ -387,7 +387,7 @@ Lemma adj_unit_rel_elem X HX x x' :
 Proof.
   unfold adj_unit_rel.
   split; intros.
-  apply elem_union2 in H.
+  apply union2_elem in H.
   destruct H.
   apply image_axiom2 in H.
   destruct H as [y [??]].
@@ -408,7 +408,7 @@ Proof.
   destruct H1 as [[??][??]].
   transitivity (snd x0); auto.
   transitivity (fst x0); auto.
-  apply elem_union2.
+  apply union2_elem.
   destruct x'.
   right.
   apply image_axiom1'.
@@ -420,7 +420,7 @@ Proof.
   transitivity (snd x0); auto.
   transitivity (fst x0); auto.
   split; auto.
-  apply elem_eprod. split; apply eff_complete.
+  apply eprod_elem. split; apply eff_complete.
   left.
   apply image_axiom1'.
   simpl. exists x. split; auto. apply eff_complete.
@@ -530,7 +530,7 @@ Proof.
   transitivity (snd x); auto.  
   transitivity (fst x); auto.  
   split; auto.
-  apply elem_eprod. split; apply eff_complete.
+  apply eprod_elem. split; apply eff_complete.
   elim H.
 Qed.
 

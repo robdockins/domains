@@ -15,6 +15,5 @@ ideal.v
 joinable.v
 approx_rels.v
 bilimit.v
-finord.v
 profinite.v
 profinite_adj.v

@@ -375,9 +375,9 @@ End finsubset.
     
 
 
-
 Definition fin_intersect (A:preord) (Hdec:ord_dec A) (X Y:finset A) : finset A
  := finsubset A (fun x => x ∈ X) (fun x => finset_dec A Hdec x X) Y.
+
 Lemma fin_intersect_elem : forall A Hdec X Y x,
   x ∈ fin_intersect A Hdec X Y <-> (x ∈ X /\ x ∈ Y).
 Proof.

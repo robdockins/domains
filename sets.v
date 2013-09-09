@@ -302,36 +302,30 @@ Definition lower_set {T:set.theory} {A:preord} (X:set T A) :=
 Definition upper_set {T:set.theory} {A:preord} (X:set T A) :=
   forall (a b:A), a ≤ b -> a ∈ X -> b ∈ X.
 
-Definition upper_bound 
-  {T:set.theory} {A:preord}
+Definition upper_bound {T:set.theory} {A:preord}
   (ub:A) (X:set T A) :=
   forall x, x ∈ X -> x ≤ ub.
 
-Definition lower_bound 
-  {T:set.theory} {A:preord}
+Definition lower_bound {T:set.theory} {A:preord}
   (lb:A) (X:set T A) :=
   forall x, x ∈ X -> lb ≤ x.
 
-Definition minimal_upper_bound
-  {T:set.theory} {A:preord}
+Definition minimal_upper_bound {T:set.theory} {A:preord}
   (mub:A) (X:set T A) :=
   upper_bound mub X /\
   (forall b, upper_bound b X -> b ≤ mub -> mub ≤ b).
   
-Definition maximal_lower_bound
-  {T:set.theory} {A:preord}
+Definition maximal_lower_bound {T:set.theory} {A:preord}
   (mlb:A) (X:set T A) :=
   lower_bound mlb X /\
   (forall b, lower_bound b X -> mlb ≤ b -> b ≤ mlb).
 
-Definition least_upper_bound 
-  {T:set.theory} {A:preord}
+Definition least_upper_bound {T:set.theory} {A:preord}
   (lub:A) (X:set T A) :=
   upper_bound lub X /\
   (forall b, upper_bound b X -> lub ≤ b).
 
-Definition greatest_lower_bound
-  {T:set.theory} {A:preord}
+Definition greatest_lower_bound {T:set.theory} {A:preord}
   (glb:A) (X:set T A) :=
   lower_bound glb X /\
   (forall b, lower_bound b X -> b ≤ glb).

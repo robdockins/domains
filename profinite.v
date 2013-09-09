@@ -834,7 +834,7 @@ Section ep_pairs.
       change (snd y0) with (π₂#y0).
       rewrite <- H0. auto.
       split; auto.
-      apply elem_eprod; split; apply eff_complete; auto.
+      apply eprod_elem; split; apply eff_complete; auto.
       unfold project_rel in H.
       apply esubset_dec_elem in H.
       destruct H; auto.
@@ -894,7 +894,7 @@ Section ep_pairs.
       change (snd y0) with (π₂#y0).
       rewrite <- H0. auto.
       split; auto.
-      apply elem_eprod; split; apply eff_complete; auto.
+      apply eprod_elem; split; apply eff_complete; auto.
       unfold embed_rel in H.
       apply esubset_dec_elem in H.
       destruct H; auto.
