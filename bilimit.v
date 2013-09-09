@@ -11,16 +11,6 @@ Require Import effective.
 Require Import plotkin.
 Require Import profinite.
 
-(*FIXME*)
-Lemma use_ord (A:preord) (a b c d:A) :
-  b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
-Proof.
-  intros.
-  transitivity b; auto.
-  transitivity c; auto.
-Qed.
-Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
-
 
 Record directed_system (hf:bool) (I:preord) :=
   DirSys
@@ -35,6 +25,7 @@ Record directed_system (hf:bool) (I:preord) :=
 Arguments ds_F [hf] [I] _ _.
 Arguments ds_hom [hf] [I] _ _ _ _.
 
+
 Record cocone (hf:bool) (I:preord) (DS:directed_system hf I) :=
   Cocone
   { cocone_point :> PLT.ob hf
@@ -47,6 +38,7 @@ Arguments Cocone [hf] [I] DS _ _ _.
 Arguments cocone_point [hf] [I] [DS] _.
 Arguments cocone_spoke [hf] [I] [DS] _ _.
 Arguments cocone_commute [hf] [I] [DS] _ _ _ _.
+
 
 Record is_bilimit (hf:bool) (I:preord) (DS:directed_system hf I) 
   (XC:cocone DS) :=
@@ -63,6 +55,52 @@ Arguments IsBilimit [hf] [I] DS XC _ _ _.
 Arguments bilim_univ [hf] [I] [DS] [XC] _ YC.
 Arguments bilim_commute [hf] [I] [DS] [XC] _ _ _.
 Arguments bilim_uniq [hf] [I] [DS] [XC] _ YC f _.
+
+
+Program Definition dir_sys_app hf I
+  (DS:directed_system hf I) 
+  (F:functor (EMBED hf) (EMBED hf))
+  :  directed_system hf I :=
+
+  DirSys hf I 
+    (ds_Ieff hf I DS)
+    (ds_Idir hf I DS)
+    (fun i => F (ds_F DS i))
+    (fun i j Hij => F@(ds_hom DS i j Hij))
+    _ _.
+Next Obligation.
+  intros.
+  apply Functor.ident.
+  apply ds_ident.
+Qed.
+Next Obligation.
+  intros.
+  rewrite <- Functor.compose.
+  reflexivity.
+  symmetry; apply ds_compose.
+Qed.  
+Arguments dir_sys_app [hf] [I] DS F.
+
+
+Program Definition cocone_app hf I (DS:directed_system hf I)
+  (CC:cocone DS) (F:functor (EMBED hf) (EMBED hf))
+  : cocone (dir_sys_app DS F) :=
+
+  Cocone (dir_sys_app DS F) (F CC) (fun i => F@cocone_spoke CC i) _.
+Next Obligation.
+  simpl; intros.
+  rewrite <- (Functor.compose F). 2: reflexivity.
+  rewrite <- (cocone_commute CC i j Hij).
+  auto.
+Qed.
+Arguments cocone_app [hf] [I] [DS] CC F.
+
+
+Definition continuous_functor hf (F:functor (EMBED hf) (EMBED hf)) :=
+  forall I (DS:directed_system hf I) (CC:cocone DS),
+    is_bilimit DS CC ->
+    is_bilimit (dir_sys_app DS F) (cocone_app CC F).
+Arguments continuous_functor [hf] F.
 
 
 Section bilimit.
@@ -108,10 +146,10 @@ Section bilimit.
   Qed.
 
   Record limset :=
-  LimSet
-  { idx : I
-  ; elem : ds_F DS idx
-  }.
+    LimSet
+    { idx : I
+    ; elem : ds_F DS idx
+    }.
 
   Definition limset_order (x y:limset) :=
     exists k (Hxk : idx x ≤ k) (Hyk : idx y ≤ k),
@@ -603,47 +641,6 @@ Section bilimit.
       limord_univ_uniq.
 End bilimit.
 
-Program Definition dir_sys_app hf I
-  (DS:directed_system hf I) 
-  (F:functor (EMBED hf) (EMBED hf))
-  :  directed_system hf I :=
-  DirSys hf I 
-    (ds_Ieff hf I DS)
-    (ds_Idir hf I DS)
-    (fun i => F (ds_F DS i))
-    (fun i j Hij => F@(ds_hom DS i j Hij))
-    _ _.
-Next Obligation.
-  intros.
-  apply Functor.ident.
-  apply ds_ident.
-Qed.
-Next Obligation.
-  intros.
-  rewrite <- Functor.compose.
-  reflexivity.
-  symmetry; apply ds_compose.
-Qed.  
-
-Arguments dir_sys_app [hf] [I] DS F.
-
-Program Definition cocone_app hf I (DS:directed_system hf I)
-  (CC:cocone DS) (F:functor (EMBED hf) (EMBED hf))
-  : cocone (dir_sys_app DS F) :=
-  Cocone (dir_sys_app DS F) (F CC) (fun i => F@cocone_spoke CC i) _.
-Next Obligation.
-  simpl; intros.
-  rewrite <- (Functor.compose F). 2: reflexivity.
-  rewrite <- (cocone_commute CC i j Hij).
-  auto.
-Qed.
-Arguments cocone_app [hf] [I] [DS] CC F.
-
-Definition continuous_functor hf (F:functor (EMBED hf) (EMBED hf)) :=
-  forall I (DS:directed_system hf I) (CC:cocone DS),
-    is_bilimit DS CC ->
-    is_bilimit (dir_sys_app DS F) (cocone_app CC F).
-Arguments continuous_functor [hf] F.
 
 Require Import Arith.
 Require Import NArith.

@@ -13,7 +13,7 @@ Require Import approx_rels.
 
 Module PLT.
 Section PLT.
-Variable hf:bool.
+  Variable hf:bool.
 
   Record class_of (A:Type) :=
     Class
@@ -282,6 +282,13 @@ Arguments PLT.effective [hf] X.
 Arguments PLT.plotkin [hf] X.
 Arguments PLT.ord [hf] X.
 Arguments PLT.dec [hf] X.
+Arguments PLT.pi1 [hf] [A] [B].
+Arguments PLT.pi2 [hf] [A] [B].
+Arguments PLT.pair [hf] [C] [A] [B] f g.
+Arguments PLT.prod [hf] A B.
+Arguments PLT.exp [hf] A B.
+Arguments PLT.app [hf] A B.
+Arguments PLT.curry [hf] C A B f.
 
 Coercion PLT.ord : PLT.ob >-> preord.
 Coercion PLT.carrier : PLT.ob >-> Sortclass.
@@ -994,7 +1001,7 @@ Section ep_pairs.
     eauto.
   Qed.
 
-  Lemma embed_ep_roundtrip2 : forall X Y (e : categories.hom (EMBED hf) X Y),
+  Lemma embed_ep_roundtrip2 : forall X Y (e : X ⇀ Y),
     e ≈ ep_embedding (embed_ep_pair e).
   Proof.
     intros. split; hnf; simpl; intros.

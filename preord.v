@@ -206,6 +206,16 @@ Qed.
 Hint Resolve ord_refl ord_trans ord_antisym preord_ord preord_eq eq_ord eq_ord'.
 
 
+Lemma use_ord (A:preord) (a b c d:A) :
+  b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
+Proof.
+  intros.
+  transitivity b; auto.
+  transitivity c; auto.
+Qed.
+Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
+
+
 Add Parametric Relation (T:preord) : (Preord.carrier T) (@Preord.ord_op T)
   reflexivity proved by (@ord_refl T)
   transitivity proved by (@ord_trans T)
