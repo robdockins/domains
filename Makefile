@@ -81,6 +81,7 @@ endif
 ######################
 
 VFILES:=profinite_adj.v\
+  cont_functors.v\
   profinite.v\
   bilimit.v\
   approx_rels.v\
@@ -88,6 +89,7 @@ VFILES:=profinite_adj.v\
   ideal.v\
   algebraic.v\
   cpo.v\
+  directed.v\
   plotkin.v\
   effective.v\
   esets.v\

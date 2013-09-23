@@ -5,6 +5,7 @@ Require Import sets.
 Require Import finsets.
 Require Import esets.
 Require Import effective.
+Require Import directed.
 Require Import plotkin.
 Require Import joinable.
 

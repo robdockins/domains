@@ -10,7 +10,8 @@ Require Import esets.
 Require Import effective.
 Require Import plotkin.
 Require Import profinite.
-
+Require Import directed.
+Require Import cpo.
 
 Record directed_system (hf:bool) (I:preord) :=
   DirSys
@@ -60,7 +61,7 @@ Arguments bilim_uniq [hf] [I] [DS] [XC] _ YC f _.
 Program Definition dir_sys_app hf I
   (DS:directed_system hf I) 
   (F:functor (EMBED hf) (EMBED hf))
-  :  directed_system hf I :=
+  : directed_system hf I :=
 
   DirSys hf I 
     (ds_Ieff hf I DS)
@@ -177,6 +178,12 @@ Section bilimit.
     rewrite <- (ds_compose hf I DS (idx x) k q Hxk H0 Hxq) in H2.
     rewrite <- (ds_compose hf I DS (idx y) k q Hyk H0 Hyq) in H2.
     simpl in H2.
+
+    (* FIXME? This might be the only actual use of this property,
+       and this lemma is used only in the decidability proof below.
+        
+       Can we get rid of it by being a little more clever?
+     *)
     apply embed_reflects in H2. auto.
 
     destruct (choose_ub (idx x) (idx y)) as [k [??]].
@@ -405,21 +412,33 @@ Section bilimit.
     subst x' y'.
     rewrite H3 in H1. rewrite H4 in H2.
     destruct H1 as [k' [Hkk' [Hzk' ?]]]. simpl in *.
-    rewrite limset_order_exists_forall in H2.
-    simpl in *.
-    generalize (H2 k' Hkk' Hzk'). intros.
-    destruct (embed_directed2 (ds_hom DS k k' Hkk')
-      (ds_hom DS (idx z) k' Hzk' (elem z)))
+
+    destruct H2 as [l [Hl1 [Hl2 ?]]]. simpl in *.
+    destruct (choose_ub k' l) as [m [Hm1 Hm2]].
+    assert (Hkm : k ≤ m). 
+    transitivity k'; auto.
+    assert (Hzm : idx z ≤ m).
+    transitivity k'; auto.
+
+    destruct (embed_directed2 (ds_hom DS k m Hkm)
+      (ds_hom DS (idx z) m Hzm (elem z)))
       with x'' y'' as [c [?[??]]]; auto.
+    rewrite <- (ds_compose _ _ DS k k' m Hkk' Hm1 Hkm).
+    rewrite <- (ds_compose _ _ DS (idx z) k' m Hzk' Hm1 Hzm).
+    simpl. apply embed_mono. auto.
+    rewrite <- (ds_compose _ _ DS k l m Hl1 Hm2 Hkm).
+    rewrite <- (ds_compose _ _ DS (idx z) l m Hl2 Hm2 Hzm).
+    simpl. apply embed_mono. auto.
+
     destruct (mub_complete (PLT.plotkin (ds_F DS k))
       (x''::y''::nil) c) as [c' [??]].
     apply elem_inh with x''. apply cons_elem; auto.
     hnf; simpl; intros.
-    apply cons_elem in H9. destruct H9.
-    rewrite H9; auto.
-    apply cons_elem in H9. destruct H9.
-    rewrite H9; auto.
-    apply nil_elem in H9. elim H9.
+    apply cons_elem in H8. destruct H8.
+    rewrite H8; auto.
+    apply cons_elem in H8. destruct H8.
+    rewrite H8; auto.
+    apply nil_elem in H8. elim H8.
     assert (c' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
     apply mub_clos_mub with (x''::y''::nil); auto.
 
@@ -436,42 +455,42 @@ Section bilimit.
 
     apply elem_inh with x''. apply cons_elem; auto.
     hnf; simpl; intros.
-    apply cons_elem in H11. destruct H11.
-    rewrite H11; auto.
+    apply cons_elem in H10. destruct H10.
+    rewrite H10; auto.
     exists x''; split; auto.
-    apply cons_elem in H11. destruct H11.
-    rewrite H11; auto.
+    apply cons_elem in H10. destruct H10.
+    rewrite H10; auto.
     exists y''; split; auto.
-    apply nil_elem in H11. elim H11.
-    destruct H11 as [c'' [??]].
+    apply nil_elem in H10. elim H10.
+    destruct H10 as [c'' [??]].
     exists (LimSet k c'').
     split.
     rewrite H3.
     exists k'. simpl. exists Hkk'. exists Hkk'.
     apply embed_mono; auto.
-    rewrite <- H12.
-    destruct H9.
-    apply H9. apply cons_elem; auto.
+    rewrite <- H11.
+    destruct H8.
+    apply H8. apply cons_elem; auto.
     split.
     rewrite H4.
     exists k'. simpl. exists Hkk'. exists Hkk'.
     apply embed_mono; auto.
-    rewrite <- H12.
-    destruct H9.
-    apply H9.
+    rewrite <- H11.
+    destruct H8.
+    apply H8.
     apply cons_elem. right.
     apply cons_elem. auto.
     apply finsubset_elem.
-    intros. rewrite <- H13; auto.
+    intros. rewrite <- H12; auto.
     split; auto.
     exists (LimSet k c'').
     split; auto.
     apply in_map. auto.
-    exists k'. simpl.
-    exists Hkk'. exists Hzk'.
-    transitivity (ds_hom DS k k' Hkk' c); auto.
+    exists m. simpl.
+    exists Hkm. exists Hzm.
+    transitivity (ds_hom DS k m Hkm c); auto.
     apply embed_mono.
-    rewrite <- H12; auto.
+    rewrite <- H11; auto.
     intros. rewrite <- H1. auto.
     intros. rewrite <- H1. auto.
   Qed.
@@ -613,7 +632,7 @@ Section bilimit.
     Qed.
 
     Lemma limord_univ_commute i :
-       cocone_spoke YC i ≈ limord_univ ∘ limset_spoke i.
+      cocone_spoke YC i ≈ limord_univ ∘ limset_spoke i.
     Proof.
       cut (forall x,
         cocone_spoke YC i x ≈ limord_univ (limset_spoke i x)).
@@ -639,35 +658,125 @@ Section bilimit.
       limord_univ
       limord_univ_commute
       limord_univ_uniq.
+
+  Program Definition ep_set : I → (PLT.hom_ord hf bilimit bilimit) :=
+    Preord.Hom _ _ 
+        (fun i => embed (embed_ep_pair (limset_spoke i)) ∘
+                  project (embed_ep_pair (limset_spoke i))) 
+        _.
+  Next Obligation.
+    hnf; simpl; intros.
+    hnf; simpl; intros.
+    destruct a0 as [x y].
+    apply approx_rels.compose_elem in H0 as [z [??]].
+    apply approx_rels.compose_elem.
+    apply (PLT.hom_order _ _ _ 
+      (project_hom hf (ds_F DS b) bilimit (limset_spoke b))).
+    2: apply (PLT.hom_order _ _ _ 
+      (project_hom hf (ds_F DS a) bilimit (limset_spoke a))).
+    exists (ds_hom DS a b H z).
+    split; simpl.
+    apply project_rel_elem.
+    apply project_rel_elem in H0.
+    rewrite <- H0.
+    generalize (limset_spoke_commute a b H).
+    intro. 
+    destruct H2. apply H3.
+    apply embed_rel_elem.
+    apply embed_rel_elem in H1.
+    rewrite H1.
+    generalize (limset_spoke_commute a b H).
+    intros [??]. apply H2.
+  Qed.
+
+
+  Definition Iset : Preord.carrier (cl_eset (directed_hf_cl hf) I)
+    := exist _ (eff_enum I (ds_Ieff hf I DS)) (ds_Idir hf I DS).
+
+  Lemma bilimit_cpo_colimit : forall x y:bilimit,
+    y ≤ x ->
+    exists i a, 
+      y ≤ limset_spoke i a /\
+      limset_spoke i a ≤ x.
+  Proof.
+    intros. destruct H as [k [Hk1 [Hk2 ?]]].
+    exists k. exists (ds_hom DS (idx x) k Hk2 (elem x)).
+    split.
+    exists k. simpl. exists Hk1. exists (ord_refl _ _). 
+    rewrite (ds_ident _ _ DS k (ord_refl _ _)); simpl; auto.
+    exists k. simpl. exists (ord_refl _ _). exists Hk2.
+    rewrite (ds_ident _ _ DS k (ord_refl _ _)); simpl; auto.
+  Qed.
+
+  Lemma bilimit_cpo_colimit1 :
+    id(bilimit) ≤ ∐(image ep_set Iset).
+  Proof.
+    hnf. intros [x y] ?.
+    simpl in H.
+    apply approx_rels.ident_elem in H.
+    simpl.
+    apply union_axiom.
+    destruct (bilimit_cpo_colimit x y) as [i [a [??]]]; auto.
+    exists (PLT.hom_rel (ep_set#i)).
+    split.
+    apply image_axiom1'.
+    exists (ep_set#i).
+    split; auto.
+    apply image_axiom1'.
+    exists i. split; auto.
+    apply eff_complete.
+    simpl.
+    apply approx_rels.compose_elem.
+    apply (PLT.hom_order _ _ _ 
+      (project_hom hf (ds_F DS i) bilimit (limset_spoke i))).
+    exists a. split.
+    apply project_rel_elem. auto.
+    apply embed_rel_elem. auto.
+  Qed.
+
+  Lemma bilimit_cpo_colimit2 :
+    id(bilimit) ≈ ∐(image ep_set Iset).
+  Proof.
+    split. apply bilimit_cpo_colimit1.
+    apply CPO.sup_is_least.
+    hnf. simpl; intros.
+    apply image_axiom2 in H. destruct H as [i [??]].
+    rewrite H0.
+    unfold ep_set. simpl.
+    apply (ep_ident hf _ _ _ _ 
+      (embed_func_is_ep_pair hf _ _ (limset_spoke i))).
+  Qed.
+
 End bilimit.
 
 
 Require Import Arith.
 Require Import NArith.
+
+Program Definition nat_ord := Preord.Pack nat (Preord.Mixin nat le _ _).
+Solve Obligations using eauto with arith.
+  
+Program Definition nat_eff : effective_order nat_ord :=
+  EffectiveOrder nat_ord le_dec (fun x => Some (N.to_nat x)) _.
+Next Obligation.
+  intros. exists (N.of_nat x).
+  rewrite Nat2N.id. auto.
+Qed.
+
+Lemma nat_dir hf : directed hf (eff_enum nat_ord nat_eff).
+Proof.
+  apply prove_directed.
+  destruct hf. auto.
+  exists 0. apply eff_complete.
+  intros.
+  exists (max x y).
+  split. simpl. apply Max.le_max_l.
+  split. simpl. apply Max.le_max_r.
+  apply eff_complete.
+Qed.
+
 Section fixpoint.
   Variable F:functor (EMBED true) (EMBED true).
-
-  Program Definition nat_ord := Preord.Pack nat (Preord.Mixin nat le _ _).
-  Solve Obligations using eauto with arith.
-  
-  Program Definition nat_eff : effective_order nat_ord :=
-    EffectiveOrder nat_ord le_dec (fun x => Some (N.to_nat x)) _.
-  Next Obligation.
-    intros. exists (N.of_nat x).
-    rewrite Nat2N.id. auto.
-  Qed.
-
-  Lemma nat_dir hf : directed hf (eff_enum nat_ord nat_eff).
-  Proof.
-    apply prove_directed.
-    destruct hf. auto.
-    exists 0. apply eff_complete.
-    intros.
-    exists (max x y).
-    split. simpl. apply Max.le_max_l.
-    split. simpl. apply Max.le_max_r.
-    apply eff_complete.
-  Qed.
 
   Fixpoint iterF (x:nat) : PLT.ob true :=
     match x with
@@ -799,34 +908,12 @@ Section fixpoint.
       destruct a' as [i' a'].
       destruct H as [k [Hk1 [Hk2 ?]]]. simpl in *.
       transitivity (cata_hom' k (iter_hom i k Hk1 a)).
-      clear i' a' Hk2 H.
-      revert k Hk1.
-      induction i. elim a.
-      intros.
-      destruct k. inversion Hk1.
-      simpl.
-      apply embed_mono.
-      rewrite (cata_hom_iter_hom i k  (gt_S_le i k Hk1)).
-      rewrite Functor.compose. 2: reflexivity.
-      auto.
-
+      destruct (cata_hom_iter_hom i k Hk1).
+      apply H0.
       transitivity (cata_hom' k (iter_hom i' k Hk2 a')).
       apply embed_mono. auto.
-      
-      clear i a Hk1 H.
-      revert k Hk2.
-      induction i'. elim a'.
-      intros.
-      destruct k. inversion Hk2.
-      simpl.
-      apply embed_mono.
-      change (((F@cata_hom' k ∘ F@iter_hom i' k (gt_S_le i' k Hk2)) a')
-        ≤ (F@cata_hom' i') a').
-      apply embed_unlift.
-      rewrite <- (Functor.compose F).
-      2: reflexivity.
-      rewrite (cata_hom_iter_hom i' k  (gt_S_le i' k Hk2)).
-      auto.
+      destruct (cata_hom_iter_hom i' k Hk2).
+      apply H1.
     Qed.      
     Next Obligation.
       intros.
@@ -935,7 +1022,7 @@ Section fixpoint.
     destruct H0. apply (H1 x).
     apply (bilim_commute BL cocone_plus1).
   Qed.
-  
+
   Program Definition fixpoint_iso :
     F fixpoint ↔ fixpoint :=
 

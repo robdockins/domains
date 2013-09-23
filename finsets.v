@@ -319,6 +319,140 @@ Proof.
   apply IHP. split; auto.
 Qed.  
 
+Fixpoint left_finset (A B:preord) (X:finset (sum_preord A B)) : finset A :=
+  match X with
+  | nil => nil
+  | inl l :: X' => l :: left_finset A B X'
+  | inr _ :: X' => left_finset A B X'
+  end.
+
+Fixpoint right_finset (A B:preord) (X:finset (sum_preord A B)) : finset B :=
+  match X with
+  | nil => nil
+  | inl _ :: X' => right_finset A B X'
+  | inr r :: X' => r :: right_finset A B X'
+  end.
+
+Lemma left_finset_elem A B X a :
+  a ∈ left_finset A B X <-> inl a ∈ X.
+Proof.
+  induction X; simpl.
+  split; intros.
+  apply nil_elem in H. elim H.
+  apply nil_elem in H. elim H.
+  destruct a0; simpl.
+  split; intros.
+  apply cons_elem in H. destruct H.
+  apply cons_elem. left. auto.
+  rewrite IHX in H.
+  apply cons_elem. right. auto.
+  apply cons_elem in H. destruct H.
+  apply cons_elem. left. auto.
+  apply cons_elem. right. rewrite IHX. auto.
+  split; intros.
+  rewrite IHX in H.
+  apply cons_elem. right. auto.
+  apply cons_elem in H. destruct H.
+  destruct H. elim H.
+  rewrite IHX. auto.
+Qed.  
+
+Lemma right_finset_elem A B X b :
+  b ∈ right_finset A B X <-> inr b ∈ X.
+Proof.
+  induction X; simpl.
+  split; intros.
+  apply nil_elem in H. elim H.
+  apply nil_elem in H. elim H.
+  destruct a; simpl.
+  split; intros.
+  rewrite IHX in H.
+  apply cons_elem. right. auto.
+  apply cons_elem in H. destruct H.
+  destruct H. elim H.
+  rewrite IHX. auto.
+
+  split; intros.
+  apply cons_elem in H. destruct H.
+  apply cons_elem. left. auto.
+  rewrite IHX in H.
+  apply cons_elem. right. auto.
+  apply cons_elem in H. destruct H.
+  apply cons_elem. left. auto.
+  apply cons_elem. right. rewrite IHX. auto.
+Qed.  
+
+
+Definition finsum {A B:preord} (P:finset A) (Q:finset B) : finset (sum_preord A B) :=
+  map inl P ++ map inr Q.
+
+Lemma finsum_left_elem : forall A B (P:finset A) (Q:finset B) a, 
+  inl a ∈ finsum P Q <-> a ∈ P.
+Proof.
+  split; intro.
+  destruct H as [q [??]].
+  unfold finsum in H.
+  apply in_app_or in H.
+  destruct H.
+  apply in_map_iff in H.
+  destruct H as [x [??]].
+  subst q.
+  exists x. split; auto.
+  apply in_map_iff in H.
+  destruct H as [x [??]].
+  subst q.
+  destruct H0. elim H.
+  destruct H as [x [??]].
+  exists (inl x).
+  split; auto.
+  unfold finsum.
+  apply in_or_app.
+  left.
+  apply in_map. auto.
+Qed.
+  
+
+Lemma finsum_right_elem : forall A B (P:finset A) (Q:finset B) b, 
+  inr b ∈ finsum P Q <-> b ∈ Q.
+Proof.
+  split; intro.
+  destruct H as [q [??]].
+  unfold finsum in H.
+  apply in_app_or in H.
+  destruct H.
+  apply in_map_iff in H.
+  destruct H as [x [??]].
+  subst q.
+  destruct H0. elim H.
+  apply in_map_iff in H.
+  destruct H as [x [??]].
+  subst q.
+  exists x; split; auto.
+  destruct H as [x [??]].
+  exists (inr x).
+  split; auto.
+  unfold finsum.
+  apply in_or_app.
+  right.
+  apply in_map. auto.
+Qed.
+
+Lemma left_right_finset_finsum A B X :
+  X ≈ finsum (left_finset A B X) (right_finset A B X).
+Proof.
+  split; hnf; intros.
+  destruct a.
+  apply finsum_left_elem.
+  apply left_finset_elem. auto.
+  apply finsum_right_elem.
+  apply right_finset_elem. auto.
+  destruct a.
+  apply left_finset_elem. 
+  eapply finsum_left_elem; eauto.
+  apply right_finset_elem.
+  eapply finsum_right_elem; eauto.
+Qed.
+
 Section finsubset.
   Variable A:preord.
   Variable P : A -> Prop.

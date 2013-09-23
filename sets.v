@@ -415,56 +415,6 @@ Qed.
 
 Obligation Tactic := idtac.
 
-Program Definition semidirected : color :=
-  Color (fun SL A X => 
-    forall a b, a ∈ X -> b ∈ X ->
-      exists c, c ∈ X /\ a ≤ c /\ b ≤ c)
-  _ _ _ _.
-Next Obligation.
-  intros.
-  destruct (H0 a b) as [c [?[??]]].
-  apply H; auto.
-  apply H; auto.
-  exists c; split; auto.
-  apply H; auto.
-Qed.
-Next Obligation.
-  intros.
-  apply single_axiom in H.
-  apply single_axiom in H0.
-  exists a.
-  split; auto.
-  apply single_axiom. auto.
-Qed.
-Next Obligation.
-  intros.
-  apply image_axiom2 in H0.
-  apply image_axiom2 in H1.
-  destruct H0 as [x [??]].
-  destruct H1 as [y [??]].
-  destruct (H x y) as [z [?[??]]]; auto.
-  exists (f#z).
-  split.
-  apply image_axiom1. auto.
-  split.
-  transitivity (f#x); auto.
-  transitivity (f#y); auto.
-Qed.
-Next Obligation.
-  intros.
-  apply union_axiom in H1.
-  apply union_axiom in H2.
-  destruct H1 as [X [??]].
-  destruct H2 as [Y [??]].
-  destruct (H X Y) as [Z [?[??]]]; auto.
-  destruct (H0 Z H5 a b) as [c [?[??]]].
-  apply H6; auto.
-  apply H7; auto.
-  exists c. split; auto.
-  apply union_axiom; eauto.
-Qed.
-
-Definition directed := color_and inhabited semidirected.
 
 Module colored_sets.
 Section colored_sets.

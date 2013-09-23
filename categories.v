@@ -958,6 +958,80 @@ Notation alg := Alg.alg.
 Canonical Structure Alg.ALG.
 
 
+Module product_category.
+Section product_category.
+  Variables C D:category.
+
+  Record prod_ob :=
+    Ob
+    { obl : ob C
+    ; obr : ob D
+    }.
+
+  Record prod_hom (X Y:prod_ob) :=
+    Hom
+    { homl : obl X → obl Y
+    ; homr : obr X → obr Y
+    }.
+  Arguments homl [X] [Y] p.
+  Arguments homr [X] [Y] p.
+
+  Definition prod_ident (X:prod_ob) : prod_hom X X :=
+    Hom X X id(obl X) id(obr X).
+
+  Definition prod_compose (X Y Z:prod_ob)
+    (f:prod_hom Y Z) (g:prod_hom X Y) : prod_hom X Z :=
+    Hom X Z (homl f ∘ homl g) (homr f ∘ homr g).
+
+  Definition comp_mixin : Comp.mixin_of prod_ob prod_hom :=
+    Comp.Mixin prod_ob prod_hom prod_ident prod_compose.
+
+  Canonical Structure hom_comp : Comp.type :=
+    Comp.Pack prod_ob prod_hom comp_mixin.
+
+  Definition hom_equiv (X Y:prod_ob) (f g:prod_hom X Y) :=
+    homl f ≈ homl g /\ homr f ≈ homr g.
+
+  Program Definition hom_eq_mixin X Y : Eq.mixin_of (prod_hom X Y) :=
+    Eq.Mixin (prod_hom X Y) (hom_equiv X Y) _ _ _.
+  Next Obligation.
+    red. split; auto.
+  Qed.
+  Next Obligation.
+    destruct H.
+    red. split; auto.
+  Qed.
+  Next Obligation.
+    destruct H. destruct H0.
+    red. split; eauto.
+  Qed.
+
+  Canonical Structure hom_eq X Y : Eq.type :=
+    Eq.Pack (prod_hom X Y) (hom_eq_mixin X Y).
+
+  Lemma prod_cat_axioms :
+    Category.category_axioms prod_ob prod_hom hom_eq_mixin comp_mixin.
+  Proof.
+    constructor.
+
+    simpl; intros. split; simpl; apply cat_ident1.
+    simpl; intros. split; simpl; apply cat_ident2.
+    simpl; intros. split; simpl; apply cat_assoc.
+    simpl; intros. destruct H; destruct H0.
+    split; simpl; apply cat_respects; auto.
+  Qed.    
+
+  Definition prod_cat_class : Category.class_of prod_ob prod_hom :=
+    Category.Class prod_ob prod_hom hom_eq_mixin comp_mixin prod_cat_axioms.
+
+  Canonical Structure PROD := Category prod_ob prod_hom prod_cat_class.
+End product_category.
+End product_category.
+
+Notation PROD := product_category.PROD.
+Canonical Structure product_category.hom_eq.
+Canonical Structure product_category.hom_comp.
+Canonical Structure PROD.
 
 Program Definition ONE : category :=
   Category unit (fun _ _ => unit)

@@ -7,9 +7,11 @@ Require Import sets.
 Require Import finsets.
 Require Import esets.
 Require Import effective.
+Require Import directed.
 Require Import plotkin.
 Require Import joinable.
 Require Import approx_rels.
+Require Import cpo.
 
 Module PLT.
 Section PLT.
@@ -108,12 +110,23 @@ Section PLT.
          (plotkin_prod hf (ord A) (ord B) (effective A) (effective B) (plotkin A) (plotkin B))).
   Canonical Structure prod.
   
+  Definition sum (A B:ob) : ob :=
+    Ob (sum_preord (ord A) (ord B))
+       (Class _
+         (Preord.mixin (sum_preord (ord A) (ord B)))
+         (effective_sum (effective A) (effective B))
+         (plotkin_sum hf (ord A) (ord B) (effective A) (effective B)
+             (plotkin A) (plotkin B))
+         ).
+  Canonical Structure sum.
+
   Definition exp (A B:ob) : ob :=
     Ob (joinable_relation hf (ord A) (ord B))
        (Class _
          (joinable_rel_ord_mixin hf (ord A) (ord B))
          (joinable_rel_effective hf (ord A) (ord B) (effective A) (effective B) (plotkin A))
          (joinable_rel_plt hf (ord A) (ord B) (effective A) (plotkin A) (effective B) (plotkin B))).
+  Canonical Structure exp.
 
   Definition app {A B} : hom (prod (exp A B) A) B :=
     Hom (prod (exp A B) A) B
@@ -265,6 +278,117 @@ Section PLT.
     apply (hom_directed _ _ CURRY).
     rewrite pair_map_eq in H. apply H.
   Qed.
+
+  
+  Section homset_cpo.
+    Variables A B:ob.
+
+    Program Definition hom_rel' : hom_ord A B → erel (ord A) (ord B) :=
+      Preord.Hom (hom_ord A B) (erel (ord A) (ord B)) (@hom_rel A B) _.
+    Next Obligation. simpl. auto. Qed.
+
+    Program Definition homset_sup (M:cl_eset (directed_hf_cl hf) (hom_ord A B)) 
+      : hom A B := Hom A B (∪(image hom_rel' M)) _ _.
+    Next Obligation.
+      intros. apply union_axiom in H1. apply union_axiom.
+      destruct H1 as [X [??]].
+      exists X. split; auto.
+      apply image_axiom2 in H1.
+      destruct H1 as [Y [??]].
+      rewrite H3. simpl.
+      apply hom_order with x y; auto.
+      rewrite H3 in H2. auto.
+    Qed.
+    Next Obligation.
+      intros. red. intro x.
+      apply prove_directed.
+      generalize (refl_equal hf).
+      pattern hf at 2. case hf; intros.
+      pattern hf at 1. rewrite H; auto.
+      pattern hf at 1. rewrite H; auto.
+      destruct M as [M HM]; simpl in *.
+      destruct (HM nil) as [q [??]].
+      rewrite H. hnf; auto.
+      hnf; intros. apply nil_elem in H0. elim H0.
+      destruct (hom_directed A B q x nil) as [z [??]].
+      rewrite H. hnf. auto.
+      hnf; intros. apply nil_elem in H2. elim H2.
+      apply erel_image_elem in H3.
+      exists z. apply erel_image_elem.
+      apply union_axiom.
+      exists (hom_rel q). split; auto.
+      apply image_axiom1'; eauto.
+      exists q. split; auto.
+      
+      intros y1 y2. intros.
+      apply erel_image_elem in H.
+      apply erel_image_elem in H0.
+      apply union_axiom in H.      
+      apply union_axiom in H0.
+      destruct H as [X1 [??]].
+      destruct H0 as [X2 [??]].
+      apply image_axiom2 in H.
+      destruct H as [Y1 [??]].
+      apply image_axiom2 in H0.
+      destruct H0 as [Y2 [??]].
+      destruct M as [M HM]; simpl in *.
+      destruct (HM (Y1::Y2::nil)%list) as [Y [??]].
+      apply elem_inh with Y1. apply cons_elem; auto.
+      hnf; intros.
+      apply cons_elem in H5.
+      destruct H5. rewrite H5; auto.
+      apply cons_elem in H5.
+      destruct H5. rewrite H5; auto.
+      apply nil_elem in H5. elim H5.
+      destruct (hom_directed A B Y x (y1::y2::nil)%list) as [z [??]].
+      apply elem_inh with y1; auto. apply cons_elem; auto.
+      hnf; intros.
+      apply cons_elem in H7. destruct H7.
+      rewrite H7. apply erel_image_elem.
+      assert (Y1 ≤ Y). apply H5. apply cons_elem. auto.
+      apply H8. rewrite <- H3. auto.
+      assert (Y2 ≤ Y). apply H5. apply cons_elem. right.
+      apply cons_elem. auto.
+      apply cons_elem in H7. destruct H7.
+      rewrite H7. apply erel_image_elem.
+      apply H8. rewrite <- H4. auto.
+      apply nil_elem in H7. elim H7.
+      apply erel_image_elem in H8.
+      exists z.
+      split.
+      apply H7. apply cons_elem; auto.
+      split.
+      apply H7. apply cons_elem; right. apply cons_elem; auto.
+      apply erel_image_elem.
+      apply union_axiom.
+      exists (hom_rel Y). split; auto.
+      apply image_axiom1'. exists Y; split; auto.
+    Qed.
+
+    Program Definition homset_cpo_mixin : 
+      CPO.mixin_of (directed_hf_cl hf) (hom_ord A B)
+      := CPO.Mixin _ _ homset_sup _ _.
+    Next Obligation.
+      repeat intro; simpl.
+      apply union_axiom.
+      exists (hom_rel x). split; auto.
+      apply image_axiom1'. exists x. split; auto.
+    Qed.
+    Next Obligation.
+      repeat intro.
+      simpl in H0.
+      apply union_axiom in H0.
+      destruct H0 as [Q [??]].
+      apply image_axiom2 in H0.
+      destruct H0 as [y [??]].
+      generalize (H y H0); intros.
+      apply H3.
+      rewrite H2 in H1. auto.
+    Qed.
+
+    Definition homset_cpo : CPO.type (directed_hf_cl hf) :=
+      CPO.Pack _ (hom A B) (hom_ord_mixin A B) homset_cpo_mixin.
+  End homset_cpo.
 End PLT.
 End PLT.
 
@@ -276,6 +400,8 @@ Canonical Structure PLT.hom_ord.
 Canonical Structure PLT.hom_eq.
 Canonical Structure PLT.comp.
 Canonical Structure PLT.prod.
+Canonical Structure PLT.homset_cpo.
+
 Arguments PLT.hom [hf] A B.
 Arguments PLT.hom_rel [hf] [A] [B] h n.
 Arguments PLT.effective [hf] X.
@@ -292,6 +418,8 @@ Arguments PLT.curry [hf] C A B f.
 
 Coercion PLT.ord : PLT.ob >-> preord.
 Coercion PLT.carrier : PLT.ob >-> Sortclass.
+
+
 
 Program Definition empty_eff : effective_order emptypo :=
   EffectiveOrder _ _ (fun x => None) _.
@@ -530,8 +658,8 @@ Section ep_pairs.
     rewrite <- (cat_assoc p).
     rewrite (cat_assoc p').
     rewrite pe_ident0.
-    rewrite (cat_ident2 e).
-    auto.
+    rewrite (cat_ident2 e). auto.
+    
     rewrite <- (cat_assoc e').
     rewrite (cat_assoc e).
     transitivity (e' ∘ p'); auto.
@@ -552,7 +680,8 @@ Section ep_pairs.
     transitivity (id ∘ p).
     rewrite (cat_ident2 p). auto.
     destruct H0.
-    rewrite <- pe_ident0.
+    transitivity ((p' ∘ e') ∘ p).
+    apply PLT.compose_mono; auto.
     rewrite <- H1.
     rewrite <- (cat_assoc p').
     transitivity (p' ∘ id).
@@ -563,7 +692,8 @@ Section ep_pairs.
     transitivity (id ∘ p').
     rewrite (cat_ident2 p'). auto.
     destruct H.
-    rewrite <- pe_ident0.
+    transitivity ((p ∘ e) ∘ p').
+    apply PLT.compose_mono; auto.
     rewrite H1.
     rewrite <- (cat_assoc p).
     transitivity (p ∘ id).
@@ -650,14 +780,15 @@ Section ep_pairs.
       Lemma embed_image_inhabited : einhabited embed_image.
       Proof.
         apply member_inhabited.
-        destruct (pe_ident _ _ _ _ Hep).
+        generalize (pe_ident _ _ _ _ Hep).
+        intros.
         assert ((x,x) ∈ PLT.hom_rel (p ∘ e)).
-        apply H0.
+        apply H.
         apply ident_elem. auto.
-        simpl in H1.
-        apply compose_elem in H1.
+        simpl in H0.
+        apply compose_elem in H0.
         2: apply PLT.hom_order.
-        destruct H1 as [y [??]].
+        destruct H0 as [y [??]].
         exists y. unfold embed_image.
         apply esubset_elem.
         split.
@@ -930,6 +1061,7 @@ Section ep_pairs.
     Lemma embed_func_is_ep_pair : is_ep_pair X Y embed_hom project_hom.
     Proof.
       constructor.
+
       split.
       hnf; simpl; intros.
       destruct a as [x x'].
@@ -941,6 +1073,7 @@ Section ep_pairs.
       apply project_rel_elem in H0.
       apply (embed_reflects embed).
       transitivity y; auto.
+
       hnf; simpl; intros.
       destruct a as [x x'].
       apply ident_elem in H.
@@ -1038,4 +1171,3 @@ Arguments embed_ep_pair [hf] [X] [Y] _.
 Canonical Structure PLT_EP.
 Canonical Structure ep_pair_eq.
 Canonical Structure ep_pair_comp.
-

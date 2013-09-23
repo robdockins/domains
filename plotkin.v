@@ -7,51 +7,8 @@ Require Import sets.
 Require Import finsets.
 Require Import esets.
 Require Import effective.
+Require Import directed.
 
-Definition inh {A:preord} (hf:bool) (X:finset A) := 
-  if hf then exists x, x ∈ X else True.
-
-Lemma inh_dec A hf (X:finset A) : { inh hf X } + {~inh hf X}.
-Proof.
-  destruct hf; simpl; auto.
-  destruct X. right.
-  intro. destruct H. apply nil_elem in H. auto.
-  left. exists c. apply cons_elem; auto.
-Qed.
-
-Lemma inh_image A B hf (X:finset A) (f:A → B) :
-  inh hf X <-> inh hf (image f X).
-Proof.
-  destruct hf; simpl; intuition.
-  destruct H as [x ?].
-  exists (f#x). apply image_axiom1. auto.
-  destruct H as [x ?].
-  apply image_axiom2 in H.
-  destruct H as [y [??]].
-  exists y. auto.
-Qed.
-
-Lemma inh_sub A hf (X Y:finset A) :
-  X ⊆ Y -> inh hf X -> inh hf Y.
-Proof.
-  destruct hf; simpl; auto.
-  intros. destruct H0 as [x ?].
-  exists x. apply H; auto.
-Qed.
-
-Lemma inh_eq A hf (X Y:finset A) :
-  X ≈ Y -> inh hf X -> inh hf Y. 
-Proof.
-  intros. apply inh_sub with X; auto.
-  destruct H; auto.
-Qed.
-
-Lemma elem_inh A hf (X:finset A) x : x ∈ X -> inh hf X.
-Proof.
-  intros. destruct hf; simpl; eauto.
-Qed.
-
-Hint Resolve inh_sub elem_inh.
 
 Definition is_mub_complete hf (A:preord) :=
   forall (M:finset A) (x:A), inh hf M -> upper_bound x M ->
@@ -206,44 +163,6 @@ Proof.
   eapply upper_bound_ok; eauto.
   intros. rewrite <- H. apply H1; auto.
   rewrite H; auto.
-Qed.
-
-Definition directed {T:set.theory} {A:preord} (hf:bool) (X:set T A) :=
-  forall (M:finset A) (Hinh:inh hf M),
-    M ⊆ X -> exists x, upper_bound x M /\ x ∈ X.
-
-Lemma prove_directed (T:set.theory) (A:preord) (b:bool) (X:set T A) :
-  (if b then True else exists x, x ∈ X) ->
-  (forall x y, x ∈ X -> y ∈ X -> exists z, x ≤ z /\ y ≤ z /\ z ∈ X) ->
-  directed b X.
-Proof.
-  intros. intro M.
-  induction M.
-  simpl; intros.
-  destruct b; simpl in *.
-  destruct Hinh. apply nil_elem in H2. elim H2.
-  destruct H as [x ?]. exists x. split; auto.
-  hnf. simpl; intros. apply nil_elem in H2. elim H2.
-  intros.
-  destruct M.
-  exists a. split; auto.
-  hnf; simpl; intros.
-  apply cons_elem in H2. destruct H2.
-  rewrite H2. auto.
-  apply nil_elem in H2. elim H2.
-  apply H1. apply cons_elem. auto.
-  destruct IHM as [q [??]].
-  destruct b; auto.
-  hnf. exists c. apply cons_elem; auto.
-  hnf; intros. apply H1; auto.
-  apply cons_elem; auto.
-  destruct (H0 a q) as [z [?[??]]]; auto.
-  apply H1; auto. apply cons_elem; auto.
-  exists z. split; auto.
-  hnf; intros.
-  apply cons_elem in H7.
-  destruct H7. rewrite H7; auto.
-  transitivity q; auto.
 Qed.
 
 Section normal_sets.
@@ -1047,6 +966,332 @@ Definition plotkin_prod hf (A B:preord)
   := norm_plt (A×B) (effective_prod HAeff HBeff) hf
          (prod_has_normals hf A B HAeff HBeff HA HB).
 
+
+Lemma sum_has_normals hf (A B:preord)
+  (HAeff:effective_order A)
+  (HBeff:effective_order B)
+  (HA:plotkin_order hf A)
+  (HB:plotkin_order hf B) :
+  has_normals (sum_preord A B) (effective_sum HAeff HBeff) hf.
+Proof.
+  hnf; intros.  
+  set (L := left_finset A B X).
+  set (R := right_finset A B X).
+  destruct hf.
+  
+  case_eq L. intro.
+  case_eq R. intro.
+  elimtype False.
+  destruct Hinh.
+  destruct x.
+  apply left_finset_elem in H1.
+  unfold L in *.
+  rewrite H in H1. apply nil_elem in H1. elim H1.
+  apply right_finset_elem in H1.
+  unfold R in *.
+  rewrite H0 in H1. apply nil_elem in H1. elim H1.
+
+  intros c l HR.
+  destruct (plt_has_normals B HBeff true HB R) as [Z' [??]].
+  hnf. exists c. rewrite HR. apply cons_elem; auto.
+  exists (finsum nil Z').
+  split.
+  hnf. intros.
+  rewrite (left_right_finset_finsum A B) in H2.
+  destruct a.
+  apply finsum_left_elem in H2.
+  unfold L in H. rewrite H in H2.
+  apply nil_elem in H2. elim H2.
+  apply finsum_right_elem in H2.
+  apply H0 in H2. 
+  apply finsum_right_elem. auto.
+  split.
+  exists (inr c).
+  apply finsum_right_elem. apply H0.
+  rewrite HR. apply cons_elem; auto.
+  repeat intro.
+  destruct Hinh0 as [m Hm].
+  destruct m as [m|m].
+  apply H2 in Hm.
+  apply finsubset_elem in Hm.
+  destruct Hm.
+  apply finsum_left_elem in H3.
+  apply nil_elem in H3. elim H3.
+  intros. rewrite <- H3; auto.
+  generalize (H2 (inr m) Hm).  
+  intros.
+  apply finsubset_elem in H3.
+  destruct H3.
+  apply finsum_right_elem in H3.
+  destruct z as [z|z]. elim H4.
+  destruct H1.
+  destruct (H5 z (right_finset A B M)) as [q [??]].
+  exists m. apply right_finset_elem. auto.
+  hnf; intros.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  apply right_finset_elem in H6.
+  apply H2 in H6.
+  apply finsubset_elem in H6.
+  destruct H6. split; auto.
+  apply finsum_right_elem in H6.
+  auto.
+  intros. rewrite <- H7. auto.
+  apply finsubset_elem in H7. destruct H7.
+  exists (inr q). split.
+  hnf; intros.
+  destruct x.
+  apply H2 in H9.
+  apply finsubset_elem in H9.
+  destruct H9. elim H10.
+  intros. rewrite <- H10; auto.
+  apply H6.
+  apply right_finset_elem. auto.
+  apply finsubset_elem.
+  intros. rewrite <- H9; auto.
+  split; auto.
+  apply finsum_right_elem. auto.
+  intros. rewrite <- H8. auto.
+  intros. rewrite <- H4. auto.
+
+  intros c l HL.
+  case_eq R; intro.
+  destruct (plt_has_normals A HAeff true HA L) as [Z' [??]].
+  hnf. exists c. rewrite HL. apply cons_elem; auto.
+  exists (finsum Z' nil).
+  split.
+  hnf. intros.
+  rewrite (left_right_finset_finsum A B) in H2.
+  destruct a.
+  apply finsum_left_elem in H2.
+  apply finsum_left_elem. auto.
+  apply finsum_right_elem in H2.
+  unfold R in H. rewrite H in H2.
+  apply nil_elem in H2. elim H2.
+  split.
+  exists (inl c).
+  apply finsum_left_elem. apply H0.
+  rewrite HL. apply cons_elem; auto.
+  repeat intro.
+  destruct Hinh0 as [m Hm].
+  destruct m as [m|m].
+  generalize (H2 (inl m) Hm).  
+  intros.
+  apply finsubset_elem in H3.
+  destruct H3.
+  apply finsum_left_elem in H3.
+  destruct z as [z|z]. 2: elim H4.
+  destruct H1.
+  destruct (H5 z (left_finset A B M)) as [q [??]].
+  exists m. apply left_finset_elem. auto.
+  hnf; intros.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  apply left_finset_elem in H6.
+  apply H2 in H6.
+  apply finsubset_elem in H6.
+  destruct H6. split; auto.
+  apply finsum_left_elem in H6.
+  auto.
+  intros. rewrite <- H7. auto.
+  apply finsubset_elem in H7. destruct H7.
+  exists (inl q). split.
+  hnf; intros.
+  destruct x.
+  apply H6.
+  apply left_finset_elem. auto.
+  apply H2 in H9.
+  apply finsubset_elem in H9.
+  destruct H9. elim H10.
+  intros. rewrite <- H10; auto.
+  apply finsubset_elem.
+  intros. rewrite <- H9; auto.
+  split; auto.
+  apply finsum_left_elem. auto.
+  intros. rewrite <- H8. auto.
+  intros. rewrite <- H4. auto.
+  apply H2 in Hm.
+  apply finsubset_elem in Hm.
+  destruct Hm.
+  apply finsum_right_elem in H3.
+  apply nil_elem in H3. elim H3.
+  intros. rewrite <- H3; auto.
+
+  intros l' HR.
+  destruct (plt_has_normals A HAeff true HA L) as [ZL [??]].
+  exists c. rewrite HL. apply cons_elem; auto.
+  destruct (plt_has_normals B HBeff true HB R) as [ZR [??]].
+  exists c0. rewrite HR. apply cons_elem; auto.
+  exists (finsum ZL ZR).  
+  split.
+  hnf; intros.
+  rewrite (left_right_finset_finsum A B) in H3.
+  destruct a.
+  apply finsum_left_elem in H3.
+  apply H in H3.
+  apply finsum_left_elem. auto.
+  apply finsum_right_elem in H3.
+  apply H1 in H3.
+  apply finsum_right_elem. auto.
+  hnf; intros.
+  split.  
+  exists (inl c).
+  apply finsum_left_elem.
+  apply H. rewrite HL. apply cons_elem; auto.
+  repeat intro.
+  destruct z as [z|z].
+  destruct H0.
+  destruct (H4 z (left_finset A B M)).
+  destruct Hinh0.
+  destruct x.
+  exists c1.
+  apply left_finset_elem. auto.
+  apply H3 in H5.
+  apply finsubset_elem in H5.
+  destruct H5. elim H6.
+  intros. rewrite <- H6; auto.
+  hnf; simpl; intros.
+  apply left_finset_elem in H5.
+  apply H3 in H5.
+  apply finsubset_elem in H5.
+  destruct H5.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  split; auto.
+  apply finsum_left_elem in H5; auto.
+  intros. rewrite <- H6; auto.
+  destruct H5. exists (inl x).
+  split.
+  hnf; intros.
+  destruct x0.
+  apply H5.
+  apply left_finset_elem. auto.
+  apply H3 in H7.
+  apply finsubset_elem in H7.
+  destruct H7. elim H8.
+  intros. rewrite <- H8; auto.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  apply finsubset_elem in H6.
+  destruct H6. split; auto.
+  apply finsum_left_elem; auto.
+  intros. rewrite <- H7; auto.
+  destruct H2.
+  destruct (H4 z (right_finset A B M)).
+  destruct Hinh0 as [m Hm].
+  destruct m.
+  apply H3 in Hm.
+  apply finsubset_elem in Hm.
+  destruct Hm. elim H6.
+  intros. rewrite <- H5; auto.
+  exists c1. apply right_finset_elem; auto.
+  hnf; intros.
+  apply right_finset_elem in H5.
+  apply finsubset_elem.
+  intros. rewrite <- H6; auto.
+  apply H3 in H5.
+  apply finsubset_elem in H5.
+  destruct H5. split; auto.
+  apply finsum_right_elem in H5. auto.
+  intros. rewrite <- H6; auto.
+  exists (inr x).
+  destruct H5. split.
+  hnf; intros.
+  destruct x0.
+  apply H3 in H7.
+  apply finsubset_elem in H7. destruct H7. elim H8.
+  intros. rewrite <- H8; auto.
+  apply H5. apply right_finset_elem; auto.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  apply finsubset_elem in H6.
+  destruct H6. split; auto.
+  apply finsum_right_elem; auto.
+  intros. rewrite <- H7; auto.
+  
+  destruct (plt_has_normals A HAeff false HA L) as [ZL [??]].
+  hnf; auto.
+  destruct (plt_has_normals B HBeff false HB R) as [ZR [??]].
+  hnf; auto.
+  exists (finsum ZL ZR).  
+  split.
+  hnf; intros.
+  rewrite (left_right_finset_finsum A B) in H3.
+  destruct a.
+  apply finsum_left_elem in H3.
+  apply H in H3.
+  apply finsum_left_elem. auto.
+  apply finsum_right_elem in H3.
+  apply H1 in H3.
+  apply finsum_right_elem. auto.
+  hnf; intros.
+  split.   hnf; auto.
+  repeat intro.
+  destruct z as [z|z].
+  destruct H0.
+  destruct (H4 z (left_finset A B M)).
+  hnf; auto.
+  hnf; simpl; intros.
+  apply left_finset_elem in H5.
+  apply H3 in H5.
+  apply finsubset_elem in H5.
+  destruct H5.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  split; auto.
+  apply finsum_left_elem in H5; auto.
+  intros. rewrite <- H6; auto.
+  destruct H5. exists (inl x).
+  split.
+  hnf; intros.
+  destruct x0.
+  apply H5.
+  apply left_finset_elem. auto.
+  apply H3 in H7.
+  apply finsubset_elem in H7.
+  destruct H7. elim H8.
+  intros. rewrite <- H8; auto.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  apply finsubset_elem in H6.
+  destruct H6. split; auto.
+  apply finsum_left_elem; auto.
+  intros. rewrite <- H7; auto.
+  destruct H2.
+  destruct (H4 z (right_finset A B M)).
+  hnf; auto.
+  hnf; intros.
+  apply right_finset_elem in H5.
+  apply finsubset_elem.
+  intros. rewrite <- H6; auto.
+  apply H3 in H5.
+  apply finsubset_elem in H5.
+  destruct H5. split; auto.
+  apply finsum_right_elem in H5. auto.
+  intros. rewrite <- H6; auto.
+  exists (inr x).
+  destruct H5. split.
+  hnf; intros.
+  destruct x0.
+  apply H3 in H7.
+  apply finsubset_elem in H7. destruct H7. elim H8.
+  intros. rewrite <- H8; auto.
+  apply H5. apply right_finset_elem; auto.
+  apply finsubset_elem.
+  intros. rewrite <- H7; auto.
+  apply finsubset_elem in H6.
+  destruct H6. split; auto.
+  apply finsum_right_elem; auto.
+  intros. rewrite <- H7; auto.
+Qed.
+
+Definition plotkin_sum hf (A B:preord)
+  (HAeff:effective_order A) (HBeff:effective_order B)
+  (HA:plotkin_order hf A) (HB:plotkin_order hf B)
+  : plotkin_order hf (sum_preord A B)
+  := norm_plt (sum_preord A B) 
+         (effective_sum HAeff HBeff) hf
+         (sum_has_normals hf A B HAeff HBeff HA HB).
 
 Fixpoint unlift_list {A} (x:list (option A)) :=
   match x with

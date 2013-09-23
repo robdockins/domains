@@ -191,6 +191,31 @@ Next Obligation.
   split; apply eff_complete.
 Qed.
 
+Program Definition effective_sum {A B:preord}
+  (HA:effective_order A)
+  (HB:effective_order B)
+  : effective_order (sum_preord A B)
+  := EffectiveOrder _ _ (esum (eff_enum A HA) (eff_enum B HB)) _.
+Next Obligation.
+  intros.
+  destruct x; destruct y.
+  destruct (eff_ord_dec A HA c c0).
+  left. auto.
+  right. auto.
+  right. intro. elim H.
+  right. intro. elim H.
+  destruct (eff_ord_dec B HB c c0).
+  left. auto.
+  right. auto.
+Qed.
+Next Obligation.
+  intros.
+  destruct x.
+  apply esum_left_elem. apply eff_complete.
+  apply esum_right_elem. apply eff_complete.
+Qed.
+
+
 Definition enum_lift (A:preord) (X:eset A) : eset (lift A) :=
   union2 (single None) (image (liftup A) X).
 

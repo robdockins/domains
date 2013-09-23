@@ -4,6 +4,7 @@ Require Import categories.
 Require Import sets.
 Require Import finsets.
 Require Import esets.
+Require Import directed.
 
 Module CPO.
   Record mixin_of (CL:color) (A:preord) 

@@ -9,6 +9,7 @@ finsets.v
 esets.v
 effective.v
 plotkin.v
+directed.v
 cpo.v
 algebraic.v
 ideal.v
@@ -16,4 +17,5 @@ joinable.v
 approx_rels.v
 bilimit.v
 profinite.v
+cont_functors.v
 profinite_adj.v
