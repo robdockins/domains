@@ -851,3 +851,21 @@ Proof.
   apply n.
   exists q. split; auto.
 Qed.    
+
+Lemma finset_cons_eq (A:preord) (x y:A) (l1 l2:finset A) :
+  x ≈ y -> l1 ≈ l2 -> 
+  (x::l1 : finset A) ≈ (y::l2).
+Proof.
+  intros. split.
+  hnf; intros.
+  apply cons_elem in H1.
+  destruct H1. rewrite H1.
+  apply cons_elem; auto.
+  apply cons_elem; right. rewrite <- H0; auto.
+  hnf; intros.
+  apply cons_elem in H1.
+  destruct H1. rewrite H1.
+  apply cons_elem; auto.
+  apply cons_elem; right. rewrite H0; auto.
+Qed.  
+

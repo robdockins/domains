@@ -3,6 +3,7 @@ Require Import preord.
 Require Import categories.
 Require Import sets.
 Require Import finsets.
+Require Import effective.
 
 Definition inh {A:preord} (hf:bool) (X:finset A) := 
   if hf then exists x, x ∈ X else True.
@@ -81,6 +82,27 @@ Proof.
   destruct H4.
   rewrite H4; auto.
   apply H1; auto.
+Qed.
+
+
+Record directed_preord :=
+  DirPreord
+  { dir_preord :> preord
+  ; dir_effective : effective_order dir_preord
+  ; choose_ub_set : forall M:finset dir_preord, { k | upper_bound k M }
+  }.
+Arguments dir_preord _.
+Arguments dir_effective _.
+Arguments choose_ub_set _ _.
+
+Lemma choose_ub (I:directed_preord) (i j:I) :
+  { k | i ≤ k /\ j ≤ k }.
+Proof.
+  destruct (choose_ub_set I (i::j::nil)%list).
+  exists x. split; apply u.
+  apply cons_elem; auto.
+  apply cons_elem; right.
+  apply cons_elem; auto.
 Qed.
 
 
@@ -210,3 +232,4 @@ Qed.
 
 Definition semidirected_cl := directed_hf_cl true.
 Definition directed_cl := directed_hf_cl false.
+

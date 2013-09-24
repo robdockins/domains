@@ -13,97 +13,205 @@ Require Import joinable.
 Require Import directed.
 Require Import bilimit.
 
-Program Definition dir_sys_app2 hf I
-  (DS1:directed_system hf I) 
-  (DS2:directed_system hf I) 
-  (F:functor (PROD (EMBED hf) (EMBED hf)) (EMBED hf))
-  : directed_system hf I :=
 
-  DirSys hf I 
-    (ds_Ieff hf I DS1)
-    (ds_Idir hf I DS1)
-    (fun i => F (product_category.Ob (EMBED hf) (EMBED hf) (ds_F DS1 i) (ds_F DS2 i)))
-    (fun i j Hij => F@(product_category.Hom (EMBED hf) (EMBED hf) _ _ 
-               (ds_hom DS1 i j Hij) (ds_hom DS2 i j Hij)))
-    _ _.
-Next Obligation.
-  intros.
-  apply Functor.ident.
-  split; simpl; apply ds_ident.
-Qed.
-Next Obligation.
-  intros.
-  rewrite <- Functor.compose.
-  reflexivity.
-  split; symmetry; apply ds_compose.
-Qed.  
-Arguments dir_sys_app2 [hf] [I] DS1 DS2 F.
-
-Program Definition cocone_app2 hf I
-  (DS1:directed_system hf I) (DS2:directed_system hf I)
-  (CC1:cocone DS1) (CC2:cocone DS2) 
-  (F:functor (PROD (EMBED hf) (EMBED hf)) (EMBED hf))
-  : cocone (dir_sys_app2 DS1 DS2 F) :=
-
-  Cocone (dir_sys_app2 DS1 DS2 F) (F (product_category.Ob _ _ CC1 CC2))
-  (fun i => F@(product_category.Hom _ _ _ _ (cocone_spoke CC1 i) (cocone_spoke CC2 i)))
-   _ .
-Next Obligation.
+Lemma identF_continuous (C:category) : continuous_functor id(C).
+Proof.
+  repeat intro.
+  apply (DirectedColimit (dir_sys_app DS id(C)) (cocone_app CC id(C)) 
+    (fun YC => colim_univ X (Cocone DS 
+                 (cocone_point YC) (cocone_spoke YC) (cocone_commute YC)))).
   simpl; intros.
-  rewrite <- (Functor.compose F). 2: reflexivity.
-  apply Functor.respects.
-  split; simpl.
-  apply (cocone_commute CC1 i j Hij).
-  apply (cocone_commute CC2 i j Hij).
+  apply (colim_commute X (Cocone DS 
+                 (cocone_point YC) (cocone_spoke YC) (cocone_commute YC)) i).
+  intros.
+  apply (colim_uniq X (Cocone DS 
+                 (cocone_point YC) (cocone_spoke YC) (cocone_commute YC))); auto.
 Qed.
-Arguments cocone_app2 [hf] [I] [DS1] [DS2] CC1 CC2 F.
 
-Definition continuous_functor2 hf 
-  (F:functor (PROD (EMBED hf) (EMBED hf)) (EMBED hf)) :=
-  forall I 
-    (DS1:directed_system hf I) (DS2:directed_system hf I)
-    (CC1:cocone DS1) (CC2:cocone DS2),
-    is_bilimit DS1 CC1 ->
-    is_bilimit DS2 CC2 ->
-    is_bilimit (dir_sys_app2 DS1 DS2 F) (cocone_app2 CC1 CC2 F).
-Arguments continuous_functor2 [hf] F.
+Lemma composeF_continuous (C D E:category)
+  (F:functor D E) (G:functor C D) :
+  continuous_functor F ->
+  continuous_functor G ->
+  continuous_functor (F ∘ G).
+Proof.
+  repeat intro.
+  cut (directed_colimit
+    (dir_sys_app (dir_sys_app DS G) F)
+    (cocone_app (cocone_app CC G) F)).
+  intros.
+  apply (DirectedColimit 
+    (dir_sys_app DS (F∘G)) (cocone_app CC (F∘G))
+    (fun YC => colim_univ X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
+                 (cocone_point YC) (cocone_spoke YC) (cocone_commute YC)))).
+  simpl; intros.
+  apply (colim_commute X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
+                 (cocone_point YC) (cocone_spoke YC) (cocone_commute YC)) i).
+  intros.
+  apply (colim_uniq X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
+                 (cocone_point YC) (cocone_spoke YC) (cocone_commute YC))); auto.
+  apply X. apply X0. auto.
+Qed.
 
-Section pairF.
+Section pairF_continuous.
   Variables C D E:category.
   Variable F:functor C D.
   Variable G:functor C E.
 
-  Program Definition pairF : functor C (PROD D E) :=
-    Functor C (PROD D E)
-      (fun X => product_category.Ob D E (F X) (G X))
-      (fun X Y f => product_category.Hom _ _ _ _ (F@f) (G@f))
-      _ _ _.
-  Next Obligation.
-    simpl; intros. split; simpl.
-    apply Functor.ident; auto.
-    apply Functor.ident; auto.
-  Qed.
-  Next Obligation.
-    simpl; intros. split; simpl.
-    apply Functor.compose; auto.
-    apply Functor.compose; auto.
-  Qed.
-  Next Obligation.
-    simpl; intros. split; simpl.
-    apply Functor.respects; auto.
-    apply Functor.respects; auto.
-  Qed.
-End pairF.
+  Section cocones.
+    Variable I:directed_preord.
+    Variable DS:directed_system I C.
 
-(*
-Lemma pairF_continuous hf 
-  (F G:functor (EMBED hf) (EMBED hf))
-  (X:functor (PROD (EMBED hf) (EMBED hf)) (EMBED hf)) :
-  continuous_functor F ->
-  continuous_functor G ->
-  continuous_functor2 X ->
-  continuous_functor (X ∘ pairF _ _ _ F G).
-*)
+    Program Definition cocone_fstF (YC:cocone (dir_sys_app DS (pairF F G)))
+      : cocone (dir_sys_app DS F)
+      := Cocone (dir_sys_app DS F)
+                (obl (cocone_point YC)) 
+                (fun i => homl (cocone_spoke YC i))
+                _.
+    Next Obligation.
+      simpl; intros.
+      destruct (cocone_commute YC i j Hij); auto.
+    Qed.
+
+    Program Definition cocone_sndF (YC:cocone (dir_sys_app DS (pairF F G)))
+      : cocone (dir_sys_app DS G)
+      := Cocone (dir_sys_app DS G)
+                (obr (cocone_point YC)) 
+                (fun i => homr (cocone_spoke YC i))
+                _.
+    Next Obligation.
+      simpl; intros.
+      destruct (cocone_commute YC i j Hij); auto.
+    Qed.
+  End cocones.
+
+  Hypothesis HcontF : continuous_functor F.
+  Hypothesis HcontG : continuous_functor G.
+
+  Lemma pairF_continuous : continuous_functor (pairF F G).
+  Proof.
+    repeat intro.
+    generalize (HcontF I DS CC X). intro.
+    generalize (HcontG I DS CC X). intro.
+    apply DirectedColimit with
+      (fun YC => PROD.Hom D E
+        (PROD.Ob D E (F (cocone_point CC)) (G (cocone_point CC)))
+        (cocone_point YC)
+        (colim_univ X0 (cocone_fstF I DS YC))
+        (colim_univ X1 (cocone_sndF I DS YC))).
+    simpl; intros. split; simpl.
+    apply (colim_commute X0 (cocone_fstF I DS YC)).
+    apply (colim_commute X1 (cocone_sndF I DS YC)).
+    simpl; intros. split; simpl.
+    apply (colim_uniq X0 (cocone_fstF I DS YC)).
+    intro i; destruct (H i); auto.
+    apply (colim_uniq X1 (cocone_sndF I DS YC)).
+    intro i; destruct (H i); auto.
+ Qed.  
+End pairF_continuous.
+
+
+Section fstF_continuous.
+  Variables C D:category.
+  Variable I:directed_preord.
+  Variable DS:directed_system I (PROD C D).
+  Variable CC:cocone DS.
+  Variable Hcolim : directed_colimit DS CC.
+
+  Program Definition fstF_cocone
+    (CC1 : cocone (dir_sys_app DS (fstF C D))) : cocone DS
+    := Cocone DS (PROD.Ob C D (cocone_point CC1) 
+                                          (obr (cocone_point CC)))
+                 (fun i => PROD.Hom C D _ _
+                            (cocone_spoke CC1 i)
+                            (homr (cocone_spoke CC i) : 
+                                 obr (ds_F DS i) → obr (cocone_point CC)))
+
+                 _.
+  Next Obligation.
+    intros. split; simpl.
+    apply (cocone_commute CC1 i).
+    apply (cocone_commute CC i).
+  Qed.
+
+  Definition fstF_univ (YC : cocone (dir_sys_app DS (fstF C D))) :
+    cocone_app CC (fstF C D) → YC :=
+    homl (colim_univ Hcolim (fstF_cocone YC)).
+       
+  Lemma fstF_continuous' :
+    directed_colimit (dir_sys_app DS (fstF C D)) (cocone_app CC (fstF C D)).
+  Proof.
+    apply DirectedColimit with fstF_univ.
+    simpl. intros.
+    destruct (colim_commute Hcolim (fstF_cocone YC) i). auto.
+    intros.
+    destruct (colim_uniq Hcolim (fstF_cocone YC)
+      (PROD.Hom C D
+         (cocone_point CC)
+         (PROD.Ob _ _ (cocone_point YC) (obr (cocone_point CC)))
+         f id
+         )); auto.
+    intros. split; simpl; auto.
+    apply H.
+    symmetry. apply cat_ident2.
+  Qed.
+End fstF_continuous.
+
+Lemma fstF_continuous C D :
+  continuous_functor (fstF C D).
+Proof.
+  repeat intro. apply fstF_continuous'; auto.
+Qed.
+
+
+Section sndF_continuous.
+  Variables C D:category.
+  Variable I:directed_preord.
+  Variable DS:directed_system I (PROD C D).
+  Variable CC:cocone DS.
+  Variable Hcolim : directed_colimit DS CC.
+
+  Program Definition sndF_cocone
+    (CC1 : cocone (dir_sys_app DS (sndF C D))) : cocone DS
+    := Cocone DS (PROD.Ob C D (obl (cocone_point CC))
+                              (cocone_point CC1))
+                 (fun i => PROD.Hom C D _ _
+                            (homl (cocone_spoke CC i) : 
+                                 obl (ds_F DS i) → obl (cocone_point CC))
+                            (cocone_spoke CC1 i))
+                 _.
+  Next Obligation.
+    intros. split; simpl.
+    apply (cocone_commute CC i).
+    apply (cocone_commute CC1 i).
+  Qed.
+
+  Definition sndF_univ (YC : cocone (dir_sys_app DS (sndF C D))) :
+    cocone_app CC (sndF C D) → YC :=
+    homr (colim_univ Hcolim (sndF_cocone YC)).
+       
+  Lemma sndF_continuous' :
+    directed_colimit (dir_sys_app DS (sndF C D)) (cocone_app CC (sndF C D)).
+  Proof.
+    apply DirectedColimit with sndF_univ.
+    simpl. intros.
+    destruct (colim_commute Hcolim (sndF_cocone YC) i). auto.
+    intros.
+    destruct (colim_uniq Hcolim (sndF_cocone YC)
+      (PROD.Hom C D
+         (cocone_point CC)
+         (PROD.Ob _ _ (obl (cocone_point CC)) (cocone_point YC))
+         id f)); auto.
+    intros. split; simpl; auto.
+    symmetry. apply cat_ident2.
+    apply H.
+  Qed.
+End sndF_continuous.
+
+Lemma sndF_continuous C D : continuous_functor (sndF C D).
+Proof.
+  repeat intro. apply sndF_continuous'; auto.
+Qed.
+
 
 Section map_rel.
   Context {A B C D : preord}.
@@ -194,65 +302,6 @@ Section map_rel.
   Qed.    
 End map_rel.
 
-(*FIXME, move to esets.v *)
-Lemma semidec_in_finset (A B:preord) (HA:ord_dec A) (X:finset A) f :
-  (forall b b':B, b ≤ b' -> f b ≤ f b') ->
-  semidec (fun x:B => f x ∈ X).
-Proof.
-  intros.
-  apply dec_semidec.
-  intros. apply member_eq with (f x); auto.
-  intro. apply finset_dec. auto.
-Qed.
-
-Lemma semidec_ex (A B:preord) P
-  (HB:effective_order B) :
-  @semidec (A×B) (fun ab => P (fst ab) (snd ab)) ->
-  @semidec A (fun a => @ex B (P a)).
-Proof.
-  intros.
-  destruct X.
-  apply Semidec with (fun a n =>
-    let (p,q) := pairing.unpairing n in
-       match eff_enum B HB p with
-       | None => None
-       | Some b => decset (a,b) q
-       end).
-  intros.
-  destruct H0. exists x0.
-  apply (decset_prop_ok (x,x0) (y,x0)); auto.
-  split; split; auto.
-  simpl; intros. split; intros.
-  destruct H as [n ?].
-  case_eq (pairing.unpairing n); intros.
-  rewrite H0 in H.
-  destruct (eff_enum B HB n0); intros.
-  case_eq (decset (a,c) n1); intros.
-  rewrite H1 in H.
-  assert (c0 ∈ decset (a,c)).
-  exists n1. rewrite H1; auto.
-  apply decset_correct in H2.
-  simpl in H2. eauto.
-  rewrite H1 in H. elim H. elim H.
-  destruct H as [b ?].
-  generalize (eff_complete B HB b).
-  intros [p ?].
-  case_eq (eff_enum B HB p); intros.
-  rewrite H1 in H0.
-  assert (P a c).
-  apply (decset_prop_ok (a,b) (a,c)); auto.
-  split; split; auto.
-  assert (tt ∈ decset (a,c)).
-  apply decset_correct. simpl; auto.
-  destruct H3 as [q ?].
-  exists (pairing.pairing (p,q)).
-  rewrite pairing.unpairing_pairing.
-  destruct (eff_enum B HB p); auto.
-  inversion H1; subst.
-  destruct (decset (a,c) q); intros; auto.
-  discriminate.
-  rewrite H1 in H0. elim H0.
-Qed.
 
 Section exp_functor.
   Variable hf:bool.
@@ -764,16 +813,6 @@ Section exp_functor.
   Qed.
 End exp_functor.
 
-Notation obl := product_category.obl.
-Notation obr := product_category.obr.
-Notation homl := product_category.homl.
-Notation homr := product_category.homr.
-
-Arguments obl [C] [D] _.
-Arguments obr [C] [D] _.
-Arguments homl [C] [D] [X] [Y] _.
-Arguments homr [C] [D] [X] [Y] _.
-
 Lemma exp_fmap_ident hf (A B:ob (EMBED hf)) (f:A⇀A) (g:B⇀B) :
   f ≈ id -> g ≈ id ->
   exp_fmap hf A A B B f g ≈ id.
@@ -904,198 +943,20 @@ Next Obligation.
   apply exp_fmap_respects; auto.
 Qed.
 
-Section bilimit_decompose.
-  Variable hf:bool.
-  Variable I:preord.
-  Variable DS : directed_system hf I.
-  Variable CC : cocone DS.
-  Variable Hbilim : is_bilimit DS CC.
-
-  Lemma bilimit_decompose : forall x:CC,
-    { i:I & { a:ds_F DS i | cocone_spoke CC i a ≈ x }}.
-  Proof.
-    intros.
-    set (y := bilim_univ Hbilim (bilimit_cocone hf I DS) x).
-    exists (idx _ _ _ y).    
-    exists (elem _ _ _ y).
-    split.
-    apply (embed_reflects 
-      (bilim_univ Hbilim (bilimit_cocone hf I DS))).
-    generalize (bilim_commute Hbilim (bilimit_cocone hf I DS) (idx _ _ _ y)).
-    simpl. intros.
-    transitivity (limset_spoke hf I DS (idx _ _ _ y) (elem hf I DS y)).
-    rewrite H. auto.
-    transitivity y; auto.
-    destruct y; simpl; auto.
-    apply (embed_reflects 
-      (bilim_univ Hbilim (bilimit_cocone hf I DS))).
-    generalize (bilim_commute Hbilim (bilimit_cocone hf I DS) (idx _ _ _ y)).
-    simpl. intros.
-    transitivity (limset_spoke hf I DS (idx _ _ _ y) (elem hf I DS y)).
-    transitivity y; auto.
-    destruct y; simpl; auto.
-    rewrite H; auto.
-  Qed.
-End bilimit_decompose.
-
-Section bilimit_decompose2.
-  Variable hf:bool.
-  Variable I:preord.
-  Variable DS : directed_system hf I.
-  Variable CC : cocone DS.
-  Hypothesis decompose : forall x:CC,
-    { i:I & { a:ds_F DS i | cocone_spoke CC i a ≈ x }}.
-
-  Definition decompose_univ_func (YC:cocone DS) (x:CC) :=
-    cocone_spoke YC 
-       (projT1 (decompose x))
-       (projT1 (projT2 (decompose x))).
-
-  Program Definition decompose_univ (YC:cocone DS) : CC ⇀ YC :=
-    Embedding hf CC YC (decompose_univ_func YC) _ _ _ _.
-  Next Obligation.
-    unfold decompose_univ_func. intros.
-    destruct (decompose a) as [i [q ?]]. simpl.
-    destruct (decompose a') as [j [q' ?]]. simpl.
-    destruct (choose_ub hf I DS i j) as [k [??]].
-    rewrite (cocone_commute YC i k H0).
-    rewrite (cocone_commute YC j k H1).
-    simpl.
-    apply embed_mono.
-    apply (embed_reflects (cocone_spoke CC k)).
-    apply (use_ord H).
-    rewrite <- e.
-    rewrite (cocone_commute CC i k H0). auto.
-    rewrite <- e0.
-    rewrite (cocone_commute CC j k H1). auto.
-  Qed.
-  Next Obligation.
-    unfold decompose_univ_func. intros.
-    destruct (decompose a) as [i [q ?]]. simpl in *.
-    destruct (decompose a') as [j [q' ?]]. simpl in *.
-    destruct (choose_ub hf I DS i j) as [k [??]].
-    rewrite (cocone_commute YC i k H0) in H.
-    rewrite (cocone_commute YC j k H1) in H.
-    simpl in H.
-    apply embed_reflects in H.
-    rewrite <- e.
-    rewrite <- e0.
-    rewrite (cocone_commute CC i k H0).
-    rewrite (cocone_commute CC j k H1).
-    simpl. apply embed_mono; auto.
-  Qed.
-  Next Obligation.
-    intros.
-    unfold decompose_univ_func.
-    destruct hf; simpl; auto.
-    destruct (choose_ub_set false I DS nil) as [i ?].
-    hnf. auto.
-    destruct (embed_directed0 (cocone_spoke YC i) y).
-    exists (cocone_spoke CC i x).
-    destruct (decompose (cocone_spoke CC i x)) as [m [z' ?]]. simpl.
-    rewrite <- H.    
-    destruct (choose_ub false I DS m i) as [k [??]].
-    rewrite (cocone_commute YC m k H0).
-    rewrite (cocone_commute YC i k H1).
-    simpl. apply embed_mono.
-    rewrite (cocone_commute CC m k H0) in e.
-    rewrite (cocone_commute CC i k H1) in e.
-    simpl in e. 
-    destruct e.
-    apply (embed_reflects (cocone_spoke CC k)) in H2. auto.
-  Qed.
-  Next Obligation.
-    unfold decompose_univ_func. intros.
-    destruct (decompose a) as [i [q ?]]. simpl in *.
-    destruct (decompose b) as [j [q' ?]]. simpl in *.
-    destruct (choose_ub hf I DS i j) as [k [??]].
-    rewrite (cocone_commute YC i k H1) in H.
-    rewrite (cocone_commute YC j k H2) in H0.
-    simpl in H, H0.
-    destruct (embed_directed2 (cocone_spoke YC k) y
-      (ds_hom DS i k H1 q)
-      (ds_hom DS j k H2 q')) as [z [?[??]]]; auto.
-    exists (cocone_spoke CC k z).
-    split.
-    destruct (decompose (cocone_spoke CC k z)) as [m [z' ?]]. simpl.
-    rewrite <- H3.
-
-    destruct (choose_ub hf I DS m k) as [k' [??]].
-    rewrite (cocone_commute YC m k' H6).
-    rewrite (cocone_commute YC k k' H7).
-    simpl. apply embed_mono.
-    destruct e1.
-    rewrite (cocone_commute CC m k' H6) in H8.
-    rewrite (cocone_commute CC k k' H7) in H8.
-    simpl in H8.
-    apply (embed_reflects (cocone_spoke CC k')) in H8. auto.
-
-    split.
-    rewrite <- e.
-    rewrite (cocone_commute CC i k H1).
-    simpl. apply embed_mono. auto.
-    rewrite <- e0.
-    rewrite (cocone_commute CC j k H2).
-    simpl. apply embed_mono. auto.
-  Qed.
-
-  Program Definition decompose_is_bilimit : is_bilimit DS CC :=
-    IsBilimit DS CC decompose_univ _ _.
-  Next Obligation.
-    intros. apply embed_lift'. simpl.
-    unfold decompose_univ_func. simpl. intro x.
-    destruct (decompose (cocone_spoke CC i x)) as [j [x' ?]]. simpl.
-    destruct (choose_ub hf I DS i j) as [k [??]].
-    rewrite (cocone_commute YC i k H).
-    rewrite (cocone_commute YC j k H0).
-    rewrite (cocone_commute CC i k H) in e.
-    rewrite (cocone_commute CC j k H0) in e.
-    simpl in e. 
-    destruct e; split; simpl.
-    apply embed_reflects in H2. apply embed_mono; auto.
-    apply embed_reflects in H1. apply embed_mono; auto.
-  Qed.    
-  Next Obligation.
-    simpl; intros.
-    intros. apply embed_lift'. simpl.
-    unfold decompose_univ_func. simpl. intro x.
-    destruct (decompose x) as [i [x' ?]]. simpl.
-    rewrite <- e.
-    rewrite (H i).
-    simpl; auto.
-  Qed.
-End bilimit_decompose2.
-
-Lemma finset_cons_eq (A:preord) (x y:A) (l1 l2:finset A) :
-  x ≈ y -> l1 ≈ l2 -> 
-  (x::l1 : finset A) ≈ (y::l2).
-Proof.
-  intros. split.
-  hnf; intros.
-  apply cons_elem in H1.
-  destruct H1. rewrite H1.
-  apply cons_elem; auto.
-  apply cons_elem; right. rewrite <- H0; auto.
-  hnf; intros.
-  apply cons_elem in H1.
-  destruct H1. rewrite H1.
-  apply cons_elem; auto.
-  apply cons_elem; right. rewrite H0; auto.
-Qed.  
 
 Section expF_decompose.
   Variable hf:bool.
-  Variable I:preord.
-  Variables DS1 DS2 : directed_system hf I.
+  Variable I:directed_preord.
+  Variables DS1 DS2 : directed_system I (EMBED hf).
   Variable CC1 : cocone DS1.
   Variable CC2 : cocone DS2.
 
-  Hypothesis decompose1 : forall x:CC1,
+  Hypothesis decompose1 : forall x:cocone_point CC1,
     { i:I & { a:ds_F DS1 i | cocone_spoke CC1 i a ≈ x }}.
-  Hypothesis decompose2 : forall x:CC2,
+  Hypothesis decompose2 : forall x:cocone_point CC2,
     { i:I & { a:ds_F DS2 i | cocone_spoke CC2 i a ≈ x }}.
 
-  Lemma finrel_decompose (X:finset (CC1×CC2)) :
+  Lemma finrel_decompose (X:finset (cocone_point CC1 × cocone_point CC2)) :
     forall (Hinh : inh hf X),
     { k:I & { Y:finset (ds_F DS1 k × ds_F DS2 k) |
        X ≈ map_rel (cocone_spoke CC1 k) (cocone_spoke CC2 k) Y }}.
@@ -1103,14 +964,14 @@ Section expF_decompose.
     induction X; intros.
     destruct hf. hnf in Hinh.
     elimtype False. destruct Hinh. apply nil_elem in H. auto.
-    destruct (choose_ub_set false I DS1 nil).
+    destruct (choose_ub_set I nil).
     hnf. auto.
     exists x. exists nil. simpl; auto.
     case_eq X; intros.
     destruct a as [a b].
     destruct (decompose1 a) as [i [a' ?]].
     destruct (decompose2 b) as [j [b' ?]].
-    destruct (choose_ub hf I DS1 i j) as [k [??]].
+    destruct (choose_ub I i j) as [k [??]].
     exists k.
     exists ((ds_hom DS1 i k H0 a', ds_hom DS2 j k H1 b')::nil).
     simpl.
@@ -1129,8 +990,7 @@ Section expF_decompose.
     destruct a as [p q]. simpl in *.
     destruct (decompose1 p) as [i [p' ?]].
     destruct (decompose2 q) as [j [q' ?]].
-    destruct (choose_ub_set hf I DS1 (i::j::k::nil)) as [m ?].
-    eapply elem_inh. apply cons_elem. eauto.
+    destruct (choose_ub_set I (i::j::k::nil)) as [m ?].
     assert (i≤m).
     apply u. apply cons_elem; auto.
     assert (j≤m).
@@ -1167,16 +1027,20 @@ Section expF_decompose.
   Qed.
 End expF_decompose.
 
-Lemma expF_continuous hf : continuous_functor2 (expF hf).
+Lemma expF_continuous hf : continuous_functor (expF hf).
 Proof.
   repeat intro.
-  apply decompose_is_bilimit.
+  apply decompose_is_colimit.
   simpl. intros.
   destruct x as [x Hx].
+  set (DS1 := dir_sys_app DS (fstF _ _)).
+  set (DS2 := dir_sys_app DS (sndF _ _)).
+  set (CC1 := cocone_app CC (fstF _ _)).
+  set (CC2 := cocone_app CC (sndF _ _)).
   destruct (finrel_decompose hf I DS1 DS2 CC1 CC2) with x
     as [k [x' ?]].
-  apply bilimit_decompose; auto.
-  apply bilimit_decompose; auto.
+  apply colimit_decompose. apply fstF_continuous. auto.
+  apply colimit_decompose. apply sndF_continuous. auto.
   destruct Hx; auto.
   exists k.
   assert (is_joinable_relation hf x').
@@ -1189,16 +1053,32 @@ Proof.
   destruct (H2 G) with x0 as [y [??]]; auto.
   rewrite e; auto.
   exists y; split; auto.
-  rewrite <- e; auto.
+  destruct e. apply H5; auto.
   exists (exist _ x' H).
   simpl.
   split; hnf; simpl; intros.
-  rewrite <- e in H0.
+  destruct e. apply H2 in H0.
   exists a. exists b. auto.
-  rewrite e in H0.
+  destruct e. apply H1 in H0.
   exists a. exists b. auto.
 Qed.
 
-Check (expF true ∘ pairF _ _ _ id id).
-Check expF_continuous.
-Print Assumptions expF_continuous.
+Definition lamF hf := expF hf ∘ pairF id id.
+
+Lemma lamF_continuous hf : continuous_functor (lamF hf).
+Proof.
+  unfold lamF.
+  apply composeF_continuous.
+  apply expF_continuous.
+  apply pairF_continuous.
+  apply identF_continuous.
+  apply identF_continuous.
+Qed.
+
+Definition lamModel := fixpoint (lamF true).
+
+Lemma lamModel_iso : (PLT.exp lamModel lamModel : ob (EMBED true)) ↔ lamModel.
+Proof.
+  apply (fixpoint_iso (lamF true)).
+  apply lamF_continuous.
+Qed.

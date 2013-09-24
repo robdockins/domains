@@ -701,6 +701,15 @@ Proof.
   apply single_axiom. auto.
 Qed.
 
+Lemma semidec_in_finset (A B:preord) (HA:ord_dec A) (X:finset A) f :
+  (forall b b':B, b ≤ b' -> f b ≤ f b') ->
+  semidec (fun x:B => f x ∈ X).
+Proof.
+  intros.
+  apply dec_semidec.
+  intros. apply member_eq with (f x); auto.
+  intro. apply finset_dec. auto.
+Qed.
 
 Fixpoint all_finset_setdec
   (A:preord) (DECSET:A -> eset unitpo) (X:finset A) : eset unitpo :=

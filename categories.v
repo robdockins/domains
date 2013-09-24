@@ -958,7 +958,7 @@ Notation alg := Alg.alg.
 Canonical Structure Alg.ALG.
 
 
-Module product_category.
+Module PROD.
 Section product_category.
   Variables C D:category.
 
@@ -1026,12 +1026,84 @@ Section product_category.
 
   Canonical Structure PROD := Category prod_ob prod_hom prod_cat_class.
 End product_category.
-End product_category.
+End PROD.
 
-Notation PROD := product_category.PROD.
-Canonical Structure product_category.hom_eq.
-Canonical Structure product_category.hom_comp.
+Notation PROD := PROD.PROD.
 Canonical Structure PROD.
+Canonical Structure PROD.hom_eq.
+Canonical Structure PROD.hom_comp.
+
+Notation obl := PROD.obl.
+Notation obr := PROD.obr.
+Notation homl := PROD.homl.
+Notation homr := PROD.homr.
+Arguments obl [C] [D] _.
+Arguments obr [C] [D] _.
+Arguments homl [C] [D] [X] [Y] _.
+Arguments homr [C] [D] [X] [Y] _.
+
+Section pairF.
+  Variables C D E:category.
+  Variable F:functor C D.
+  Variable G:functor C E.
+
+  Program Definition pairF : functor C (PROD D E) :=
+    Functor C (PROD D E)
+      (fun X => PROD.Ob D E (F X) (G X))
+      (fun X Y f => PROD.Hom _ _ _ _ (F@f) (G@f))
+      _ _ _.
+  Next Obligation.
+    simpl; intros. split; simpl.
+    apply Functor.ident; auto.
+    apply Functor.ident; auto.
+  Qed.
+  Next Obligation.
+    simpl; intros. split; simpl.
+    apply Functor.compose; auto.
+    apply Functor.compose; auto.
+  Qed.
+  Next Obligation.
+    simpl; intros. split; simpl.
+    apply Functor.respects; auto.
+    apply Functor.respects; auto.
+  Qed.
+End pairF.
+Arguments pairF [C D E] _ _.
+
+Section projF.
+  Variables C D:category.
+  
+  Program Definition fstF : functor (PROD C D) C :=
+    Functor (PROD C D) C
+      (fun X => obl X)
+      (fun X Y f => homl f)
+      _ _ _.
+  Next Obligation.
+    intros. destruct H; auto.
+  Qed.
+  Next Obligation.
+    intros. destruct H; auto.
+  Qed.
+  Next Obligation.
+    intros. destruct H; auto.
+  Qed.
+
+  Program Definition sndF : functor (PROD C D) D :=
+    Functor (PROD C D) D
+      (fun X => obr X)
+      (fun X Y f => homr f)
+      _ _ _.
+  Next Obligation.
+    intros. destruct H; auto.
+  Qed.
+  Next Obligation.
+    intros. destruct H; auto.
+  Qed.
+  Next Obligation.
+    intros. destruct H; auto.
+  Qed.
+End projF.
+
 
 Program Definition ONE : category :=
   Category unit (fun _ _ => unit)
@@ -1197,3 +1269,5 @@ Qed.
 
 (* no can do, universe inconsistency *)
 (*Definition CAT : category := Category _ _ CAT_class.*)
+
+

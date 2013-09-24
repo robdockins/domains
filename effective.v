@@ -237,3 +237,57 @@ Next Obligation.
   apply eff_complete.
   left. apply single_axiom; auto.
 Qed.
+
+
+(* FIXME? this doesn't really fit here, but the current
+   module tree means it can't go in esets.v.  Maybe semidec
+   should get split out into a separate file?
+ *)
+Lemma semidec_ex (A B:preord) P
+  (HB:effective_order B) :
+  @semidec (A×B) (fun ab => P (fst ab) (snd ab)) ->
+  @semidec A (fun a => @ex B (P a)).
+Proof.
+  intros.
+  destruct X.
+  apply Semidec with (fun a n =>
+    let (p,q) := pairing.unpairing n in
+       match eff_enum B HB p with
+       | None => None
+       | Some b => decset (a,b) q
+       end).
+  intros.
+  destruct H0. exists x0.
+  apply (decset_prop_ok (x,x0) (y,x0)); auto.
+  split; split; auto.
+  simpl; intros. split; intros.
+  destruct H as [n ?].
+  case_eq (pairing.unpairing n); intros.
+  rewrite H0 in H.
+  destruct (eff_enum B HB n0); intros.
+  case_eq (decset (a,c) n1); intros.
+  rewrite H1 in H.
+  assert (c0 ∈ decset (a,c)).
+  exists n1. rewrite H1; auto.
+  apply decset_correct in H2.
+  simpl in H2. eauto.
+  rewrite H1 in H. elim H. elim H.
+  destruct H as [b ?].
+  generalize (eff_complete B HB b).
+  intros [p ?].
+  case_eq (eff_enum B HB p); intros.
+  rewrite H1 in H0.
+  assert (P a c).
+  apply (decset_prop_ok (a,b) (a,c)); auto.
+  split; split; auto.
+  assert (tt ∈ decset (a,c)).
+  apply decset_correct. simpl; auto.
+  destruct H3 as [q ?].
+  exists (pairing.pairing (p,q)).
+  rewrite pairing.unpairing_pairing.
+  destruct (eff_enum B HB p); auto.
+  inversion H1; subst.
+  destruct (decset (a,c) q); intros; auto.
+  discriminate.
+  rewrite H1 in H0. elim H0.
+Qed.
