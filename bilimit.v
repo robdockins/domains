@@ -11,133 +11,15 @@ Require Import effective.
 Require Import plotkin.
 Require Import profinite.
 Require Import directed.
+Require Import cont_functors.
 Require Import cpo.
 
-Record directed_system (I:directed_preord) (C:category) :=
-  DirSys
-  { ds_F    : I -> ob C
-  ; ds_hom : forall i j:I, i ≤ j -> ds_F i → ds_F j
-  ; ds_ident : forall i (Hii:i≤i), ds_hom i i Hii ≈ id
-  ; ds_compose : forall i j k (Hij:i≤j) (Hjk:j≤k) (Hik:i≤k),
-                       ds_hom j k Hjk ∘ ds_hom i j Hij ≈ ds_hom i k Hik
-  }.
-Arguments ds_F [I] [C] _ _.
-Arguments ds_hom [I] [C] _ _ _ _.
-Arguments ds_ident [I] [C] _ _ _.
-Arguments ds_compose [I] [C] _ _ _ _ _ _ _.
-
-Record cocone (I:directed_preord) C (DS:directed_system I C) :=
-  Cocone
-  { cocone_point :> ob C
-  ; cocone_spoke : forall i, ds_F DS i → cocone_point
-  ; cocone_commute : forall i j (Hij:i≤j),
-       cocone_spoke i ≈ cocone_spoke j ∘ ds_hom DS i j Hij
-  }.
-Arguments cocone [I] [C] DS.
-Arguments Cocone [I] [C] DS _ _ _.
-Arguments cocone_point [I] [C] [DS] _.
-Arguments cocone_spoke [I] [C] [DS] _ _.
-Arguments cocone_commute [I] [C] [DS] _ _ _ _.
-
-Record directed_colimit (I:directed_preord) C (DS:directed_system I C) 
-  (XC:cocone DS) :=
-  DirectedColimit
-  { colim_univ : forall (YC:cocone DS), XC → YC
-  ; colim_commute : forall (YC:cocone DS) i,
-       cocone_spoke YC i ≈ colim_univ YC ∘ cocone_spoke XC i
-  ; colim_uniq : forall (YC:cocone DS) (f:XC → YC),
-       (forall i, cocone_spoke YC i ≈ f ∘ cocone_spoke XC i) ->
-       f ≈ colim_univ YC
-  }.
-Arguments directed_colimit [I] [C] DS XC.
-Arguments DirectedColimit [I] [C] DS XC _ _ _.
-Arguments colim_univ [I] [C] [DS] [XC] _ YC.
-Arguments colim_commute [I] [C] [DS] [XC] _ _ _.
-Arguments colim_uniq [I] [C] [DS] [XC] _ YC f _.
-
-Program Definition dir_sys_app I C D
-  (DS:directed_system I C) (F:functor C D)
-  : directed_system I D:=
-
-  DirSys I D
-    (fun i => F (ds_F DS i))
-    (fun i j Hij => F@(ds_hom DS i j Hij))
-    _ _.
-Next Obligation.
-  intros.
-  apply Functor.ident.
-  apply ds_ident.
-Qed.
-Next Obligation.
-  intros.
-  rewrite <- Functor.compose.
-  reflexivity.
-  symmetry; apply ds_compose.
-Qed.  
-Arguments dir_sys_app [I] [C] [D] DS F.
-
-Program Definition cocone_app I C D (DS:directed_system I C)
-  (CC:cocone DS) (F:functor C D)
-  : cocone (dir_sys_app DS F) :=
-
-  Cocone (dir_sys_app DS F) (F CC) (fun i => F@cocone_spoke CC i) _.
-Next Obligation.
-  simpl; intros.
-  rewrite <- (Functor.compose F). 2: reflexivity.
-  rewrite <- (cocone_commute CC i j Hij).
-  auto.
-Qed.
-Arguments cocone_app [I] [C] [D] [DS] CC F.
-
-Definition continuous_functor (C D:category) (F:functor C D) :=
-  forall I (DS:directed_system I C) (CC:cocone DS),
-    directed_colimit DS CC ->
-    directed_colimit (dir_sys_app DS F) (cocone_app CC F).
-Arguments continuous_functor [C] [D] F.
 
 Section bilimit.
   Variable hf:bool.
   Variable I:directed_preord.
   Variable DS:directed_system I (EMBED hf).
 
-(*
-  Lemma choose_ub_set (M:finset I) (HM:inh hf M) : { k:I | upper_bound k M }.
-  Proof.
-    set (M' := esubset_dec I (fun x => upper_bound x M)
-            (upper_bound_dec I (ds_Ieff hf I DS) M)
-            (eff_enum I (ds_Ieff hf I DS))).
-    assert (einhabited M').
-    apply member_inhabited.
-    destruct (ds_Idir hf I DS M) as [k [??]]; auto.
-    hnf; intros. apply eff_complete.
-    exists k.
-    unfold M'.
-    apply esubset_dec_elem.
-    apply upper_bound_ok.
-    split; auto.
-    destruct (find_inhabitant I M' H) as [k ?].
-    exists k.
-    destruct s as [n [??]].
-    assert (k ∈ M').
-    exists n. rewrite H0. auto.
-    unfold M' in H2.
-    apply esubset_dec_elem in H2.
-    destruct H2; auto.
-    apply upper_bound_ok.
-  Qed.
-
-  Lemma choose_ub (i j:I) : { k:I | i ≤ k /\ j ≤ k }.
-  Proof.
-    destruct (choose_ub_set (i::j::nil)%list).
-    destruct hf; simpl; auto.
-    exists i. apply cons_elem. auto.
-    exists x.
-    split; apply u.
-    apply cons_elem; auto.
-    apply cons_elem; right.
-    apply cons_elem; auto.
-  Qed.
-*)
 
   Record limset :=
     LimSet
@@ -172,11 +54,6 @@ Section bilimit.
     rewrite <- (ds_compose DS (idx y) k q Hyk H0 Hyq) in H2.
     simpl in H2.
 
-    (* FIXME? This might be the only actual use of this property,
-       and this lemma is used only in the decidability proof below.
-        
-       Can we get rid of it by being a little more clever?
-     *)
     apply embed_reflects in H2. auto.
 
     destruct (choose_ub I (idx x) (idx y)) as [k [??]].
@@ -739,7 +616,6 @@ Section bilimit.
 
 End bilimit.
 
-(* FIXME Move to bilimit ? *)
 Section colimit_decompose.
   Variable hf:bool.
   Variable I:directed_preord.
@@ -992,7 +868,7 @@ Section fixpoint.
   Definition fixpoint := bilimit true nat_dirord kleene_chain.
 
   Hypothesis Fcontinuous : continuous_functor F.
-  
+
   Let BL := Fcontinuous nat_dirord kleene_chain
       (bilimit_cocone true nat_dirord kleene_chain)
       (bilimit_construction true nat_dirord kleene_chain).

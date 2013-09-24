@@ -10,12 +10,13 @@ esets.v
 effective.v
 plotkin.v
 directed.v
+cont_functors.v
 cpo.v
 algebraic.v
 ideal.v
 joinable.v
 approx_rels.v
 bilimit.v
+exp_functor.v
 profinite.v
-cont_functors.v
 profinite_adj.v
