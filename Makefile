@@ -80,14 +80,14 @@ endif
 #                    #
 ######################
 
-VFILES:=profinite_adj.v\
+VFILES:=atoms.v\
+  profinite_adj.v\
   profinite.v\
+  sumprod_functor.v\
   exp_functor.v\
   bilimit.v\
   approx_rels.v\
   joinable.v\
-  ideal.v\
-  algebraic.v\
   cpo.v\
   cont_functors.v\
   directed.v\

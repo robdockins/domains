@@ -12,11 +12,11 @@ plotkin.v
 directed.v
 cont_functors.v
 cpo.v
-algebraic.v
-ideal.v
 joinable.v
 approx_rels.v
 bilimit.v
 exp_functor.v
+sumprod_functor.v
 profinite.v
 profinite_adj.v
+atoms.v
