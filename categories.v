@@ -1,6 +1,24 @@
 Require Import Setoid.
 Require Import basics.
 
+(** * Some elementary category theory.
+    
+      Here we develop enough category theory to support our investigations
+      of domain theory.  We follow the general strategy used by several
+      authors (FIXME look up citation) for defining category theory inside
+      type theory, which is to equip every hom-set with an equivalance relation.
+      Then the category axioms are all stated with respect to the setoid structure
+      on hom-sets, and furthermore composition and functor actions are required
+      to respect hom-set equality.
+  *)
+
+
+(**  The [Comp] module represents the structure of composition
+     and an identity.  Later we will layer on the category
+     axioms and the setoid structure.  It is convenient to break
+     out just the operations into a separate structure from
+     the category structure.
+  *)
 Module Comp.
   Record mixin_of (ob:Type) (hom:ob -> ob -> Type) :=
     Mixin
@@ -15,6 +33,10 @@ Notation "x ∘ y" := (@comp_op _ _ _ _ x y) (at level 40, left associativity).
 Notation "'id'" := (@ident_op _ _).
 Notation "'id' ( A )" := (@ident_op _ A).
 
+
+(**  Here we put together the pieces: the setoid structure
+     on hom-sets, the composition strucutre, and the category axioms.
+  *)
 Module Category.
 Section category.
   Variable Ob:Type.
@@ -58,6 +80,9 @@ Canonical Structure CAT_EQ (C:category) A B
 Canonical Structure CAT_COMP (C:category) 
   := Comp.Pack _ _ (Category.comp _ _ (cat_class C)).
 
+
+(**  Here we define some easier-to-use versions of the catgory axioms.
+  *)
 Section category_axioms.
   Variable C:category.
 
@@ -71,6 +96,8 @@ Arguments cat_ident2 {C} [A] [B] f.
 Arguments cat_assoc {C} [A] [B] [C0] [D] f g h.
 Arguments cat_respects {C} [A] [B] [C0] [f] [f'] [g] [g'] _ _.
 
+
+(** Register composition as a morphism for the setoid equality. *) 
 Add Parametric Morphism (CAT:category) (A B C:ob CAT) :
   (@comp_op (CAT_COMP CAT) A B C)
    with signature (eq_op (CAT_EQ CAT B C)) ==> 
@@ -81,6 +108,12 @@ Proof.
   intros. apply cat_respects; trivial.
 Qed.
 
+(**  A concrete category is one where every object has a [Type]
+     carrier, and every hom defines a function between the carriers.
+
+     Further, equal homs produce extensionally-equal functions, and
+     compostion of homs corresponds to to the composition of functions.
+  *)
 Record concrete (C:category) :=
   Concrete
   { obmap : ob C -> Type
@@ -94,6 +127,7 @@ Record concrete (C:category) :=
      (g:hom C Y Z) (f:hom C X Y) (x:obmap X),
        Eq.eq _ (obeq Z) (hommap (g ∘ f) x) (hommap g (hommap f x))
   }.
+
 Notation "f '#' x" := (hommap _ _ f x) (at level 33, right associativity).
 
 Canonical Structure CONCRETE_EQ (CAT:category) (CC:concrete CAT) (A:ob CAT) :=
@@ -109,6 +143,9 @@ Proof.
   intros; apply hommap_eq; auto.
 Qed.  
 
+
+(**  A monomorphism is a morphism which cancels on the left.
+  *)
 Section mono.
   Variable C:category.
 
@@ -171,6 +208,8 @@ Canonical Structure MONO_CONCRETE
 Arguments MONO_CONCRETE [C] [CC].
 *)
 
+(**  Epimorphism are morphisms that cancel on the right.
+  *)
 Section epic.
   Variable C:category.
 
@@ -235,6 +274,10 @@ Canonical Structure EPI_CONCRETE
 Arguments EPI_CONCRETE [C] [CC].
 *)
 
+
+(**  An isomorphism is a pair of functions that, when comoposed
+     in each direction, are equal to the identity.
+  *)
 Section iso.
   Variable C:category.
 
@@ -297,12 +340,13 @@ Canonical Structure ISO_COMP (C:category)
   := Comp.Pack (ob C) (isomorphism C)
       (Comp.Mixin _ _ (iso_id C) (iso_compose C)).
 
+
 Module Functor.
 Section functor.  
   Variable C D:category.
 
-  (* NOTE!! 
-      These axioms are written in a very specific way that differs
+  (** NOTE!! 
+      The functor axioms are written in a very specific way that differs
       slightly from the usual presentation.
       This is done so that the definition of functor composition
       is associative up to convertability, even for the axiom proofs!
@@ -341,18 +385,22 @@ Arguments Functor.respects [C] [D] f A B f0 g _.
 
 Notation functor := Functor.functor.
 Notation Functor := Functor.Functor.
+
+(**  The '@' symbol is used to indicate the action of a functor on a hom.  Thus, if
+     [f : A → B] is a hom in category [C] then [F@f : F A → F B] is a hom in category [D].
+  *)
 Notation "F '@' f" := (Functor.hom_map F _ _ f) (at level 36, left associativity).
 Coercion Functor.ob_map : functor >-> Funclass.
 
 Section functor_compose.
   Variable C D E:category.
 
-(* NOTE! these proof obligations are given explicitly.
-   This means that composition with the identity is convertabile
-   to forgetting the composition, provided that the thing being
-   composed with is a structure object (that is, Coq can convert it
-   to the application of the record constructor to some fields).
- *)
+  (** NOTE! these proof obligations are given explicitly.
+      This means that composition with the identity is convertabile
+      to forgetting the composition, provided that the thing being
+      composed with is a structure object (that is, Coq can convert it
+      to the application of the record constructor to some fields).
+    *)
   Definition FunctorIdent : functor C C :=
   Functor C C
     (fun X => X)
@@ -361,10 +409,10 @@ Section functor_compose.
     (fun A B C f g h H => H)
     (fun A B f g H => H).
 
-(* NOTE! the following axioms are given explicitly.
-   This is to make sure that functor composition is associative up
-   to convertability.
- *)
+  (** NOTE! the following axioms are given explicitly.
+      This is to make sure that functor composition is associative up
+      to convertability.
+    *)
   Definition FunctorCompose (F:functor D E) (G:functor C D) : functor C E :=
   Functor C E
     (fun X => Functor.ob_map F (Functor.ob_map G X))
@@ -412,6 +460,17 @@ Proof.
   destruct X; reflexivity.
 Qed.
 
+(**  Here we check to ensure we have achieved functor
+     laws up to convertablity.  The following goals
+     are all proved by the "reflexivity" tactic, which
+     demonstrates that Coq's conversion is sufficent to
+     demonstrate the equality.  To get conversion with
+     the identity, we need to "repack" the functor variables
+     because Coq does _not_ have eta-conversion for records.
+
+     Concrete functor instances should be sufficently transparent
+     to make this repacking unnecessary in practice.
+  *)
 Section test_functor_assocative_convertability.
   Variables C D E F:category.
   Variable G:functor E F.
@@ -431,9 +490,15 @@ Section test_functor_assocative_convertability.
   Qed.
 End test_functor_assocative_convertability.
 
+
+(**  Leibniz equality can be used to define a setoid on any type.
+  *)
 Program Definition lib_eq (X:Type) : Eq.mixin_of X :=
   Eq.Mixin X (@eq X) _ _ _.
 
+
+(**  Natural transfomations, defined in the standard way.
+  *)
 Module NT.
 Section nt.
   Variables C D:category.
@@ -472,6 +537,10 @@ Section nt_compose.
     trivial.
   Qed.
 
+  (**  There are two possible ways to combine a natural transformation
+       with the action of a functor to get another natural transformation,
+       depending on which side you wish to compose the functor.
+    *)
   Program Definition stacknt
     (F:functor D E) (G H:functor C D)
     (n:nt G H) : nt (F ∘ G) (F ∘ H) :=
@@ -520,6 +589,11 @@ Canonical Structure NTComp (C D:category) :=
   Comp.Pack (functor C D) (@NT.nt C D)
              (NT.NTComp_mixin C D).
   
+
+(**  [FUNC C D] is the functor category from [C] to [D],
+     whose objects are the functors from [C] to [D] and whose
+     morphisms are natural transformations.
+  *)
 Program Definition FUNC
   (C D:category) : category :=
   Category
@@ -541,6 +615,8 @@ Canonical Structure FUNC_COMP C D := CAT_COMP _ _ (FUNC C D).
 Canonical Structure FUNC_EQ C D := CAT_EQ _ _ (FUNC C D).
 *)
  
+(**  Here we define pullbacks in the direct style.
+  *)
 Module Pullback.
 Section pullback.
   Variable C:category.
@@ -593,16 +669,22 @@ Arguments is_pullback [C] [X] [Y] [Z] [f] [g] _.
 Section pullback_lemma.
   Variable C:category.
 
-  (*     f1 
+  (**  The pullback lemma proved here is that, given objects and
+       morphisms as in the below diagram; if both of the inner
+       diagrams are pullbacks then the outer diagram is a pullback.
+
+<<
+        f1 
      R ----> S
-     |        |
-  g1 |        | h1
-     v   f2   v
+     |       |
+  g1 |       | h1
+     v  f2   v
      W ----> Y
-     |        |
-  g2 |        | h2
-     V   f3   v
+     |       |
+  g2 |       | h2
+     V  f3   v
      X ----> Z
+>>
   *)
 
   Variables X Y Z W R S:ob C.
@@ -690,6 +772,8 @@ Notation pullback := Pullback.pullback.
 Notation Pullback := Pullback.Pullback.
 
 
+(**  Here we define adjunction using the unit/counit definition.
+  *)
 Module Adjunction.
 Section adjunction.
   Variable C D:category.
@@ -716,6 +800,11 @@ End Adjunction.
 Notation Adjunction := Adjunction.Adjunction.
 Notation adjunction := Adjunction.adjunction.
 
+
+(**  Here we define the category of cones, the morphisms of which
+     are homs in the original category that commute with the
+     spokes of the cones.
+  *)
 Module Cone.
 Section cone.
   Variable C:category.
@@ -775,6 +864,10 @@ Section cone.
 End cone.
 End Cone.
 
+(**  Here we define algebras of an endofunctor, and we define
+     initial algebras directly.  We'll be interested in
+     initial algebras when it comes time to define recursive domains.
+  *)
 Module Alg.
 Section alg.
   Variable C:category.
@@ -958,6 +1051,8 @@ Notation alg := Alg.alg.
 Canonical Structure Alg.ALG.
 
 
+(**  The product category.
+  *)
 Module PROD.
 Section product_category.
   Variables C D:category.
@@ -1105,6 +1200,8 @@ Section projF.
 End projF.
 
 
+(**  The category with a single object and a single morphism.
+  *)
 Program Definition ONE : category :=
   Category unit (fun _ _ => unit)
     (Category.Class _ _
@@ -1121,15 +1218,17 @@ Next Obligation.
 Qed.
 
 
+(**  The constant functor.
+  *)
 Program Definition fconst (C D:category) (A:ob D) : functor C D :=
   Functor C D (fun _ => A) (fun _ _ _ => id(A)) _ _ _ .
 Next Obligation.
   intros. apply eq_symm. apply cat_ident1.
 Defined.
 
-(* Types from a fixed universe, with all type-theoretic functions up
-   to Libnez equality.  This works axiom-free in recent Coq because we
-   have eta-conversion.
+(** The category of types from a fixed universe, with all type-theoretic
+    functions up to Leibniz equality.  This works axiom-free in recent Coq because
+    we have eta-conversion.
  *)
 Module TYPE.
   Definition tob := Type.
@@ -1160,17 +1259,19 @@ End TYPE.
 Notation TYPE := TYPE.TYPE.
 
 
+(**  The category of setoids with equality-respecting functions.
+  *)
 Module SET.
 Record set_ob :=
-  (* Can't use Eq.type because then a universe inconsitency arises.
-     However, the following workaround seems just as good.
+  (** Note: we can't use Eq.type because then a universe inconsitency arises.
+      However, the following workaround seems just as good.
    *)
   Set_ob 
   { carrier :> Type
   ; mixin : Eq.mixin_of carrier
   }.
 
-(* Lets us treat a set_ob like an Eq.type *)
+(** This lets us treat a set_ob like an Eq.type *)
 Canonical Structure set_ob_Eq X := Eq.Pack (carrier X) (mixin X).
 
 Record hom (A B:set_ob) :=
@@ -1253,6 +1354,12 @@ Definition SET1 : ob SET := SET.Set_ob unit (lib_eq _).
 Definition elem (X:ob SET) (x:X) : SET1 → X :=
   SET.Hom _ _ (fun _ => x) (fun a b H => eq_refl _ _).
 
+
+(**  We can define the category class structure for the large
+     category of small categories.  However! we cannot complete
+     the construction due to a universe inconsistency.  If we
+     had universe polymorphism we could get the definition we want.
+  *)
 Program Definition CAT_class : Category.class_of category functor :=
     Category.Class _ _
       (fun A B => lib_eq (functor A B))
@@ -1267,7 +1374,9 @@ Next Obligation.
   intros. hnf in *. subst. auto.
 Qed.
 
-(* no can do, universe inconsistency *)
-(*Definition CAT : category := Category _ _ CAT_class.*)
+(** No can do, universe inconsistency:
 
-
+<<
+Definition CAT : category := Category _ _ CAT_class.
+>>
+*)

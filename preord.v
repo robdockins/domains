@@ -3,6 +3,18 @@ Require Import Setoid.
 Require Import basics.
 Require Import categories.
 
+(**  A preorder is a type equipped with a transitive,
+     reflexive relation.  Unlike standard domain theory,
+     we will be concentrating on preorders rather than
+     partial orders as the basis of order theory.
+
+     As compared to partial orders, preorders lack the
+     axiom of antisymmetry.  Instead, we work (almost) always
+     up to the equivalence relation induced by the preorder.
+     On a preorder, we automatically define a setoid
+     by setting [x ≈ y] iff [x ≤ y /\ y ≤ x].  Thus, we
+     "recover" antisymmetry more-or-less by convention.
+  *)
 Module Preord.
   Record mixin_of (T:Type) :=
     Mixin
@@ -95,6 +107,7 @@ Module Preord.
   Qed.
 End Preord.
 Notation preord := Preord.type.
+
 Notation "x ≤ y" := (@Preord.ord_op _ x y) (at level 70).
 Notation "y ≥ x" := (@Preord.ord_op _ x y) (at level 70, only parsing).
 Notation "x ≰ y" := (~ (@Preord.ord_op _ x y)) (at level 70).
@@ -260,6 +273,8 @@ Proof.
   apply H.
 Qed.
 
+(** The preorder on sums, defined in the standard way.
+  *)
 Definition sum_ord (A B:preord) (x y:A+B):=
   match x, y with
   | inl x', inl y' => x' ≤ y'
@@ -280,6 +295,8 @@ Qed.
 
 Canonical Structure sum_preord.
 
+(**  The preorder on products, defined pointwise.
+  *)
 Definition prod_ord (A B:preord) (x y:A*B):=
   (fst x) ≤ (fst y) /\ (snd x) ≤ (snd y).
 
@@ -303,6 +320,7 @@ Proof.
 Qed.
 
 Notation "A × B" := (prod_preord A B) (at level 54, right associativity).
+
 
 Program Definition pi1 {A B:preord} : A × B → A :=
   Preord.Hom (A × B) A (fun x => fst x) _.
@@ -328,7 +346,6 @@ Qed.
 Program Definition pair_map {A B C D:preord} (f:A → B) (g:C → D) : A×C → B×D :=
   mk_pair (f ∘ π₁) (g ∘ π₂).
 
-
 Record ord_dec (A:preord) :=
   OrdDec
   { orddec :> forall x y:A, {x ≤ y}+{x ≰ y} }.
@@ -346,12 +363,17 @@ Canonical Structure PREORD_EQ_DEC (A:preord) (OD:ord_dec A) :=
       | right H => right (fun HEQ => H (proj1 HEQ))
       end).
 
+
+(** The one-point preorder *)
 Program Definition unitpo := Preord.Pack unit (Preord.Mixin _ (fun _ _ => True) _ _).
 Canonical Structure unitpo.
 
+(** The empty preorer. *)
 Program Definition emptypo := Preord.Pack False (Preord.Mixin _ (fun _ _ => False) _ _).
 Canonical Structure emptypo.
 
+
+(** The "lift" preorder, which adjoins a new bottom element. *)
 Definition lift_ord (A:preord) (x:option A) (y:option A) : Prop :=
    match x with None => True | Some x' =>
      match y with None => False | Some y' => x' ≤ y' end end.

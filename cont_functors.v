@@ -103,6 +103,24 @@ Proof.
                  (cocone_point YC) (cocone_spoke YC) (cocone_commute YC))); auto.
 Qed.
 
+
+Lemma fconst_continuous (C D:category) (X:ob D) : continuous_functor (fconst C D X).
+Proof.
+  repeat intro.
+  destruct (choose_ub_set I nil) as [j _].
+  apply (DirectedColimit 
+    (dir_sys_app DS (fconst C D X)) 
+    (cocone_app CC (fconst C D X))
+    (fun YC => cocone_spoke YC j)); simpl; intros.
+  destruct (choose_ub I i j) as [k [??]].
+  rewrite (cocone_commute YC i k H). simpl.
+  rewrite (cocone_commute YC j k H0). simpl.
+  rewrite (cat_ident1 (cocone_spoke YC k)).
+  rewrite (cat_ident1 (cocone_spoke YC k)). auto.
+  rewrite (H j). symmetry. apply cat_ident1.
+Qed.
+
+
 Lemma composeF_continuous (C D E:category)
   (F:functor D E) (G:functor C D) :
   continuous_functor F ->

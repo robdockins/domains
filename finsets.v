@@ -8,6 +8,15 @@ Require Import preord.
 Require Import categories.
 Require Import sets.
 
+(** * The theory of finite sets.
+
+      Here we define the theory of finite sets.  Concretely,
+      finite sets are represetned by the standard list type,
+      with list membership.  Singleton sets are given
+      by one-element lists, union is defined by list
+      concatination and image is the stadard list map function.
+  *)
+
 Definition concat (A:Type) (l:list (list A)) : list A :=
   List.fold_right (@app A) (@nil A) l.
 
@@ -135,6 +144,10 @@ Qed.
 
 Canonical Structure finset_dec.
 
+
+(**  Some useful lemmas relating list formation operations to
+     finite set membership.
+  *)
 Lemma nil_elem : forall (A:preord) (x:A),
   x ∈ (nil : finset A) -> False.
 Proof.
@@ -173,6 +186,9 @@ Proof.
   right. apply IHP; auto.
   right. apply IHP; auto.
 Qed.
+
+(* This is an idea that didn't really work out.
+   
 
 Record pigment :=
   Pigment
@@ -275,8 +291,10 @@ Next Obligation.
   apply union_axiom.
   exists X. split; auto.
 Qed.
+*)
 
-
+(**  The cartesian product of finite sets.
+  *)
 Fixpoint finprod {A B:preord} (P:finset A) (Q:finset B) : finset (A×B) :=
   match P with
   | nil => nil
@@ -318,6 +336,9 @@ Proof.
   apply app_elem. right.
   apply IHP. split; auto.
 Qed.  
+
+(**  Disjoint union of finite sets.
+  *)
 
 Fixpoint left_finset (A B:preord) (X:finset (sum_preord A B)) : finset A :=
   match X with
@@ -453,6 +474,10 @@ Proof.
   eapply finsum_right_elem; eauto.
 Qed.
 
+
+(**  We can take the subset of a finite set if the
+     predicate we wish to use to take the subset is decidable.
+  *)
 Section finsubset.
   Variable A:preord.
   Variable P : A -> Prop.
@@ -508,7 +533,9 @@ Section finsubset.
 End finsubset.
     
 
-
+(**  We can take the intersection of finite sets if the elements
+     have decidable equality.
+  *)
 Definition fin_intersect (A:preord) (Hdec:ord_dec A) (X Y:finset A) : finset A
  := finsubset A (fun x => x ∈ X) (fun x => finset_dec A Hdec x X) Y.
 
@@ -559,47 +586,9 @@ Proof.
 Qed.
 
 
-
-Fixpoint list_finsubsets {A:preord} (M:finset A) : finset (finset A) :=
-  match M with
-  | nil => List.cons nil nil
-  | List.cons x xs => 
-       let subs := list_finsubsets xs in
-           List.app (subs) (List.map (List.cons x) subs)
-  end.
-
-Lemma list_finsubsets_correct A : forall (M X:finset A),
-  X ∈ list_finsubsets M -> X ⊆ M.
-Proof.
-  induction M; simpl; intros.
-  destruct H as [?[??]]. elim H.
-  simpl in H. intuition subst.
-  rewrite H0. red; auto.
-  intros. elim H1.
-  destruct H as [q [??]].
-  apply List.in_app_or in H.
-  destruct H.
-  red. intros.
-  apply (IHM X) in H1.
-  destruct H1 as [q' [??]].
-  exists q'; split; simpl; auto.
-  exists q; split; auto.
-  apply List.in_map_iff in H.
-  destruct H as [x [??]].
-  assert ((x:finset A) ⊆ (M:finset A)).
-  apply IHM.
-  exists x. split; auto.
-  red; intros.
-  rewrite H0 in H3.
-  rewrite <- H in H3.
-  destruct H3 as [q' [??]].
-  simpl in H3; intuition subst.
-  exists q'. split; simpl; auto.
-  destruct (H2 a0) as [q'' [??]].
-  exists q'. split; auto.
-  exists q''. split; simpl; auto.
-Qed.
-
+(**  We can remove an element from a finite set if the elements have
+     decidable equality.
+  *)
 Fixpoint finset_remove {A:preord} (Hdec : ord_dec A) (X:finset A) (a:A) : finset A :=
   match X with
   | nil => nil
@@ -681,6 +670,49 @@ Proof.
   simpl. apply Lt.lt_n_S. apply IHX; auto.
 Qed.  
 
+(**  We can take the powerset of a finite set; that is, all finite
+     subsets of a finite set.
+  *)
+Fixpoint list_finsubsets {A:preord} (M:finset A) : finset (finset A) :=
+  match M with
+  | nil => List.cons nil nil
+  | List.cons x xs => 
+       let subs := list_finsubsets xs in
+           List.app (subs) (List.map (List.cons x) subs)
+  end.
+
+Lemma list_finsubsets_correct A : forall (M X:finset A),
+  X ∈ list_finsubsets M -> X ⊆ M.
+Proof.
+  induction M; simpl; intros.
+  destruct H as [?[??]]. elim H.
+  simpl in H. intuition subst.
+  rewrite H0. red; auto.
+  intros. elim H1.
+  destruct H as [q [??]].
+  apply List.in_app_or in H.
+  destruct H.
+  red. intros.
+  apply (IHM X) in H1.
+  destruct H1 as [q' [??]].
+  exists q'; split; simpl; auto.
+  exists q; split; auto.
+  apply List.in_map_iff in H.
+  destruct H as [x [??]].
+  assert ((x:finset A) ⊆ (M:finset A)).
+  apply IHM.
+  exists x. split; auto.
+  red; intros.
+  rewrite H0 in H3.
+  rewrite <- H in H3.
+  destruct H3 as [q' [??]].
+  simpl in H3; intuition subst.
+  exists q'. split; simpl; auto.
+  destruct (H2 a0) as [q'' [??]].
+  exists q'. split; auto.
+  exists q''. split; simpl; auto.
+Qed.
+
 Lemma list_finsubsets_complete A (Hdec : ord_dec A) : forall (M X:finset A),
   X ⊆ M -> X ∈ list_finsubsets M.
 Proof.
@@ -741,6 +773,9 @@ Proof.
   destruct H3; auto.
 Qed.
 
+
+(**  Decidability facts of various kinds can be pushed into finite sets.
+  *)
 Lemma finset_find_dec (A:preord)
   (P:A -> Prop)
   (HP : forall x y:A, x ≈ y -> P x -> P y)

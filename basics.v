@@ -1,5 +1,17 @@
 Require Import Setoid.
 
+(** * Setoids and equality.
+
+      This module introduces setoids, which consist of a type packaged together with
+      an equivalence relation.  We roughly follow the techniques described in the paper
+      _Packaging Mathematical Structures_ by Garillot et al. (TPHOLS 2009).  The mainstay
+      of this technique is using canonoical structures to automatically infer structures
+      given the carrier type.
+
+      We use the symbol ≈ to indicate the equality relation on setoids.  For the vast
+      majority of this development, ≈ will be the notion of equivalence of interest.
+  *)
+
 Module Eq.
   Record mixin_of (T:Type) :=
     Mixin
@@ -16,8 +28,8 @@ End Eq.
 Definition eq_op T := Eq.eq _ (Eq.mixin T).
 Notation "x ≈ y" := (@eq_op _ x y) (at level 70).
 Notation "x ≉ y" := (~(@eq_op _ x y)) (at level 70).
-
 Coercion Eq.carrier : Eq.type >-> Sortclass.
+
 
 Lemma eq_refl : forall (T:Eq.type) (x:T), x ≈ x.
 Proof.

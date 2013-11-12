@@ -14,7 +14,15 @@ Require Import directed.
 Require Import cont_functors.
 Require Import cpo.
 
+(**  * Bilimits and fixpoints of continuous functors.
 
+       Here we construct the colimit of directed systems.
+       The carrier of the bilimit is the disjoint union
+       of the directed system.  The order on the bilimit
+       elements holds if there exists some larger poset
+       into which both elements can be embedded where
+       the ordering holds.
+  *)
 Section bilimit.
   Variable hf:bool.
   Variable I:directed_preord.
@@ -32,6 +40,10 @@ Section bilimit.
       ds_hom DS (idx x) k Hxk (elem x) 
       ≤ ds_hom DS (idx y) k Hyk (elem y).
 
+
+  (**  This lemma shows that if two elements compare in any larger poset,
+       the compare in _every_ larger poset.
+    *)
   Lemma limset_order_exists_forall x y :
     limset_order x y <->
     forall k (Hxk : idx x ≤ k) (Hyk : idx y ≤ k),
@@ -90,6 +102,8 @@ Section bilimit.
 
   Canonical Structure limord := Preord.Pack limset limord_mixin.
 
+  (**  The order is decidable.
+    *)
   Lemma limset_order_dec (x y:limset) :
     { limset_order x y } + { ~limset_order x y }.
   Proof.
@@ -104,6 +118,8 @@ Section bilimit.
     apply n. apply H1.
   Qed.
 
+  (**  Furthermore, all the elements can be enumerated.
+    *)
   Definition limset_enum : eset limord :=
     fun n => let (p,q) := pairing.unpairing n in
          match eff_enum _ (dir_effective I) p with
@@ -115,6 +131,7 @@ Section bilimit.
          | None => None
          end.
 
+  (** Thus, the bilimit is an effective order. *)
   Program Definition limord_effective : effective_order limord :=
     EffectiveOrder limord limset_order_dec limset_enum _.
   Next Obligation.
@@ -143,6 +160,8 @@ Section bilimit.
     rewrite (ds_ident DS c (ord_refl _ _)). simpl. auto.
   Qed.
 
+  (**  Moreover, the bilimit has normal sets.
+    *)
   Lemma limord_has_normals : has_normals limord limord_effective hf.
   Proof.
     hnf. intros.
@@ -358,12 +377,17 @@ Section bilimit.
     intros. rewrite <- H1. auto.
   Qed.
 
+  (**  Altogether, this makes the bilimit a plotkin order.
+    *)
   Definition limord_plotkin : plotkin_order hf limord :=
     norm_plt limord limord_effective hf limord_has_normals.
 
   Definition bilimit : PLT.ob hf :=
     PLT.Ob hf limset (PLT.Class _ _ limord_mixin limord_effective limord_plotkin).
   
+
+  (**  Here we define the spokes of the colimit cocone.
+    *)
   Program Definition limset_spoke (i:I) : hom (EMBED hf) (ds_F DS i) bilimit
     := Embedding hf (ds_F DS i : ob (EMBED hf)) bilimit
     (fun x => LimSet i x) _ _ _ _.
@@ -616,6 +640,10 @@ Section bilimit.
 
 End bilimit.
 
+
+(**  These two constructions show that a cocone is a colimit
+     iff every element can be factored through a spoke of the cocone.
+  *)
 Section colimit_decompose.
   Variable hf:bool.
   Variable I:directed_preord.
@@ -784,6 +812,9 @@ End colimit_decompose2.
 Require Import Arith.
 Require Import NArith.
 
+
+(**  The preorder of natural numbers with their arithmetic ordering.
+  *)
 Program Definition nat_ord := Preord.Pack nat (Preord.Mixin nat le _ _).
 Solve Obligations using eauto with arith.
   
@@ -815,6 +846,7 @@ Qed.
 Section fixpoint.
   Variable F:functor (EMBED true) (EMBED true).
 
+  (** Iterated application of the functor [F] *)
   Fixpoint iterF (x:nat) : ob (EMBED true) :=
     match x with
     | O => empty_plt true
@@ -826,6 +858,8 @@ Section fixpoint.
     inversion Hij.
   Qed.
 
+  (**  Iterated action of the functor [F] on homs.
+    *)
   Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i ⇀ iterF j :=
     match i as i' return forall (j:nat) (Hij:i' <= j), iterF i' ⇀ iterF j with
     | O => fun j Hij => empty_bang _
@@ -846,6 +880,7 @@ Section fixpoint.
     apply IHi.
   Qed.
 
+  (** The Kleene chain is a directed system. *)
   Program Definition kleene_chain : directed_system nat_dirord (EMBED true) :=
     DirSys nat_dirord (EMBED true) iterF iter_hom _ _.
   Next Obligation.      
@@ -867,6 +902,10 @@ Section fixpoint.
 
   Definition fixpoint := bilimit true nat_dirord kleene_chain.
 
+  (** If we suppose [F] is a continuous functor, we can demonstrate
+      that [fixpoint] forms an initial algebra and thus actually is
+      the least fixpoint of [F].
+    *)
   Hypothesis Fcontinuous : continuous_functor F.
 
   Let BL := Fcontinuous nat_dirord kleene_chain
@@ -1060,7 +1099,7 @@ Section fixpoint.
     apply (colim_commute BL cocone_plus1).
   Qed.
 
-  Program Definition fixpoint_iso :
+  Definition fixpoint_iso :
     F fixpoint ↔ fixpoint :=
 
     Isomorphism (EMBED true) (F fixpoint) fixpoint 

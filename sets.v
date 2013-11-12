@@ -5,6 +5,33 @@ Require Import basics.
 Require Import preord.
 Require Import categories.
 
+(**  * Set theory.
+
+       Here we define a notion of "set theory" that is sufficent
+       for our purposes.  Note that the set theories we define
+       are significantly weaker than the set theories used for
+       foundational mathematics (say, ZF).  
+
+       First, our sets are typed: a "set theory" defines an operator
+       [set] that sents preorders to preorders.  In addition to the
+       membership predicate, the only operations we stipulate must
+       exist are the operation to form singleton sets, the union
+       operation, and the operation to take the image of a monotone
+       function.
+
+       Two particular notions of "set theory" we are interested in
+       are the finite sets and the enumerable (countable) sets.
+       We'll also be interested in the notion of directed sets,
+       which play an important role in the deveopment of domain theory.
+       Directeness is abstracted into a notion of "colored" sets, which
+       unifies several closely related definitions.
+
+       Note that the operations we require are precicely what is
+       required for "set" to be a monad in the category of preorders.
+       This, as it happens, is an unanticipated coincidence!  Perhaps
+       there is some deeper meaning implied by this coincidence, but I
+       have yet to discover it.
+  *)
 Module set.
 Section mixin_def.
   Variable set : preord -> Type.
@@ -12,6 +39,7 @@ Section mixin_def.
   Variable single : forall (A:preord), A -> set A.
   Variable image : forall (A B:preord) (f:A → B), set A -> set B.
 
+  (** The standard inclusion preorder on sets. *)
   Let incl A X Y := forall a, member A a X -> member A a Y.
 
   Program Definition set_preord (A:preord) : preord :=
@@ -66,6 +94,9 @@ Definition set_preord (T:set.theory) (A:preord) :=
   set.set_preord (set.set T) (@set.member T) A.
 Canonical Structure set_preord.
 
+(**   Here, we equip set theories with their standard notations,
+      ∈ for memebership, ⊆ for subset inclusion, and ∪ for unions.
+  *)
 Notation set := set_preord.
 Notation single := set.single.
 Notation image := set.image.
@@ -74,14 +105,14 @@ Notation "x ∉ X"  := (not (@set.member _ _ x X)) (at level 60).
 
 Definition incl {A:preord} {XSL YSL:set.theory} (X:set XSL A) (Y:set YSL A) :=
   forall a:A, a ∈ X -> a ∈ Y.
-
 Notation "X ⊆ Y" := (@incl _ _ _ X Y) (at level 66).
 
 Definition union {T:set.theory} {A:preord} (XS:set T (set T A)) : set T A :=
   set.union T A XS.
-
 Notation "∪ XS" := (@union _ _ XS) (at level 50).
 
+(**  Here we provide convenient access points to the set theory axioms.
+  *)
 Lemma member_eq : forall (T:set.theory) (A:preord) (a b:A) (X:set T A),
   a ≈ b -> a ∈ X -> b ∈ X.
 Proof.
@@ -129,6 +160,9 @@ Proof.
   intro T. apply (set.image_axiom2 _ _ _ _ _ (set.mixin T)).
 Qed.
 
+(**  Next, we do all the muckety-muck necessary to 
+     do setoid rewriting with set theories.
+  *)
 Require Import Setoid.
 Require Import Coq.Program.Basics.
 
@@ -289,13 +323,15 @@ Proof.
   exists X. split; auto.
 Qed.
 
+(**  A set theory has a [set_dec] if set membership is decidable.
+  *)
 Record set_dec (T:set.theory) (A:preord) :=
   Setdec
   { setdec :> forall (x:A) (X:set T A), { x ∈ X } + { x ∉ X } }.
 
 
-
-
+(**  Here we define some general order-theoretic notions.
+  *)
 Definition lower_set {T:set.theory} {A:preord} (X:set T A) :=
   forall (a b:A), a ≤ b -> b ∈ X -> a ∈ X.
 
@@ -331,7 +367,14 @@ Definition greatest_lower_bound {T:set.theory} {A:preord}
   (forall b, lower_bound b X -> b ≤ glb).
 
 
+(**  Colored sets are a generalization of the idea of "directed" sets.
 
+     A "color" is a property a set may have which is parametric over
+     a set theory.  We require that the property of being "colored" is
+     preserved by the operations of a set theory: every singleton set
+     is colored; a colored union of colored sets is colored; and the
+     image (under a monotone function) of a colored set is again colored.
+  *)
 Record color :=
   Color
   { color_prop : forall (T:set.theory) (A:preord) (X:set T A), Prop
@@ -357,6 +400,8 @@ Qed.
 Next Obligation.
 *)
 
+(**  The conjunction of two coloring properties is again a color.
+  *)
 Program Definition color_and (C1 C2:color) : color :=
   Color (fun SL A X => color_prop C1 X /\ color_prop C2 X) _ _ _ _.
 Next Obligation.
@@ -395,6 +440,8 @@ Next Obligation.
 Qed.
 *)
   
+(**  The property of being inhabited is a simple example of a color.
+  *)
 Program Definition inhabited : color :=
   Color (fun SL A X => exists a:A, a ∈ X) _ _ _ _.
 Next Obligation.
@@ -416,6 +463,10 @@ Qed.
 Obligation Tactic := idtac.
 
 
+(**  Given a base set theory [T], we can collect together all the sets
+     of [T] that satisfy some coloring property: these colored sets
+     again form a set theory.
+  *)
 Module colored_sets.
 Section colored_sets.
   Variable T:set.theory.

@@ -2,6 +2,22 @@ Require Import NArith.
 
 Local Open Scope N_scope.
 
+(**  * Bitwise pairing function on [N].
+
+       Here we define a "bitwise" pairing isomorphism
+       on the nonnegative integers.  This is one of
+       many different ways to witness the isormporphism
+       between [N] and [N×N].
+
+       We will use the pairing function to define the union
+       of countable sets and other similar constructions.
+       The details of the isomorphism are unimportant
+       once the isomorphism is defined.  We prove this particular
+       isomorphism because it requires almost no facts about
+       arithmetic, and the proofs go by simple inductions on the
+       binary representation of positives.
+  *)
+
 Fixpoint inflate (x:positive) : positive :=
   match x with
   | xH    => xO xH

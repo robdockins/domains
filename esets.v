@@ -9,6 +9,18 @@ Require Import pairing.
 Require Import sets.
 Require Import finsets.
 
+(**  * The theory of enumerable sets.
+
+       Here we define the theory of "enumerable" sets.  Concretely,
+       enumerable sets of [A] represented by functions [N -> option A].
+       We consider an element [x] to be in a set [X] if there exists
+       an [n] such that [X n = Some x'] with [x ≈ x'].
+
+       The singleton set is given by the constant function.  The image function
+       is defined in the straightforward way as a composition of functions.
+       Union is defined by using the isomorphism between [N] and [N×N] defined
+       in pairing.
+  *)
 Module eset.
 Section eset.
   Definition eset (A:preord) := N -> option A.
@@ -116,9 +128,16 @@ Notation eset := (set_preord eset_theory).
 Section eset_lemmas.
   Variable A:preord.
 
+  (** The empty set is easily definable.  *)
   Definition empty : eset A := fun n => None.
+
+  (** Every list (qua finite set) generates an enumerable set. *)
   Definition elist (l:list A) : eset A := fun n => nth_error l (N.to_nat n).
 
+  (** Here we define inhabitedness of an enumerable set as an inductive
+      predicate with a single constructor.  This enables us to define
+      a constructive choice function on inhabited enumerable sets.
+    *)
   Inductive einhabited (P:eset A) : Prop :=
     | einh :
         (P N0 = None -> einhabited (fun n => P (Nsucc n))) ->
@@ -133,8 +152,11 @@ Section eset_lemmas.
     rewrite H0 in H. elim H.
     constructor; intros.
     apply IHn. auto.
-  Qed.    
+  Defined.
 
+  (**  [find_inhabitant] is defined by recursion on the [einhabited] fact,
+       and it finds the smallest index in the set [P] that is defined.
+    *)
   Definition find_inhabitant : forall P (H:einhabited P),
     { a:A & { n | P n = Some a /\
       forall n' a', P n' = Some a' -> (n <= n')%N} }.
@@ -164,7 +186,10 @@ Section eset_lemmas.
     intros.
     apply H3 in H4; auto.
     rewrite <- N.succ_le_mono; auto.
-  Qed.
+  Defined.
+
+Global Opaque find_inhabitant.
+
 
   Definition choose P (H:einhabited P) : A
     := projT1 (find_inhabitant P H).
@@ -191,7 +216,9 @@ Arguments einhabited {A} P.
 Definition cl_eset_theory CL := cset_theory eset_theory CL.
 Notation cl_eset CL := (set_preord (cl_eset_theory CL)).
 
-
+(**  The intersection of enumerable sets can be defined if we have a decidable equality on the
+     elements.
+  *)
 Definition intersection {A:preord} (eqdec:forall x y:A, {x ≈ y}+{x ≉ y}) (P Q:eset A) : eset A :=
     fun n => let (p,q) := unpairing n in 
        match P p, Q q with
@@ -199,6 +226,7 @@ Definition intersection {A:preord} (eqdec:forall x y:A, {x ≈ y}+{x ≉ y}) (P 
        | _, _ => None
        end.
 
+(**  We also have binary unions *)
 Definition union2 {A} (P:eset A) (Q:eset A) : eset A :=
   fun n =>
     match n with
@@ -208,6 +236,7 @@ Definition union2 {A} (P:eset A) (Q:eset A) : eset A :=
     | Npos (xI q) => Q (Npos q)
     end.
 
+(** The disjoint union of two enumerable sets. *)
 Definition esum {A B} (P:eset A) (Q:eset B) : eset (sum_preord A B) :=
   fun n =>
     match n with
@@ -217,6 +246,7 @@ Definition esum {A B} (P:eset A) (Q:eset B) : eset (sum_preord A B) :=
     | Npos (xI q) => match Q (Npos q) with | None => None | Some y => Some (inr _ y) end
     end.
 
+(** The binary product of enumerable sets. *)
 Definition eprod {A B} (P:eset A) (Q:eset B) : eset (prod_preord A B) :=
   fun n => let (p,q) := unpairing n in
     match P p, Q q with
@@ -224,6 +254,7 @@ Definition eprod {A B} (P:eset A) (Q:eset B) : eset (prod_preord A B) :=
     | _, _ => None
     end.
 
+(** Correctness lemmas for the above. *)
 Lemma union2_elem : forall A (P Q:eset A) x,
   x ∈ (union2 P Q) <-> (x ∈ P \/ x ∈ Q).
 Proof.
@@ -437,6 +468,10 @@ Proof.
   elim f. eapply eq_trans; eauto.
 Qed.
 
+
+(**  The finite subets of an enumerable set are enumerable.
+  *)
+
 Fixpoint choose_finset (A:preord) (X:eset A) (n:nat) (z:N) : finset A :=
   match n with
   | 0 => nil
@@ -577,6 +612,9 @@ Proof.
   constructor. intros. left. hnf. auto.
 Qed.
 
+(**  A predicate is semidecidable if its truth is equal
+     to the inhabitedness of an enumerable set.
+  *)
 Record semidec {A:preord} (P:A -> Prop) :=
   Semidec
   { decset : A -> eset unitpo
@@ -584,6 +622,8 @@ Record semidec {A:preord} (P:A -> Prop) :=
   ; decset_correct : forall x a, x ∈ (decset a) <-> P a
   }.
 
+(**  Decidable predicates are semidecidable.
+  *)
 Program Definition dec_semidec (A:preord) (P:A->Prop)
   (HP:forall x y, x ≈ y -> P x -> P y)
   (Hdec : forall a, {P a}+{~P a}) :

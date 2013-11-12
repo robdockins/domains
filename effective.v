@@ -7,6 +7,12 @@ Require Import esets.
 
 Require Import NArith.
 
+(**  * Effective preorders.
+
+       We define the notion of "effective" preorders: those
+       for which the order relation is decidable and the
+       members of the preorder are enumerable.
+  *)
 
 Record effective_order (A:preord) :=
   EffectiveOrder
@@ -15,10 +21,15 @@ Record effective_order (A:preord) :=
   ; eff_complete : forall x:A, x ∈ eff_enum
   }.
 
+
+(**  Effective orders have a decidable equality.
+  *)
 Canonical Structure eff_to_ord_dec A (Heff:effective_order A) : ord_dec A :=
   OrdDec A (eff_ord_dec A Heff).
 
 
+(**  The positive integers form an effective preorder.
+  *)
 Program Definition Ndisc_ord : preord :=
   Preord.Pack N (Preord.Mixin N (@eq N) _ _).
 Solve Obligations of Ndisc_ord using intros; subst; auto.
@@ -34,6 +45,16 @@ Next Obligation.
   intros. exists x. auto.
 Qed.
 
+
+(**  Given an effective preorder, we can calculate a canonical
+     index value for any given element of the preorder.
+
+     We do this by first generating the subset of the enumeration set
+     containing all elements equal to [x]; then we choose the smallest
+     index from that set that is defined.  Such an element exists
+     because we know the set is inhabited.  The principle of countable
+     choice then suffices to choose the index.
+  *)
 
 Definition unenumerate_set (A:preord) (Heff:effective_order A) (x:A) 
   : eset A :=
@@ -86,6 +107,9 @@ Proof.
   rewrite H in e. discriminate.
 Qed.
 
+(**  The unenumeration index is unique (up to Leibniz equality)
+     and equal indexes imply equal elements.
+  *)
 Lemma unenumerate_uniq A Heff x x' :
   x ≈ x' ->
   unenumerate A Heff x = unenumerate A Heff x'.
@@ -165,12 +189,14 @@ Proof.
   apply eff_to_ord_dec. auto.
 Qed.
 
+(** The one-point preorder is effective. *)
 Program Definition effective_unit : effective_order unitpo
    := EffectiveOrder unitpo (fun _ _ => left I) (single tt) _.
 Next Obligation.
   intro. apply single_axiom. destruct x; auto.
 Qed.
 
+(** The binary product of effective preorders is effective. *)
 Program Definition effective_prod {A B:preord}
   (HA:effective_order A)
   (HB:effective_order B)
@@ -191,6 +217,7 @@ Next Obligation.
   split; apply eff_complete.
 Qed.
 
+(** The binary sum of effective preorders is effective. *)
 Program Definition effective_sum {A B:preord}
   (HA:effective_order A)
   (HB:effective_order B)
@@ -216,6 +243,7 @@ Next Obligation.
 Qed.
 
 
+(** The lift of an effective preorder is effective. *)
 Definition enum_lift (A:preord) (X:eset A) : eset (lift A) :=
   union2 (single None) (image (liftup A) X).
 
@@ -239,10 +267,10 @@ Next Obligation.
 Qed.
 
 
-(* FIXME? this doesn't really fit here, but the current
-   module tree means it can't go in esets.v.  Maybe semidec
-   should get split out into a separate file?
- *)
+(** FIXME? this doesn't really fit here, but the current
+    module tree means it can't go in esets.v.  Maybe semidec
+    should get split out into a separate file?
+  *)
 Lemma semidec_ex (A B:preord) P
   (HB:effective_order B) :
   @semidec (A×B) (fun ab => P (fst ab) (snd ab)) ->
