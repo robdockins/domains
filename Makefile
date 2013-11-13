@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=atoms.v\
+VFILES:=nominal.v\
+  atoms.v\
   profinite_adj.v\
   profinite.v\
   sumprod_functor.v\

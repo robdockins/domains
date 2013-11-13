@@ -20,3 +20,4 @@ sumprod_functor.v
 profinite.v
 profinite_adj.v
 atoms.v
+nominal.v

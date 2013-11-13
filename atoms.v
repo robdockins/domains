@@ -1,5 +1,6 @@
 Require Import Ascii.
 Require Export String.
+Open Scope string_scope.
 
 Require Import Setoid.
 Require Import NArith.
