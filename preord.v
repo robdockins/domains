@@ -3,7 +3,9 @@ Require Import Setoid.
 Require Import basics.
 Require Import categories.
 
-(**  A preorder is a type equipped with a transitive,
+(**  * Preordered types and monotone functions.
+
+     A preorder is a type equipped with a transitive,
      reflexive relation.  Unlike standard domain theory,
      we will be concentrating on preorders rather than
      partial orders as the basis of order theory.
@@ -13,7 +15,7 @@ Require Import categories.
      up to the equivalence relation induced by the preorder.
      On a preorder, we automatically define a setoid
      by setting [x ≈ y] iff [x ≤ y /\ y ≤ x].  Thus, we
-     "recover" antisymmetry more-or-less by convention.
+     "recover" antisymmetry by convention.
   *)
 Module Preord.
   Record mixin_of (T:Type) :=
@@ -113,30 +115,37 @@ Notation "y ≥ x" := (@Preord.ord_op _ x y) (at level 70, only parsing).
 Notation "x ≰ y" := (~ (@Preord.ord_op _ x y)) (at level 70).
 Notation "y ≱ x" := (~ (@Preord.ord_op _ x y)) (at level 70, only parsing).
 
+(**  Here we set up the category PREORD of preorders with montone functions
+     and the canonical structure magic that makes notation work.
+  *) 
+
 Coercion Preord.carrier : Preord.type >-> Sortclass.
 
 Canonical Structure hom_order X Y := Preord.Pack (Preord.hom X Y) (Preord.ord_mixin X Y).
-Canonical Structure Preord_Eq (X:Preord.type) : Eq.type :=
+Canonical Structure Preord_Eq (X:preord) : Eq.type :=
   Eq.Pack (Preord.carrier X) (Preord.ord_eq X).
+
 Canonical Structure PREORD :=
-  Category Preord.type Preord.hom Preord.cat_class.
+  Category preord Preord.hom Preord.cat_class.
+
 Canonical Structure preord_hom_eq (A B:preord):=
   Eq.Pack (Preord.hom A B) (Preord.eq_mixin A B).
 Canonical Structure preord_comp :=
   Comp.Pack preord Preord.hom Preord.comp_mixin.
 
-
-Lemma ord_refl : forall (T:Preord.type) (x:T), x ≤ x.
+(**  The preorder axioms and their relation to equality.
+  *)
+Lemma ord_refl : forall (T:preord) (x:T), x ≤ x.
 Proof.
   intros. destruct T. destruct mixin. apply refl.
 Qed.
 
-Lemma ord_trans : forall (T:Preord.type) (x y z:T), x ≤ y -> y ≤ z -> x ≤ z.
+Lemma ord_trans : forall (T:preord) (x y z:T), x ≤ y -> y ≤ z -> x ≤ z.
 Proof.
   intros. destruct T. destruct mixin. eapply trans; eauto.
 Qed.
 
-Lemma ord_antisym : forall (T:Preord.type) (x y:T), x ≤ y -> y ≤ x -> x ≈ y.
+Lemma ord_antisym : forall (T:preord) (x y:T), x ≤ y -> y ≤ x -> x ≈ y.
 Proof.
   intros. split; auto.
 Qed.
@@ -151,6 +160,9 @@ Proof.
   intros; destruct H; auto.
 Qed.
 
+
+(**  Set up setoid rewriting
+  *)
 Add Parametric Relation (A:preord) : (Preord.carrier A) (@Preord.ord_op A)
   reflexivity proved by (ord_refl A)
   transitivity proved by (ord_trans A)
@@ -186,6 +198,8 @@ Proof.
   transitivity y0; auto.
 Qed.
 
+(**  PREORD is a concrete category.
+  *)
 Program Definition PREORD_concrete : concrete PREORD :=
   Concrete PREORD
   Preord.carrier
@@ -219,6 +233,9 @@ Qed.
 Hint Resolve ord_refl ord_trans ord_antisym preord_ord preord_eq eq_ord eq_ord'.
 
 
+(**  This lemma is handy for using an equality in the context to prove a goal
+     by transitivity on both sides.
+  *)
 Lemma use_ord (A:preord) (a b c d:A) :
   b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
 Proof.
@@ -228,11 +245,6 @@ Proof.
 Qed.
 Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
 
-
-Add Parametric Relation (T:preord) : (Preord.carrier T) (@Preord.ord_op T)
-  reflexivity proved by (@ord_refl T)
-  transitivity proved by (@ord_trans T)
-  as ord_op_rel.
 
 Add Parametric Morphism (X Y:preord) :
   (@hommap PREORD PREORD_concrete X Y)
@@ -313,14 +325,7 @@ Qed.
 
 Canonical Structure prod_preord.
 
-Goal forall (X Y:preord) (f g:X→Y) (a b:X), 
-  f ≤ g -> a ≈ b -> f#a ≤ g#b.
-Proof.
-  intros. rewrite H. rewrite H0. auto.
-Qed.
-
 Notation "A × B" := (prod_preord A B) (at level 54, right associativity).
-
 
 Program Definition pi1 {A B:preord} : A × B → A :=
   Preord.Hom (A × B) A (fun x => fst x) _.
@@ -346,12 +351,17 @@ Qed.
 Program Definition pair_map {A B C D:preord} (f:A → B) (g:C → D) : A×C → B×D :=
   mk_pair (f ∘ π₁) (g ∘ π₂).
 
+
+(**  Preorders with an [ord_dec] structure have a decidable order relation.
+  *)
 Record ord_dec (A:preord) :=
   OrdDec
   { orddec :> forall x y:A, {x ≤ y}+{x ≰ y} }.
 
 Arguments orddec [A] [o] x y.
 
+(**  Preorders with decidable ordering also have decidable equality.
+  *)
 Canonical Structure PREORD_EQ_DEC (A:preord) (OD:ord_dec A) :=
   EqDec (Preord_Eq A) (fun (x y:A) =>
       match @orddec A OD x y with
@@ -373,7 +383,9 @@ Program Definition emptypo := Preord.Pack False (Preord.Mixin _ (fun _ _ => Fals
 Canonical Structure emptypo.
 
 
-(** The "lift" preorder, which adjoins a new bottom element. *)
+(** The "lift" preorder, which adjoins a new bottom element.
+    The lift construction gives rise to an endofunctor on PREORD.
+  *)
 Definition lift_ord (A:preord) (x:option A) (y:option A) : Prop :=
    match x with None => True | Some x' =>
      match y with None => False | Some y' => x' ≤ y' end end.
