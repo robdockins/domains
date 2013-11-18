@@ -758,16 +758,16 @@ Proof.
 
   rewrite <- (support_axiom A (u ⇋ q) x).
   rewrite <- (support_axiom A (u ⇋ q) y).
-  rewrite (Perm.swap_swap _ _ u v).
-  rewrite (Perm.swap_swap _ _ u w).
+  rewrite (Perm.swap_swap u v).
+  rewrite (Perm.swap_swap u w).
   repeat rewrite nom_compose.
   rewrite Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
   rewrite Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
-  rewrite (Perm.swap_swap _ _ v q).
+  rewrite (Perm.swap_swap v q).
   apply papp_morphism; auto.
-  rewrite (Perm.swap_swap _ _ w q).
+  rewrite (Perm.swap_swap w q).
   auto.
   intro. subst w.
   apply H0.
@@ -1000,13 +1000,13 @@ Next Obligation.
     apply cons_elem. auto.
 
   rewrite <- (support_axiom A (q ⇋ q1) x').
-  rewrite (Perm.swap_swap _ _ q v).
+  rewrite (Perm.swap_swap q v).
   rewrite nom_compose.
   rewrite Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
-  rewrite (Perm.swap_swap _ _ v q1).
+  rewrite (Perm.swap_swap v q1).
   rewrite H1.
-  rewrite (Perm.swap_swap _ _ q1 w).
+  rewrite (Perm.swap_swap q1 w).
   rewrite nom_compose.
   rewrite <- Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
@@ -1015,14 +1015,14 @@ Next Obligation.
   rewrite nom_compose.
   rewrite Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
-  rewrite (Perm.swap_swap _ _ w q2).
+  rewrite (Perm.swap_swap w q2).
   rewrite H2.
-  rewrite (Perm.swap_swap _ _ q2 u).
+  rewrite (Perm.swap_swap q2 u).
   rewrite nom_compose.
   rewrite <- Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
   rewrite (support_axiom A (q ⇋ q2) z').
-  rewrite (Perm.swap_swap _ _ u q). auto.
+  rewrite (Perm.swap_swap u q). auto.
   
   red; simpl; intros.
     unfold Support.support in H4. simpl in H4.
@@ -1183,7 +1183,7 @@ Next Obligation.
   rewrite e.
   rewrite H2; auto.
 
-  rewrite (Perm.swap_swap _ _ (p⁻¹ w) u).
+  rewrite (Perm.swap_swap (p⁻¹ w) u).
   rewrite <- (support_axiom A (p⁻¹ w ⇋ q) a).
   rewrite nom_compose.
   rewrite nom_compose.
@@ -1193,7 +1193,7 @@ Next Obligation.
   
   symmetry.
   rewrite <- (support_axiom A (p⁻¹ w ⇋ q) b).
-  rewrite (Perm.swap_swap _ _ (p⁻¹  w) v).
+  rewrite (Perm.swap_swap (p⁻¹  w) v).
   rewrite nom_compose.
   rewrite nom_compose.
   rewrite <- Perm.assoc.
@@ -1201,8 +1201,8 @@ Next Obligation.
   rewrite Perm.swap_swizzle; auto.
   rewrite <- nom_compose.
   rewrite <- nom_compose.
-  rewrite (Perm.swap_swap _ _ v q).
-  rewrite (Perm.swap_swap _ _ u q).
+  rewrite (Perm.swap_swap v q).
+  rewrite (Perm.swap_swap u q).
   rewrite H2. auto.
   intro.
   apply H1.
@@ -1322,7 +1322,7 @@ Next Obligation.
 
   assert ((w ⇋ u) v ∈ ‖a‖).
   apply <- (support_papp A (w ⇋ u)).
-  generalize (Perm.swap_self_inv tt tt w u v).
+  generalize (Perm.swap_self_inv w u v).
   simpl. intros. rewrite H4. auto.
 
   simpl in H4.

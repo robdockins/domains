@@ -46,11 +46,12 @@ Notation "a ♯ b" := (Support.disjoint _ _ a b)
      permutations play an important role in the developement of nominal types.
      The support of a permutation is a finite set that contains all the
      atoms _not_ fixed by the permutation.  Note: the support may be larger
-     that necessary; that is, it may contain atoms that are nonetheless
+     than necessary; that is, it may contain atoms that are nonetheless
      fixed by the permutation.  In other words, for a permutation [p] every
-     atom [v] is either in the support of [p] or else [p v = v].
+     atom [v] is either in the support of [p] or else [p v = v]; but it
+     is possible that [v] may both be in the support of [p] and also that [p v = v].
 
-     Permutations form a category (with a single object) and have inverses.
+     Permutations form a groupoid category (with a single object; hence a group).
      When [p] and [q] are permuatations, we write [p ∘ q] for the composition,
      and [p⁻¹] represents the inverse permuatation.  [u ⇋ v] is the permuatation
      that swaps atoms [u] and [v].
@@ -186,7 +187,7 @@ Definition groupoid :=
        category_axioms
        groupoid_mixin.
 
-Lemma f_inj : forall A B (p:perm A B) x y,
+Lemma f_inj : forall (p:perm tt tt) x y,
   f p x = f p y -> x = y.
 Proof.
   intros.
@@ -195,7 +196,7 @@ Proof.
   rewrite H; auto.
 Qed.
 
-Lemma g_inj : forall A B (p:perm A B) x y,
+Lemma g_inj : forall (p:perm tt tt) x y,
   g p x = g p y -> x = y.
 Proof.
   intros.
@@ -204,8 +205,8 @@ Proof.
   rewrite H; auto.
 Qed.
 
-Program Definition swap A B (x y:atom) : perm A B  :=
-  Perm A B 
+Program Definition swap (x y:atom) : perm tt tt  :=
+  Perm tt tt
        (fun z => if string_dec x z then y
                    else if string_dec y z then x else z)
        (fun z => if string_dec x z then y
@@ -247,8 +248,8 @@ Next Obligation.
   auto.
 Qed.
 
-Lemma swap_swap A B (p q:atom) :
-  swap A B p q ≈ swap A B q p.
+Lemma swap_swap (p q:atom) :
+  swap p q ≈ swap q p.
 Proof.
   hnf; simpl; intros.
   destruct (string_dec p x).
@@ -262,24 +263,24 @@ Proof.
   hnf; simpl; intros. auto.
 Qed.
 
-Lemma swap_self_inv A B p q :
-  swap A B p q ∘ swap B A p q ≈ id(B).
+Lemma swap_self_inv p q :
+  swap p q ∘ swap p q ≈ id(tt).
 Proof.
   hnf; simpl; intros.
-  apply (fg (swap B A p q)).
+  apply (fg (swap p q)).
 Qed.
 
-Lemma swap_same_id A p :
-  swap A A p p ≈ id(A).
+Lemma swap_same_id p :
+  swap p p ≈ id(tt).
 Proof.
   hnf; simpl; intros.
   destruct (string_dec p x); auto.
 Qed.
 
-Lemma swap_swizzle A B C (p q r:atom)
+Lemma swap_swizzle (p q r:atom)
   (Hrp : r <> p) (Hrq : r <> q) (Hpq : p <> q) :
-  swap B C p r ∘ swap A B r q ≈
-  swap B C r q ∘ swap A B p q.
+  swap p r ∘ swap r q ≈
+  swap r q ∘ swap p q.
 Proof.
   intros. hnf. simpl. intros.
   destruct (string_dec r x). subst x.
@@ -306,7 +307,7 @@ Proof.
   destruct (string_dec q x); auto. contradiction.
 Qed.
 
-Lemma support_perm A B (p:perm A B) (v:atom) : 
+Lemma support_perm (p:perm tt tt) (v:atom) : 
   v ∈ support p <-> f p v ∈ support p.
 Proof.
   split; intros.
@@ -316,8 +317,8 @@ Proof.
   rewrite <- H0. auto.
 Qed.
 
-Lemma support_perm' A B (p:perm A B) (v:atom) : 
-  v ∈ support p <-> f (inv A B p) v ∈ support p.
+Lemma support_perm' (p:perm tt tt) (v:atom) : 
+  v ∈ support p <-> f (inv tt tt p) v ∈ support p.
 Proof.
   split; intros.
   apply support_perm.
@@ -338,7 +339,7 @@ Notation perm := (Perm.perm tt tt).
 Notation PERM := Perm.PERM.
 Coercion Perm.f : Perm.perm >-> Funclass.
 
-Notation "u ⇋ v" := (Perm.swap tt tt u v) (at level 20, no associativity).
+Notation "u ⇋ v" := (Perm.swap u v) (at level 20, no associativity).
 
 (**  Permutations with disjoint support commute. *)
 Lemma perm_commute (p q:perm) :
@@ -375,13 +376,13 @@ Proof.
   elim n. rewrite e; auto.
   destruct (string_dec (p u) (p x)); auto.
   elim n.
-  apply (Perm.f_inj _ _ p) in e. auto.
+  apply (Perm.f_inj p) in e. auto.
   destruct (string_dec w x).
   destruct (string_dec (p w) (p x)); auto.
   elim n1. rewrite e; auto.
   destruct (string_dec (p w) (p x)); auto.
   elim n1.
-  apply (Perm.f_inj _ _ p) in e. auto.
+  apply (Perm.f_inj p) in e. auto.
 Qed.
 
 Lemma swap_commute' u w (p:perm) :

@@ -483,7 +483,7 @@ Qed.
      Groupoids generalize groups (hence the name) in the sense that
      a groupoid with a single object form a group.
      
-     When [f] is a morphism in a groupoid [p⁻¹] is its inverse.
+     When [f] is a morphism in a groupoid [f⁻¹] is its inverse.
   *)
 Module Groupoid.
 Section groupoid.
@@ -1115,7 +1115,7 @@ Canonical Structure NTComp (C D:category) :=
 Program Definition FUNC
   (C D:category) : category :=
   Category (functor C D) (@NT.nt C D)
-           (fun G H => NT.NTEQ_mixin C D G H)
+           (NT.NTEQ_mixin C D)
            (NT.NTComp_mixin C D) _.
 Next Obligation.
   intros. constructor.
