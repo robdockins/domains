@@ -199,10 +199,10 @@ Module CPO.
   Canonical Structure hom_cpo CL X Y := 
     Pack CL (hom CL X Y) (hom_ord_mixin CL X Y) (hom_mixin CL X Y).
 
-  Program Definition cat_class CL
-    := Category.Class (type CL) (hom CL) 
-      (fun X Y => Preord.ord_eq (hom_ord CL X Y)) (comp_mixin CL) _.
-  Next Obligation.
+  Definition cpo_eq_mixin CL X Y := Preord.ord_eq (hom_ord CL X Y).
+
+  Lemma cat_axioms CL : Category.axioms (type CL) (hom CL) (cpo_eq_mixin CL) (comp_mixin CL).
+  Proof.
     constructor.
     
     repeat intro. split. red; simpl; intros. red; simpl; intros. apply ord_refl.
@@ -231,7 +231,7 @@ Module CPO.
     destruct H0. apply H1.
   Qed.
 
-  Canonical Structure CPO CL := Category (type CL) (hom CL) (cat_class CL).
+  Canonical Structure CPO CL := Category (type CL) (hom CL) _ _ (cat_axioms CL).
 
   Program Definition concrete CL : concrete (CPO CL) :=
     Concrete

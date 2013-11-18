@@ -1,7 +1,6 @@
 Require Import basics.
 Require Import categories.
 Require Import preord.
-Require Import effective.
 Require Import directed.
 
 Record directed_system (I:directed_preord) (C:category) :=

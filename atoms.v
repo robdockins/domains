@@ -112,7 +112,7 @@ Next Obligation.
   rewrite H. intros.
   destruct H0. apply H2; auto.
   apply N.le_refl.
-Qed.
+Defined.
 
 (**  [atom] is actually a partial order with respect to [=].
   *)
@@ -406,3 +406,13 @@ Section fresh.
     discriminate.
   Qed.
 End fresh.
+
+Lemma fresh_atom_is_fresh' (l1 l2:finset atom) :
+  l1 ⊆ l2 ->
+  fresh_atom l2 ∉ l1.
+Proof.
+  repeat intro.
+  apply H in H0.
+  apply (fresh_atom_is_fresh l2); auto.
+Qed.
+

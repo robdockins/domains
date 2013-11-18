@@ -1,4 +1,5 @@
 Require Import List.
+Require Import NArith.
 
 Require Import basics.
 Require Import categories.
@@ -13,6 +14,7 @@ Require Import joinable.
 Require Import directed.
 Require Import cont_functors.
 Require Import bilimit.
+
 
 Section prod_functor.
   Variable hf:bool.

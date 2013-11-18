@@ -807,42 +807,10 @@ Section colimit_decompose2.
   Qed.
 End colimit_decompose2.
 
-
-
 Require Import Arith.
-Require Import NArith.
-
-
-(**  The preorder of natural numbers with their arithmetic ordering.
+(**  In the category of _partial_ plotkin orders, we can take the fixpoint
+     of a continuous endofunctor as the bilimit of the Kleene chain.
   *)
-Program Definition nat_ord := Preord.Pack nat (Preord.Mixin nat le _ _).
-Solve Obligations using eauto with arith.
-  
-Program Definition nat_eff : effective_order nat_ord :=
-  EffectiveOrder nat_ord le_dec (fun x => Some (N.to_nat x)) _.
-Next Obligation.
-  intros. exists (N.of_nat x).
-  rewrite Nat2N.id. auto.
-Qed.
-
-Program Definition nat_dirord : directed_preord :=
-  DirPreord nat_ord nat_eff _.
-Next Obligation.  
-  induction M.
-  exists 0. hnf; intros. apply nil_elem in H. elim H.
-  destruct IHM as [k ?].
-  exists (max a k).
-  hnf; intros.
-  apply cons_elem in H. destruct H.
-  rewrite H.
-  red; simpl.
-  apply Max.le_max_l.
-  transitivity k.
-  apply u. auto.
-  red; simpl.
-  apply Max.le_max_r.
-Qed.
-
 Section fixpoint.
   Variable F:functor (EMBED true) (EMBED true).
 
@@ -900,6 +868,7 @@ Section fixpoint.
     reflexivity. auto.
   Qed.
 
+  (** Take the fixpoint as the bilimit of the Kleene chain. *)
   Definition fixpoint := bilimit true nat_dirord kleene_chain.
 
   (** If we suppose [F] is a continuous functor, we can demonstrate
@@ -948,9 +917,14 @@ Section fixpoint.
       (gt_S_le i j (le_n_S i j Hij))); auto.
   Qed.
 
+  (** The algebra associated with the fixpoint. *)
   Definition fixpoint_alg : alg (EMBED true) F
     := @Alg _ F fixpoint (colim_univ BL cocone_plus1).
 
+  (** Next we define the catamorphism by iterating the action
+      of a given algebra.  We show that this indeed defines
+      an embedding, and that it is an F-algebra hom.
+    *)
   Section cata.
     Variable AG : alg (EMBED true) F.
   
@@ -1068,6 +1042,9 @@ Section fixpoint.
     Qed.
   End cata.
 
+  (**  Now we show that the catamorphims is universal and construct
+       the initial algebra.
+    *)
   Program Definition fixpoint_initial : Alg.initial_alg (EMBED true) F :=
     Alg.Initial_alg fixpoint_alg cata_alg_hom _.
   Next Obligation.
@@ -1099,6 +1076,9 @@ Section fixpoint.
     apply (colim_commute BL cocone_plus1).
   Qed.
 
+  (**  With the initial algebra in hand, we immediately 
+       get an isomorphism via standard facts about initial algebras.
+    *)
   Definition fixpoint_iso :
     F fixpoint ↔ fixpoint :=
 

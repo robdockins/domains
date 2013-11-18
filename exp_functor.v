@@ -14,6 +14,8 @@ Require Import directed.
 Require Import bilimit.
 Require Import cont_functors.
 
+
+
 Section map_rel.
   Context {A B C D : preord}.
 
@@ -757,9 +759,10 @@ Section expF_decompose.
   Hypothesis decompose2 : forall x:cocone_point CC2,
     { i:I & { a:ds_F DS2 i | cocone_spoke CC2 i a ≈ x }}.
 
-  Lemma finrel_decompose (X:finset (cocone_point CC1 × cocone_point CC2)) :
+  Lemma finrel_decompose
+    (X:finset (PLT.ord (cocone_point CC1) × PLT.ord (cocone_point CC2))) :
     forall (Hinh : inh hf X),
-    { k:I & { Y:finset (ds_F DS1 k × ds_F DS2 k) |
+    { k:I & { Y:finset (PLT.ord (ds_F DS1 k) × PLT.ord (ds_F DS2 k)) |
        X ≈ map_rel (cocone_spoke CC1 k) (cocone_spoke CC2 k) Y }}.
   Proof.
     induction X; intros.

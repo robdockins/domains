@@ -233,3 +233,37 @@ Qed.
 Definition semidirected_cl := directed_hf_cl true.
 Definition directed_cl := directed_hf_cl false.
 
+
+(**  The preorder of natural numbers with their arithmetic ordering
+     is an effective, directed preorder.
+  *)
+Require Import Arith.
+Require Import NArith.
+
+Program Definition nat_ord := Preord.Pack nat (Preord.Mixin nat le _ _).
+Solve Obligations using eauto with arith.
+  
+Program Definition nat_eff : effective_order nat_ord :=
+  EffectiveOrder nat_ord le_dec (fun x => Some (N.to_nat x)) _.
+Next Obligation.
+  intros. exists (N.of_nat x).
+  rewrite Nat2N.id. auto.
+Qed.
+
+Program Definition nat_dirord : directed_preord :=
+  DirPreord nat_ord nat_eff _.
+Next Obligation.  
+  induction M.
+  exists 0. hnf; intros. apply nil_elem in H. elim H.
+  destruct IHM as [k ?].
+  exists (max a k).
+  hnf; intros.
+  apply cons_elem in H. destruct H.
+  rewrite H.
+  red; simpl.
+  apply Max.le_max_l.
+  transitivity k.
+  apply u. auto.
+  red; simpl.
+  apply Max.le_max_r.
+Qed.

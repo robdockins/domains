@@ -89,7 +89,7 @@ Section PLT.
     apply hom_order.
   Qed.
 
-  Lemma cat_axioms : Category.category_axioms ob hom hom_eq_mixin comp_mixin.
+  Lemma cat_axioms : Category.axioms ob hom hom_eq_mixin comp_mixin.
   Proof.
     constructor.
 
@@ -98,9 +98,6 @@ Section PLT.
     intros. apply compose_assoc.
     intros. split; apply compose_mono; auto.
   Qed.
-
-  Definition cat_class : Category.class_of ob hom :=
-    Category.Class ob hom hom_eq_mixin comp_mixin cat_axioms.
 
   Definition prod (A B:ob) : ob :=
     Ob (carrier A * carrier B)
@@ -237,8 +234,7 @@ Section PLT.
     apply hom_order.
   Qed.
 
-  Canonical Structure PLT : category := Category ob hom cat_class.
-
+  Canonical Structure PLT : category := Category ob hom hom_eq_mixin comp_mixin cat_axioms.
 
   Theorem pair_universal C A B (f:hom C A) (g:hom C B) (PAIR:hom C (prod A B)) :
     pi1 ∘ PAIR ≈ f -> pi2 ∘ PAIR ≈ g -> PAIR ≈ pair f g.
@@ -530,12 +526,11 @@ Program Definition embed_func {hf A B} (E:embedding hf A B) : PLT.ord A → PLT.
   Preord.Hom A B (embed_map E) (embed_mono E).
 Coercion embed_func : embedding >-> hom.
 
-Program Definition embed_cat_class hf :
-  Category.class_of (PLT.ob hf) (embedding hf) :=
-  Category.Class _ _
-    (fun A B => (Preord.ord_eq (embed_ord hf A B)))
-    (embed_comp_mixin hf) _.
-Next Obligation.
+Definition embed_eq_mixin hf A B := Preord.ord_eq (embed_ord hf A B).
+
+Lemma embed_cat_axioms hf : 
+  Category.axioms (PLT.ob hf) (embedding hf) (embed_eq_mixin hf) (embed_comp_mixin hf).
+Proof.
   intros. constructor.
 
   intros. split; hnf; simpl; intros; auto.
@@ -553,7 +548,7 @@ Next Obligation.
 Qed.
 
 Definition EMBED hf :=
-  Category (PLT.ob hf) (embedding hf) (embed_cat_class hf).
+  Category (PLT.ob hf) (embedding hf) _ _ (embed_cat_axioms hf).
 
 Notation "A ⇀ B" := (hom (EMBED _) A B) (at level 70, no associativity).
 
@@ -722,7 +717,7 @@ Section ep_pairs.
   Canonical Structure ep_pair_comp := Comp.Pack _ ep_pair ep_pair_comp_mixin.
 
   Lemma ep_cat_axioms :
-    Category.category_axioms _ ep_pair ep_pair_eq_mixin ep_pair_comp_mixin.
+    Category.axioms _ ep_pair ep_pair_eq_mixin ep_pair_comp_mixin.
   Proof.  
     constructor; simpl; intros.
     red. simpl. apply (cat_ident1 (embed f)).
@@ -731,11 +726,8 @@ Section ep_pairs.
     red. simpl. apply (cat_respects H H0).
   Qed.
 
-  Definition ep_cat_class : Category.class_of _ ep_pair :=
-    Category.Class _ ep_pair ep_pair_eq_mixin ep_pair_comp_mixin ep_cat_axioms.
-
   Canonical Structure PLT_EP :=
-    Category (PLT.ob hf) ep_pair ep_cat_class.
+    Category (PLT.ob hf) ep_pair ep_pair_eq_mixin ep_pair_comp_mixin ep_cat_axioms.
 
   Definition find_inhabitant' : forall A (P:eset A) (H:einhabited P),
     { a:A | a ∈ P }.
@@ -949,7 +941,7 @@ Section ep_pairs.
     Variable embed : embedding hf X Y.
 
     Definition project_rel :=
-      esubset_dec (Y×X)
+      esubset_dec (PLT.ord Y × PLT.ord X)
          (fun yx => fst yx ≥ embed#(snd yx))
          (fun yx => eff_ord_dec Y (PLT.effective Y) (embed#(snd yx)) (fst yx))
          (eprod (eff_enum Y (PLT.effective Y)) (eff_enum X (PLT.effective X))).
@@ -1009,7 +1001,7 @@ Section ep_pairs.
     Qed.      
 
     Definition embed_rel :=
-      esubset_dec (X×Y)
+      esubset_dec (PLT.ord X×PLT.ord Y)
          (fun xy => embed#(fst xy) ≥ snd xy)
          (fun xy => eff_ord_dec Y (PLT.effective Y) (snd xy) (embed#(fst xy)))
          (eprod (eff_enum X (PLT.effective X)) (eff_enum Y (PLT.effective Y))).

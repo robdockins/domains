@@ -140,22 +140,22 @@ Qed.
 
 Lemma image_axiom1 : forall (T:set.theory)
   (A B:preord) (f:A → B) (P:set T A) (x:A),
-  x ∈ P -> f#x ∈ image f P.
+  x ∈ P -> f x ∈ image f P.
 Proof.
   intro T. apply (set.image_axiom1 _ _ _ _ _ (set.mixin T)).
 Qed.
 
 Lemma image_axiom1' (T:set.theory) (A B:preord) (f:A → B)
-  (P:set T A) (x:B) : (exists a, x ≈ f#a /\ a ∈ P) -> x ∈ image f P.
+  (P:set T A) (x:B) : (exists a, x ≈ f a /\ a ∈ P) -> x ∈ image f P.
 Proof.
   intros [a [??]]. 
-  apply member_eq with (f#a); auto.
+  apply member_eq with (f a); auto.
   apply image_axiom1. auto.
 Qed.
 
 Lemma image_axiom2 : forall (T:set.theory)
   (A B:preord) (f:A → B) (P:set T A) (x:B),
-  x ∈ image f P -> exists y, y ∈ P /\ x ≈ f#y.
+  x ∈ image f P -> exists y, y ∈ P /\ x ≈ f y.
 Proof.
   intro T. apply (set.image_axiom2 _ _ _ _ _ (set.mixin T)).
 Qed.
@@ -247,7 +247,7 @@ Qed.
 
 Add Parametric Morphism (T:set.theory) (A:preord) (B:preord) :
   (@image T A B)
-    with signature (eq_op (Preord_Eq (hom_order A B))) ==>
+    with signature (eq_op (Preord_Eq (A ⇒ B))) ==>
                    (eq_op (Preord_Eq (set T A))) ==>
                    (eq_op (Preord_Eq (set T B)))
      as image_morphism.
@@ -275,7 +275,7 @@ Qed.
 
 Add Parametric Morphism (T:set.theory) (A:preord) (B:preord) :
   (@image T A B)
-    with signature (eq_op (Preord_Eq (hom_order A B))) ==>
+    with signature (eq_op (Preord_Eq (A ⇒ B))) ==>
                    (Preord.ord_op (set T A)) ==>
                    (Preord.ord_op (set T B))
      as image_ord_morphism.

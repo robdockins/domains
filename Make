@@ -20,4 +20,5 @@ sumprod_functor.v
 profinite.v
 profinite_adj.v
 atoms.v
+permutations.v
 nominal.v

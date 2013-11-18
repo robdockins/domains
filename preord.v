@@ -1,4 +1,5 @@
 Require Import Setoid.
+Require Import Coq.Program.Basics.
 
 Require Import basics.
 Require Import categories.
@@ -73,8 +74,7 @@ Module Preord.
     split; eapply trans; eauto.
   Qed.
 
-  Program Definition cat_class := Category.Class type hom eq_mixin comp_mixin _.
-  Next Obligation.
+  Lemma cat_axioms : Category.axioms type hom eq_mixin comp_mixin.
     constructor.
     
     repeat intro. split. simpl. red. apply refl.
@@ -118,15 +118,15 @@ Notation "y ≱ x" := (~ (@Preord.ord_op _ x y)) (at level 70, only parsing).
 (**  Here we set up the category PREORD of preorders with montone functions
      and the canonical structure magic that makes notation work.
   *) 
-
 Coercion Preord.carrier : Preord.type >-> Sortclass.
+Coercion Preord.map : Preord.hom >-> Funclass.
 
 Canonical Structure hom_order X Y := Preord.Pack (Preord.hom X Y) (Preord.ord_mixin X Y).
 Canonical Structure Preord_Eq (X:preord) : Eq.type :=
   Eq.Pack (Preord.carrier X) (Preord.ord_eq X).
 
 Canonical Structure PREORD :=
-  Category preord Preord.hom Preord.cat_class.
+  Category preord Preord.hom _ _ Preord.cat_axioms.
 
 Canonical Structure preord_hom_eq (A B:preord):=
   Eq.Pack (Preord.hom A B) (Preord.eq_mixin A B).
@@ -168,8 +168,6 @@ Add Parametric Relation (A:preord) : (Preord.carrier A) (@Preord.ord_op A)
   transitivity proved by (ord_trans A)
     as ord_rel.
 
-Require Import Coq.Program.Basics.
-
 Add Parametric Morphism (A:preord) :
   (@Preord.ord_op A)
     with signature (Preord.ord_op A) -->
@@ -198,6 +196,45 @@ Proof.
   transitivity y0; auto.
 Qed.
 
+Add Parametric Morphism (A B:preord) :
+  (@Preord.map A B)
+   with signature (Preord.ord_op (hom_order A B)) ++>
+                  (Preord.ord_op A) ++>
+                  (Preord.ord_op B)
+    as preord_map_morphism.
+Proof.
+  intros.
+  transitivity (x y0).
+  apply Preord.axiom. auto.
+  apply H.
+Qed.
+  
+Add Parametric Morphism (A B:preord) :
+  (@Preord.map A B)
+   with signature (eq_op (Preord_Eq (hom_order A B))) ==>
+                  (eq_op (Preord_Eq A)) ==>
+                  (eq_op (Preord_Eq B))
+    as preord_map_eq_morphism.
+Proof.
+  intros.
+  transitivity (x y0).
+  destruct H0; split; apply Preord.axiom; auto.
+  destruct H; split; auto.
+Qed.
+
+(**  This lemma is handy for using an equality in the context to prove a goal
+     by transitivity on both sides.
+  *)
+Lemma use_ord (A:preord) (a b c d:A) :
+  b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
+Proof.
+  intros.
+  transitivity b; auto.
+  transitivity c; auto.
+Qed.
+Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
+
+
 (**  PREORD is a concrete category.
   *)
 Program Definition PREORD_concrete : concrete PREORD :=
@@ -220,31 +257,20 @@ Qed.
 
 Canonical Structure PREORD_concrete.
 
-Lemma preord_eq : forall (X Y:preord) (f:X → Y) (x y:X), x ≈ y -> f#x ≈ f#y.
+
+(**  Monotone functions respect equality and order.
+  *)
+Lemma preord_eq : forall (X Y:preord) (f:X → Y) (x y:X), x ≈ y -> f x ≈ f y.
 Proof.
   intros. rewrite H. auto.
 Qed.
 
-Lemma preord_ord : forall (X Y:preord) (f:X → Y) (x y:X), x ≤ y -> f#x ≤ f#y.
+Lemma preord_ord : forall (X Y:preord) (f:X → Y) (x y:X), x ≤ y -> f x ≤ f y.
 Proof.
   intros. apply Preord.axiom. auto.
 Qed.  
 
 Hint Resolve ord_refl ord_trans ord_antisym preord_ord preord_eq eq_ord eq_ord'.
-
-
-(**  This lemma is handy for using an equality in the context to prove a goal
-     by transitivity on both sides.
-  *)
-Lemma use_ord (A:preord) (a b c d:A) :
-  b ≤ c -> a ≤ b -> c ≤ d -> a ≤ d.
-Proof.
-  intros.
-  transitivity b; auto.
-  transitivity c; auto.
-Qed.
-Arguments use_ord [A] [a] [b] [c] [d] _ _ _.
-
 
 Add Parametric Morphism (X Y:preord) :
   (@hommap PREORD PREORD_concrete X Y)
@@ -285,6 +311,175 @@ Proof.
   apply H.
 Qed.
 
+(** PREORD is termianted. *)
+
+Program Definition unitpo := Preord.Pack unit (Preord.Mixin _ (fun _ _ => True) _ _).
+Canonical Structure unitpo.
+
+Program Definition preord_terminate (A:preord) : A → unitpo :=
+  Preord.Hom A unitpo (fun x => tt) _.
+
+Program Definition preord_terminated_mixin :=
+  Terminated.Mixin 
+     preord Preord.hom 
+     Preord.eq_mixin
+     unitpo preord_terminate
+     _.
+Next Obligation.
+  split; simpl; hnf; auto.
+Qed.
+     
+Canonical Structure preord_terminated :=
+  Terminated 
+     preord Preord.hom 
+     Preord.eq_mixin
+     Preord.comp_mixin
+     Preord.cat_axioms
+     preord_terminated_mixin.
+
+(** PREORD is initialized. *)
+Program Definition emptypo := Preord.Pack False (Preord.Mixin _ (fun _ _ => False) _ _).
+Canonical Structure emptypo.
+
+Program Definition preord_initiate (A:preord) : emptypo → A :=
+  Preord.Hom emptypo A (fun x => False_rect _ x) _.
+Next Obligation. elim a. Qed.
+
+Program Definition preord_initialized_mixin :=
+  Initialized.Mixin
+     preord Preord.hom 
+     Preord.eq_mixin
+     emptypo preord_initiate
+     _.
+Next Obligation.
+  split; simpl; elim x.
+Qed.
+
+Canonical Structure preord_initialized :=
+  Initialized
+     preord Preord.hom 
+     Preord.eq_mixin
+     Preord.comp_mixin
+     Preord.cat_axioms
+     preord_initialized_mixin.
+
+(**  The preorder on products, defined pointwise. *)
+Definition prod_ord (A B:preord) (x y:A*B):=
+  (fst x) ≤ (fst y) /\ (snd x) ≤ (snd y).
+
+Program Definition prod_preord (A B:preord) : preord :=
+  Preord.Pack (A*B) (Preord.Mixin _ (prod_ord A B) _ _).
+Next Obligation.
+  hnf. simpl; auto.
+Qed.
+Next Obligation.
+  destruct H; destruct H0; split; simpl in *.
+  eapply ord_trans; eauto.
+  eapply ord_trans; eauto.
+Qed.
+
+Canonical Structure prod_preord.
+
+
+(** PREORD is a cartesian category. *)
+Program Definition pi1 {A B:preord} : prod_preord A B → A :=
+  Preord.Hom (prod_preord A B) A (fun x => fst x) _.
+Next Obligation.
+  destruct H; simpl; auto.
+Qed.
+
+Program Definition pi2 {A B:preord} : prod_preord A B → B :=
+  Preord.Hom (prod_preord A B) B (fun x => snd x) _.
+Next Obligation.
+  destruct H; simpl; auto.
+Qed.
+
+Program Definition mk_pair {C A B:preord} (f:C → A) (g:C → B) : C → prod_preord A B :=
+  Preord.Hom C (prod_preord A B) (fun c => (f c, g c)) _.
+Next Obligation.
+  intros. split; simpl; apply Preord.axiom; auto.
+Qed.  
+
+Program Definition preord_cartesian_mixin
+  := Cartesian.Mixin
+      Preord.type Preord.hom
+      Preord.eq_mixin
+      Preord.comp_mixin
+      prod_preord (@pi1) (@pi2) (@mk_pair) _.
+Next Obligation.      
+  constructor.
+
+  intros. split; simpl; auto.
+  intros. split; simpl; auto.
+
+  intros. intro. split. simpl.
+  split; simpl.
+  destruct (H x); auto.
+  destruct (H0 x); auto.
+  split; simpl.
+  destruct (H x); auto.
+  destruct (H0 x); auto.
+Qed.
+    
+Canonical Structure preord_cartesian : cartesian :=
+  Cartesian Preord.type Preord.hom
+      Preord.eq_mixin
+      Preord.comp_mixin
+      Preord.cat_axioms
+      preord_terminated_mixin
+      preord_cartesian_mixin.
+
+(** Further, PREORD is a cartesian closed category. *)
+Program Definition preord_curry (C A B:preord) (f:C×A → B) : C → hom_order A B :=
+  Preord.Hom C (hom_order A B) (fun c => Preord.Hom A B (fun a => f (c,a)) _) _.
+Next Obligation.
+  apply preord_ord. split; auto.
+Qed.
+Next Obligation.
+  intro x. simpl.
+  apply preord_ord. split; auto.
+Qed.
+
+Program Definition preord_apply (A B:preord) : (hom_order A B × A) → B :=
+  Preord.Hom (hom_order A B × A) B (fun fx => fst fx (snd fx)) _.
+Next Obligation.
+  simpl. destruct H; simpl in *.
+  apply preord_map_morphism; auto.
+Qed.
+
+Program Definition preord_ccc_mixin 
+   := CartesianClosed.Mixin
+       Preord.type Preord.hom
+       Preord.eq_mixin
+       Preord.comp_mixin
+       Preord.cat_axioms
+       preord_terminated_mixin
+       preord_cartesian_mixin
+       hom_order preord_curry preord_apply
+       _.
+Next Obligation.
+  constructor.
+
+  simpl. intros.
+  split; simpl; destruct x; simpl; auto.
+  
+  simpl. intros.
+  split; intro z; simpl.
+  rewrite <- H. simpl; auto.
+  rewrite <- H. simpl; auto.
+Qed.
+
+Canonical Structure preord_ccc : cartesian_closed :=
+  CartesianClosed 
+       Preord.type Preord.hom
+       Preord.eq_mixin
+       Preord.comp_mixin
+       Preord.cat_axioms
+       preord_cartesian_mixin
+       preord_terminated_mixin
+       preord_ccc_mixin.
+
+
 (** The preorder on sums, defined in the standard way.
   *)
 Definition sum_ord (A B:preord) (x y:A+B):=
@@ -307,51 +502,6 @@ Qed.
 
 Canonical Structure sum_preord.
 
-(**  The preorder on products, defined pointwise.
-  *)
-Definition prod_ord (A B:preord) (x y:A*B):=
-  (fst x) ≤ (fst y) /\ (snd x) ≤ (snd y).
-
-Program Definition prod_preord (A B:preord) : preord :=
-  Preord.Pack (A*B) (Preord.Mixin _ (prod_ord A B) _ _).
-Next Obligation.
-  hnf. simpl; auto.
-Qed.
-Next Obligation.
-  destruct H; destruct H0; split; simpl in *.
-  eapply ord_trans; eauto.
-  eapply ord_trans; eauto.
-Qed.
-
-Canonical Structure prod_preord.
-
-Notation "A × B" := (prod_preord A B) (at level 54, right associativity).
-
-Program Definition pi1 {A B:preord} : A × B → A :=
-  Preord.Hom (A × B) A (fun x => fst x) _.
-Next Obligation.
-  destruct H; simpl; auto.
-Qed.
-
-Program Definition pi2 {A B:preord} : A × B → B :=
-  Preord.Hom (A × B) B (fun x => snd x) _.
-Next Obligation.
-  destruct H; simpl; auto.
-Qed.
-
-Notation "'π₁'" := (@pi1 _ _).
-Notation "'π₂'" := (@pi2 _ _).
-
-Program Definition mk_pair {C A B:preord} (f:C → A) (g:C → B) : C → A×B :=
-  Preord.Hom C (A×B) (fun c => (f#c, g#c)) _.
-Next Obligation.
-  intros. split; simpl; apply Preord.axiom; auto.
-Qed.  
-
-Program Definition pair_map {A B C D:preord} (f:A → B) (g:C → D) : A×C → B×D :=
-  mk_pair (f ∘ π₁) (g ∘ π₂).
-
-
 (**  Preorders with an [ord_dec] structure have a decidable order relation.
   *)
 Record ord_dec (A:preord) :=
@@ -372,16 +522,6 @@ Canonical Structure PREORD_EQ_DEC (A:preord) (OD:ord_dec A) :=
           end
       | right H => right (fun HEQ => H (proj1 HEQ))
       end).
-
-
-(** The one-point preorder *)
-Program Definition unitpo := Preord.Pack unit (Preord.Mixin _ (fun _ _ => True) _ _).
-Canonical Structure unitpo.
-
-(** The empty preorer. *)
-Program Definition emptypo := Preord.Pack False (Preord.Mixin _ (fun _ _ => False) _ _).
-Canonical Structure emptypo.
-
 
 (** The "lift" preorder, which adjoins a new bottom element.
     The lift construction gives rise to an endofunctor on PREORD.

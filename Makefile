@@ -81,6 +81,7 @@ endif
 ######################
 
 VFILES:=nominal.v\
+  permutations.v\
   atoms.v\
   profinite_adj.v\
   profinite.v\
