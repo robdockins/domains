@@ -3,6 +3,8 @@ Require Import categories.
 Require Import preord.
 Require Import directed.
 
+(** * Directed colimits and continuous functors.
+ *)
 Record directed_system (I:directed_preord) (C:category) :=
   DirSys
   { ds_F    : I -> ob C
@@ -87,6 +89,237 @@ Definition continuous_functor (C D:category) (F:functor C D) :=
 Arguments continuous_functor [C] [D] F.
 
 
+(**  * Fixpoints of continuous functors.
+
+     We can construct fixpoints of continuous endofunctors in
+     any category that has an initial object and colimits of
+     directed systems.
+
+     This is essentially the categorical analogue of Kleene's
+     fixpoint theorem for posets.
+ *)
+
+Require Import Arith.
+Section fixpoint.
+  Variable C:initialized.
+  Variable F:functor C C.
+
+  Variable colimit_cocone :
+    forall (I:directed_preord) (DS:directed_system I C), cocone DS.
+
+  Variable has_colimits :
+    forall (I:directed_preord) (DS:directed_system I C),
+            directed_colimit DS (colimit_cocone I DS).
+
+  (** Iterated application of the functor [F]; the initial object
+      provides the base case of the recursion.
+    *)
+  Fixpoint iterF (x:nat) : ob C :=
+    match x with
+    | O => ¡
+    | S x' => F (iterF x')
+    end.
+
+  Lemma HSle0 j (Hij: S j <= O) : False.
+  Proof.
+    inversion Hij.
+  Qed.
+
+  (** Iterated action of the functor [F] on homs. The base case is
+      provided by the universal hom associated to ¡.
+   *)
+  Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i → iterF j :=
+    match i as i' return forall (j:nat) (Hij:i' <= j), iterF i' → iterF j with
+    | O => fun j Hij => initiate
+    | S i' => fun j =>
+        match j as j' return forall (Hij:S i' <= j'), iterF (S i') → iterF j' with
+        | O => fun Hij => False_rect _ (HSle0 i' Hij) (* impossible case *)
+        | S j' => fun Hij => F@(iter_hom i' j' (gt_S_le i' j' Hij))
+        end
+    end.
+
+  Lemma iter_hom_proof_irr i : forall j H1 H2,
+    iter_hom i j H1 ≈ iter_hom i j H2.
+  Proof.
+    induction i; simpl; intros; auto.
+    destruct j.
+    elimtype False. inversion H1.
+    apply Functor.respects.
+    apply IHi.
+  Qed.
+
+  (** The Kleene chain is a directed system. *)
+  Program Definition kleene_chain : directed_system nat_dirord C :=
+    DirSys nat_dirord C iterF iter_hom _ _.
+  Next Obligation.      
+    induction i; simpl; intros.
+    symmetry. apply initiate_univ.
+    apply Functor.ident; auto.
+  Qed.
+  Next Obligation.
+    induction i. simpl; intros.
+    apply initiate_univ.
+    intros. destruct j.
+    elimtype False. inversion Hij.
+    destruct k.
+    elimtype False. inversion Hjk.
+    simpl.
+    rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
+    reflexivity. auto.
+  Qed.
+
+  (** The fixpoint we desire is the point of the colimiting cocone
+      corresponding to the Kleene chain.
+   *)
+  Definition fixpoint := cocone_point (colimit_cocone nat_dirord kleene_chain).
+
+
+  (** It is mildly interesting to note that we can construct the fixpoint
+      object without the continuity assumption.
+
+      However, if we suppose [F] _is_ a continuous functor, we can demonstrate
+      that [fixpoint] forms an initial algebra and thus actually is
+      the least fixpoint of [F].
+    *)
+  Hypothesis Fcontinuous : continuous_functor F.
+
+  (** Because [F] is continuous, the additional application of F
+      to the fixpoint colimiting cocone is a colimiting cocone
+      for the [n+1] Kleene chain.
+   *)
+  Let BL := Fcontinuous
+               nat_dirord kleene_chain
+               (colimit_cocone nat_dirord kleene_chain)
+               (has_colimits nat_dirord kleene_chain).
+
+  Program Definition cocone_plus1 : cocone (dir_sys_app kleene_chain F)
+    := Cocone (dir_sys_app kleene_chain F) fixpoint
+      (fun i => cocone_spoke (colimit_cocone nat_dirord kleene_chain) (S i)) _.
+  Next Obligation.
+    simpl; intros.
+    assert (Hij' : S i <= S j). auto with arith.
+    rewrite (cocone_commute (colimit_cocone nat_dirord kleene_chain) (S i) (S j) Hij').
+    simpl. apply cat_respects; auto.
+    apply Functor.respects.
+    apply iter_hom_proof_irr.
+  Qed.
+
+  (** The algebra associated with the fixpoint. *)
+  Definition fixpoint_alg : alg C F
+    := @Alg C F fixpoint (colim_univ BL cocone_plus1).
+
+  (** Next we define the catamorphism by iterating the action
+      of a given algebra.
+    *)
+  Section cata.
+    Variable AG : alg C F.
+  
+    Fixpoint cata_hom' (i:nat) : iterF i → AG :=
+      match i as i' return iterF i' → AG with
+      | O => initiate
+      | S i' => Alg.iota AG ∘ F@(cata_hom' i')
+      end.
+
+    Lemma cata_hom_iter_hom : forall (i j:nat_ord) (Hij:i≤j),
+      cata_hom' i ≈ cata_hom' j ∘ (iter_hom i j Hij).
+    Proof.
+      induction i; intros.
+      simpl. symmetry. apply initiate_univ.
+      destruct j. inversion Hij.
+      simpl.
+      rewrite <- (cat_assoc (Alg.iota AG)).
+      apply cat_respects; auto.
+      rewrite <- (Functor.compose F).
+      2: reflexivity.
+      rewrite IHi; eauto.
+    Qed.      
+
+    Program Definition AG_cocone : cocone kleene_chain :=
+      Cocone _ _ cata_hom' cata_hom_iter_hom.
+      
+    Program Definition AG_cocone' :
+      cocone (dir_sys_app kleene_chain F) :=
+        Cocone _ _ (fun i => cata_hom' (S i)) _.
+    Next Obligation.
+      simpl; intros.
+      rewrite (cata_hom_iter_hom i j Hij).
+      rewrite Functor.compose.
+      2: reflexivity.
+      apply cat_assoc.
+    Qed.
+
+    Definition cata_hom : fixpoint → AG :=
+      colim_univ (has_colimits nat_dirord kleene_chain) AG_cocone.
+
+    Program Definition cata_alg_hom : Alg.alg_hom fixpoint_alg AG :=
+      Alg.Alg_hom cata_hom _.
+    Next Obligation.
+      simpl.
+      generalize (colim_uniq BL AG_cocone').
+      intros.
+      rewrite (H (cata_hom ∘ colim_univ BL cocone_plus1)).
+      symmetry. apply H.
+
+      intros. simpl.
+      rewrite <- (cat_assoc (Alg.iota AG)).
+      rewrite <- (Functor.compose F). 2: reflexivity.
+      apply cat_respects; auto.
+      apply Functor.respects.
+      unfold cata_hom.
+      apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone).
+
+      intros.
+      rewrite <- (cat_assoc cata_hom).
+      rewrite <- (colim_commute BL cocone_plus1).
+      unfold cata_hom.
+      apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone (S i)).
+    Qed.
+  End cata.
+
+  (**  Now we show that the catamorphims is universal and construct
+       the initial algebra.
+    *)
+  Program Definition fixpoint_initial : Alg.initial_alg C F :=
+    Alg.Initial_alg fixpoint_alg cata_alg_hom _.
+  Next Obligation.
+    simpl; intros.
+    unfold cata_hom.
+    apply (colim_uniq (has_colimits nat_dirord kleene_chain) (AG_cocone M)).
+    intro i. simpl.
+    induction i. simpl.
+    symmetry. apply initiate_univ.
+    simpl.
+    rewrite IHi.
+    rewrite Functor.compose. 2: reflexivity.
+    rewrite (cat_assoc (Alg.iota M)).
+    rewrite <- (Alg.hom_axiom h). simpl.
+    repeat rewrite <- (@cat_assoc C).
+    apply cat_respects; auto.
+    symmetry.
+    apply (colim_commute BL cocone_plus1).
+  Qed.
+
+  (**  With the initial algebra in hand, we immediately 
+       get an isomorphism via standard facts about initial algebras.
+    *)
+  Definition fixpoint_iso :
+    F fixpoint ↔ fixpoint :=
+
+    Isomorphism C (F fixpoint) fixpoint 
+      (colim_univ BL cocone_plus1)
+      (Alg.out _ F fixpoint_initial)
+      (Alg.out_in _ F fixpoint_initial)
+      (Alg.in_out _ F fixpoint_initial).
+
+End fixpoint.
+
+(** * Standard continuous functors.
+
+    The identity and constant functors are continuous, as is
+    the composition of two continuous functors.
+    
+    Pairing and projection functors are also continuous.
+ *)
 
 Lemma identF_continuous (C:category) : continuous_functor id(C).
 Proof.
@@ -198,7 +431,7 @@ Section pairF_continuous.
     intro i; destruct (H i); auto.
     apply (colim_uniq X1 (cocone_sndF I DS YC)).
     intro i; destruct (H i); auto.
- Qed.  
+  Qed.  
 End pairF_continuous.
 
 
@@ -303,4 +536,3 @@ Lemma sndF_continuous C D : continuous_functor (sndF C D).
 Proof.
   repeat intro. apply sndF_continuous'; auto.
 Qed.
-

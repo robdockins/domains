@@ -11,9 +11,8 @@ Require Import plotkin.
 Require Import profinite.
 Require Import joinable.
 Require Import directed.
-Require Import bilimit.
 Require Import cont_functors.
-
+Require Import bilimit.
 
 
 Section map_rel.
