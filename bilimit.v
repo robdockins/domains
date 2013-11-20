@@ -807,285 +807,58 @@ Section colimit_decompose2.
   Qed.
 End colimit_decompose2.
 
-Require Import Arith.
-(**  In the category of _partial_ plotkin orders, we can take the fixpoint
-     of a continuous endofunctor as the bilimit of the Kleene chain.
-  *)
+(** The category of embeddings over _partial_ plotkin orders has
+    an initial object.  The category of embeddings over total plotkin
+    orders, however, does not.
+ *)
+Program Definition PPLT_EMBED_initialized_mixin :=
+  Initialized.Mixin
+    (PLT.ob true) (embedding true)
+    (embed_eq_mixin true)
+    (empty_plt true)
+    empty_bang
+    _.
+Next Obligation.
+  repeat intro.
+  split; intro x; elim x.
+Qed.
+
+Canonical Structure PPLT_EMBED_initialized :=
+  Initialized 
+    (PLT.ob true) (embedding true)
+    (embed_eq_mixin true)
+    (embed_comp_mixin true)
+    (embed_cat_axioms true)
+    PPLT_EMBED_initialized_mixin.
+
+(** With the bilimit in hand, we can construct the least
+    fixpoint of continuous functors in the embeddings
+    over the category of partial plotkin orders by appeal
+    to the general fixpoint construction for continuous functors.
+ *)
 Section fixpoint.
   Variable F:functor (EMBED true) (EMBED true).
-
-  (** Iterated application of the functor [F] *)
-  Fixpoint iterF (x:nat) : ob (EMBED true) :=
-    match x with
-    | O => empty_plt true
-    | S x' => F (iterF x')
-    end.
-
-  Lemma HSle0 j (Hij: S j <= O) : False.
-  Proof.
-    inversion Hij.
-  Qed.
-
-  (**  Iterated action of the functor [F] on homs.
-    *)
-  Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i ⇀ iterF j :=
-    match i as i' return forall (j:nat) (Hij:i' <= j), iterF i' ⇀ iterF j with
-    | O => fun j Hij => empty_bang _
-    | S i' => fun j =>
-        match j as j' return forall (Hij:S i' <= j'), iterF (S i') ⇀ iterF j' with
-        | O => fun Hij => False_rect _ (HSle0 i' Hij)
-        | S j' => fun Hij => F@(iter_hom i' j' (gt_S_le i' j' Hij))
-        end
-    end.
-
-  Lemma iter_hom_proof_irr i : forall j H1 H2,
-    iter_hom i j H1 ≈ iter_hom i j H2.
-  Proof.
-    induction i; simpl; intros; auto.
-    destruct j.
-    elimtype False. inversion H1.
-    apply Functor.respects.
-    apply IHi.
-  Qed.
-
-  (** The Kleene chain is a directed system. *)
-  Program Definition kleene_chain : directed_system nat_dirord (EMBED true) :=
-    DirSys nat_dirord (EMBED true) iterF iter_hom _ _.
-  Next Obligation.      
-    induction i; simpl; intros.
-    apply embed_lift'. intro x; elim x.
-    apply Functor.ident; auto.
-  Qed.
-  Next Obligation.
-    induction i. simpl; intros.
-    apply embed_lift'. intro x; elim x.
-    intros. destruct j.
-    elimtype False. inversion Hij.
-    destruct k.
-    elimtype False. inversion Hjk.
-    simpl.
-    rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
-    reflexivity. auto.
-  Qed.
-
-  (** Take the fixpoint as the bilimit of the Kleene chain. *)
-  Definition fixpoint := bilimit true nat_dirord kleene_chain.
-
-  (** If we suppose [F] is a continuous functor, we can demonstrate
-      that [fixpoint] forms an initial algebra and thus actually is
-      the least fixpoint of [F].
-    *)
   Hypothesis Fcontinuous : continuous_functor F.
 
-  Let BL := Fcontinuous nat_dirord kleene_chain
-      (bilimit_cocone true nat_dirord kleene_chain)
-      (bilimit_construction true nat_dirord kleene_chain).
+  Definition fixpoint : ob (EMBED true) :=
+    (cont_functors.fixpoint
+           PPLT_EMBED_initialized
+           F 
+           (bilimit_cocone true)).
 
-  Program Definition cocone_plus1 : 
-    cocone (dir_sys_app kleene_chain F)
-    := Cocone _
-      fixpoint
-      (fun i => limset_spoke _ _ kleene_chain (S i)) _.
-  Next Obligation.
-    simpl; intros.
-    apply embed_lift'.
-    simpl; intros.
-    split; hnf; simpl.
-    exists (S j).
-    exists (le_n_S _ _ Hij). exists (ord_refl _ _).
-    change ((F @ iter_hom i j (gt_S_le i j (le_n_S i j Hij))) x
-      ≤ ((F @ iter_hom j j (gt_S_le j j (ord_refl nat_ord (S j)))) ∘
-        (F @ iter_hom i j Hij)) x).
-    apply embed_unlift.
-    rewrite <- (Functor.compose F). 2: reflexivity.
-    rewrite (kleene_chain_obligation_2 i j j
-      Hij
-      (gt_S_le j j (ord_refl nat_ord (S j)))
-      (gt_S_le i j (le_n_S i j Hij))); auto.
-    exists (S j).
-    exists (ord_refl _ _).  exists (le_n_S _ _ Hij). 
-    change (
-      ((F @ iter_hom j j (gt_S_le j j (ord_refl nat_ord (S j)))) ∘
-        (F @ iter_hom i j Hij)) x
-      ≤
-      (F @ iter_hom i j (gt_S_le i j (le_n_S i j Hij))) x).
-    apply embed_unlift.
-    rewrite <- (Functor.compose F). 2: reflexivity.
-    rewrite (kleene_chain_obligation_2 i j j
-      Hij
-      (gt_S_le j j (ord_refl nat_ord (S j)))
-      (gt_S_le i j (le_n_S i j Hij))); auto.
-  Qed.
+  Definition fixpoint_initial : Alg.initial_alg (EMBED true) F :=
+    (cont_functors.fixpoint_initial
+           PPLT_EMBED_initialized
+           F 
+           (bilimit_cocone true)
+           (bilimit_construction true)
+           Fcontinuous).
 
-  (** The algebra associated with the fixpoint. *)
-  Definition fixpoint_alg : alg (EMBED true) F
-    := @Alg _ F fixpoint (colim_univ BL cocone_plus1).
-
-  (** Next we define the catamorphism by iterating the action
-      of a given algebra.  We show that this indeed defines
-      an embedding, and that it is an F-algebra hom.
-    *)
-  Section cata.
-    Variable AG : alg (EMBED true) F.
-  
-    Fixpoint cata_hom' (i:nat) : iterF i ⇀ AG :=
-      match i as i' return iterF i' ⇀ AG with
-      | O => empty_bang AG
-      | S i' => Alg.iota AG ∘ F@(cata_hom' i')
-      end.
-
-    Lemma cata_hom_iter_hom : forall (i j:nat_ord) (Hij:i≤j),
-      cata_hom' i ≈ cata_hom' j ∘ (iter_hom i j Hij).
-    Proof.
-      induction i; intros.
-      apply embed_lift'. intro x; elim x.
-      destruct j. inversion Hij.
-      simpl.
-      rewrite <- (cat_assoc (Alg.iota AG)).
-      apply cat_respects; auto.
-      rewrite <- (Functor.compose F).
-      2: reflexivity.
-      rewrite IHi; eauto.
-    Qed.      
-
-    Program Definition cata_hom : fixpoint ⇀ AG :=
-      Embedding _ _ _ 
-      (fun x => let (i,x') := x in cata_hom' i x')
-      _ _ _ _.
-    Next Obligation.
-      intros. 
-      destruct a as [i a].
-      destruct a' as [i' a'].
-      destruct H as [k [Hk1 [Hk2 ?]]]. simpl in *.
-      transitivity (cata_hom' k (iter_hom i k Hk1 a)).
-      destruct (cata_hom_iter_hom i k Hk1).
-      apply H0.
-      transitivity (cata_hom' k (iter_hom i' k Hk2 a')).
-      apply embed_mono. auto.
-      destruct (cata_hom_iter_hom i' k Hk2).
-      apply H1.
-    Qed.      
-    Next Obligation.
-      intros.
-      destruct a as [i a].
-      destruct a' as [i' a'].
-      hnf. simpl.
-      exists (max i i').
-      exists (Max.le_max_l i i').
-      exists (Max.le_max_r i i').
-      apply (embed_reflects (cata_hom' (max i i'))).
-      apply (use_ord H).
-      
-      rewrite (cata_hom_iter_hom i (max i i') (Max.le_max_l i i')). auto.
-      rewrite (cata_hom_iter_hom i' (max i i') (Max.le_max_r i i')). auto.
-    Qed.
-    Next Obligation.
-      auto.
-    Qed.
-    Next Obligation.
-      intros. 
-      destruct a as [i a].
-      destruct b as [i' b].
-      simpl in *.
-      rewrite (cata_hom_iter_hom i (max i i') (Max.le_max_l i i')) in H.
-      rewrite (cata_hom_iter_hom i' (max i i') (Max.le_max_r i i')) in H0.
-      destruct (embed_directed2 (cata_hom' (max i i')) y) with
-        (iter_hom i (max i i') (Max.le_max_l i i') a)
-        (iter_hom i' (max i i') (Max.le_max_r i i') b)
-        as [c [?[??]]]; auto.
-      exists (LimSet _ _ kleene_chain (max i i') c).
-      split; auto.
-      split; exists (max i i'); simpl.
-      exists (Max.le_max_l i i').
-      exists (ord_refl _ _).
-      generalize (kleene_chain_obligation_1 (max i i') (ord_refl _ _)).
-      intros. rewrite H4. simpl.
-      auto.
-      exists (Max.le_max_r i i').
-      exists (ord_refl _ _).
-      generalize (kleene_chain_obligation_1 (max i i') (ord_refl _ _)).
-      intros. rewrite H4. simpl.
-      auto.
-    Qed.      
-
-    Program Definition AG_cocone :
-      cocone (dir_sys_app kleene_chain F) :=
-        Cocone _ _ (fun i => cata_hom' (S i)) _.
-    Next Obligation.
-      simpl; intros.
-      rewrite (cata_hom_iter_hom i j Hij).
-      rewrite Functor.compose.
-      2: reflexivity.
-      apply cat_assoc.
-    Qed.
-
-    Program Definition cata_alg_hom : Alg.alg_hom fixpoint_alg AG :=
-      Alg.Alg_hom cata_hom _.
-    Next Obligation.
-      simpl.
-      generalize (colim_uniq BL AG_cocone).
-      intros.
-      rewrite (H (cata_hom ∘ colim_univ BL cocone_plus1)).
-      symmetry. apply H.
-
-      intros. simpl.
-      rewrite <- (cat_assoc (Alg.iota AG)).
-      rewrite <- (Functor.compose F). 2: reflexivity.
-      apply cat_respects; auto.
-      apply Functor.respects.
-      split; hnf; simpl; auto.
-
-      intros.
-      rewrite <- (cat_assoc cata_hom).
-      rewrite <- (colim_commute BL cocone_plus1).
-      split; hnf; simpl; auto.
-    Qed.
-  End cata.
-
-  (**  Now we show that the catamorphims is universal and construct
-       the initial algebra.
-    *)
-  Program Definition fixpoint_initial : Alg.initial_alg (EMBED true) F :=
-    Alg.Initial_alg fixpoint_alg cata_alg_hom _.
-  Next Obligation.
-    simpl; intros.
-    apply embed_lift'.
-    simpl; intro x.
-    destruct x as [i x].
-    cut (Alg.hom_map h ∘ limset_spoke _ _ kleene_chain i ≈ cata_hom' M i).
-    intros.
-    destruct H; split; auto.
-    apply (H x). apply (H0 x).
-    clear x. induction i.
-    split; hnf; intro x; elim x.
-    simpl.
-    rewrite <- IHi.
-    destruct h as [h Hh]. simpl in *.
-    rewrite Functor.compose. 2: reflexivity.
-    rewrite (cat_assoc (Alg.iota M)).
-    rewrite <- Hh.
-    generalize (Alg.hom_axiom (cata_alg_hom M)).
-    simpl.
-    intros.
-    cut (limset_spoke true nat_dirord kleene_chain (S i)
-      ≈ colim_univ BL cocone_plus1 ∘ F @ limset_spoke true nat_dirord kleene_chain i).
-    intros.
-    split; hnf; intros; simpl; apply (embed_mono h).
-    destruct H0. apply (H0 x).
-    destruct H0. apply (H1 x).
-    apply (colim_commute BL cocone_plus1).
-  Qed.
-
-  (**  With the initial algebra in hand, we immediately 
-       get an isomorphism via standard facts about initial algebras.
-    *)
-  Definition fixpoint_iso :
-    F fixpoint ↔ fixpoint :=
-
-    Isomorphism (EMBED true) (F fixpoint) fixpoint 
-      (colim_univ BL cocone_plus1)
-      (Alg.out _ F fixpoint_initial)
-      (Alg.out_in _ F fixpoint_initial)
-      (Alg.in_out _ F fixpoint_initial).
-
+  Definition fixpoint_iso : F fixpoint ↔ fixpoint :=
+    (cont_functors.fixpoint_iso
+           PPLT_EMBED_initialized
+           F 
+           (bilimit_cocone true)
+           (bilimit_construction true)
+           Fcontinuous).
 End fixpoint.
