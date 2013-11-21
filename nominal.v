@@ -201,13 +201,14 @@ Proof.
   rewrite H. auto.
 Qed.
 
-(*
-Program Definition incipit_eq_mixin :=
+(** NOMINAL is an initialized category. *)
+
+Program Definition initius_eq_mixin :=
   Eq.Mixin False (fun _ _ => False) _ _ _.
 
-Program Definition incipit_mixin :=
+Program Definition initius_mixin :=
   Nominal.Mixin
-      False incipit_eq_mixin 
+      False initius_eq_mixin 
       (fun p x => False_rect _ x)
       (fun x => False_rect _ x)
       _ _ _ _ _.
@@ -215,85 +216,310 @@ Next Obligation.
   elim x. elim x.
 Qed.
 
-Canonical Structure incipit :=
-  Nominal.Ob False incipit_eq_mixin incipit_mixin.
+Canonical Structure initius :=
+  Nominal.Ob False initius_eq_mixin initius_mixin.
 
-Program Definition init (A:nominal) : incipit → A :=
-  Nominal.Hom incipit A (fun x => False_rect _ x) _ _.
+Program Definition initiate (A:nominal) : initius → A :=
+  Nominal.Hom initius A (fun x => False_rect _ x) _ _.
 Next Obligation.
   elim x.
 Qed.
 Next Obligation.
   elim x.
 Qed.
-Arguments init [A].
 
-Require Import cont_functors.
-Require Import Arith.
-Require Import directed.
-Require Import effective.
+Program Definition initialized_mixin :=
+  Initialized.Mixin
+    Nominal.ob Nominal.hom
+    Nominal.hom_eq_mixin
+    initius initiate
+    _.
+Next Obligation.
+  hnf. intro x. elim x.
+Qed.
 
-Section fixpoint.
-  Variable F: functor NOMINAL NOMINAL.
-  Variable Hcont : continuous_functor F.
-  
-  Fixpoint iterF (n:nat) : nominal :=
-    match n with
-    | O => incipit
-    | S m => F (iterF m)
+Canonical Structure initialized_nominal : initialized :=
+  Initialized
+    Nominal.ob Nominal.hom
+    Nominal.hom_eq_mixin
+    Nominal.comp_mixin
+    Nominal.category_axioms
+    initialized_mixin.
+
+
+(** NOMINAL has binary coproducts. *)
+
+Section nom_sum.
+  Variables A B:nominal.
+
+  Definition nom_sum_equiv (x y:A+B) :=
+    match x, y with
+    | inl a, inl a' => a ≈ a'
+    | inr b, inr b' => b ≈ b'
+    | _, _ => False
     end.
 
-  Lemma HSle0 j (Hij: S j <= O) : False.
-  Proof.
-    inversion Hij.
-  Qed.
-
-  (**  Iterated action of the functor [F] on homs.
-    *)
-  Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i → iterF j :=
-    match i as i' return forall (j:nat) (Hij:i' <= j), iterF i' → iterF j with
-    | O => fun j Hij => init
-    | S i' => fun j =>
-        match j as j' return forall (Hij:S i' <= j'), iterF (S i') → iterF j' with
-        | O => fun Hij => False_rect _ (HSle0 i' Hij)
-        | S j' => fun Hij => F@(iter_hom i' j' (gt_S_le i' j' Hij))
-        end
+  Definition nom_sum_papp (p:perm) (x:A+B) :=
+    match x with
+    | inl a => inl (p · a)
+    | inr b => inr (p · b)
     end.
-  
-  Lemma iter_hom_proof_irr i : forall j H1 H2,
-    iter_hom i j H1 ≈ iter_hom i j H2.
-  Proof.
-    induction i; simpl; intros; auto.
-    destruct j.
-    elimtype False. inversion H1.
-    apply Functor.respects.
-    apply IHi.
-  Qed.
 
-  (** The Kleene chain is a directed system. *)
-  Program Definition kleene_chain : directed_system nat_dirord NOMINAL :=
-    DirSys nat_dirord NOMINAL iterF iter_hom _ _.
-  Next Obligation.      
-    induction i; simpl; intros.
-    hnf. intro x. elim x.
-    apply Functor.ident; auto.
+  Definition nom_sum_support (x:A+B) : finset atom :=
+    match x with
+    | inl a => ‖a‖
+    | inr b => ‖b‖
+    end.
+
+  Program Definition nom_sum_eq_mixin :=
+    Eq.Mixin (A+B) nom_sum_equiv _ _ _.
+  Next Obligation.
+    simpl. auto.
+    simpl. auto.
   Qed.
   Next Obligation.
-    revert i j k Hij Hjk Hik.
-    induction i. simpl; intros.
-    hnf; intro. elim x.
-    intros. destruct j.
-    elimtype False. inversion Hij.
-    destruct k.
-    elimtype False. inversion Hjk.
-    simpl.
-    rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
-    reflexivity. auto.
+    simpl in *. destruct y; simpl in *; auto.
+    destruct y; simpl in *; auto.
+  Qed.
+  Next Obligation.
+    destruct z; simpl in *; eauto.
+    destruct z; simpl in *; eauto.
+    elim H.
+    destruct z; simpl in *; eauto.
+    elim H.
+    destruct z; simpl in *; eauto.
   Qed.
 
 
-End fixpoint.
-*)
+  Program Definition nom_sum_mixin :=
+    Nominal.Mixin (A+B) nom_sum_eq_mixin nom_sum_papp nom_sum_support
+       _ _ _ _ _.
+  Next Obligation.
+    destruct a; red; simpl; auto.
+    apply nom_ident.
+    apply nom_ident.
+  Qed.
+  Next Obligation.
+    destruct a; red; simpl; auto.
+    apply nom_compose.
+    apply nom_compose.
+  Qed.
+  Next Obligation.
+    destruct a; destruct a'; simpl in *.
+    red in H0; simpl in H0.
+    red; simpl. apply papp_morphism; auto.
+    red in H0; simpl in H0. elim H0.
+    red in H0; simpl in H0. elim H0.
+    red in H0; simpl in H0.
+    red; simpl. apply papp_morphism; auto.
+  Qed.
+  Next Obligation.
+    destruct a; red; simpl.
+    apply support_axiom.
+    red; simpl; intros. apply (H v); auto.
+    apply support_axiom.
+    red; simpl; intros. apply (H v); auto.
+  Qed.
+  Next Obligation.
+    destruct x; apply support_papp; auto.    
+    destruct x; simpl in H;
+      apply support_papp in H; auto.    
+  Qed.
+
+  Canonical Structure nom_sum : nominal :=
+    Nominal.Ob (A+B) nom_sum_eq_mixin nom_sum_mixin.
+End nom_sum.
+
+
+(** NOMINAL has colimits for directed systems. *)
+Require Import directed.
+Require Import cont_functors.
+
+Section nominal_directed_colimits.
+  Variable I:directed_preord.
+  Variable DS:directed_system I NOMINAL.
+
+  Record nom_colimit_type :=
+    NomColim
+    { nom_colim_idx : I
+    ; nom_colim_elem : ds_F DS nom_colim_idx
+    }.
+
+  Definition nom_colimit_equiv (x y:nom_colimit_type) :=
+    exists k
+      (Hxk:nom_colim_idx x ≤ k)
+      (Hyk:nom_colim_idx y ≤ k),
+      ds_hom DS _ _ Hxk (nom_colim_elem x) ≈ 
+      ds_hom DS _ _ Hyk (nom_colim_elem y).
+
+  Program Definition nom_colimit_eq_mixin :=
+    Eq.Mixin nom_colimit_type nom_colimit_equiv _ _ _ .
+  Next Obligation.
+    exists (nom_colim_idx x).
+    exists (ord_refl I (nom_colim_idx x)).
+    exists (ord_refl I (nom_colim_idx x)).
+    auto.
+  Qed.
+  Next Obligation.
+    destruct H as [k [Hxk [Hyk ?]]].
+    exists k. exists Hyk. exists Hxk. symmetry.
+    auto.
+  Qed.
+  Next Obligation.
+    destruct H as [i [Hxi [Hyi ?]]].
+    destruct H0 as [j [Hyj [Hzj ?]]].
+    destruct (choose_ub I i j) as [k [Hik Hjk]].
+    assert (Hxk : nom_colim_idx x ≤ k). etransitivity; eauto.
+    assert (Hyk : nom_colim_idx y ≤ k). etransitivity; eauto.
+    assert (Hzk : nom_colim_idx z ≤ k). etransitivity; eauto.
+    exists k. exists Hxk. exists Hzk.
+    rewrite <- (ds_compose DS (nom_colim_idx x) i k Hxi Hik Hxk).
+    rewrite <- (ds_compose DS (nom_colim_idx z) j k Hzj Hjk Hzk).
+    simpl.
+    rewrite H. rewrite <- H0.
+    change ((ds_hom DS i k Hik ∘ ds_hom DS (nom_colim_idx y) i Hyi) (nom_colim_elem y)
+      ≈ ((ds_hom DS j k Hjk ∘ ds_hom DS (nom_colim_idx y) j Hyj) (nom_colim_elem y))).
+    rewrite (ds_compose DS (nom_colim_idx y) i k Hyi Hik Hyk).
+    rewrite (ds_compose DS (nom_colim_idx y) j k Hyj Hjk Hyk).
+    auto.
+  Qed.
+
+  Definition nom_colimit_papp (p:perm) (x:nom_colimit_type) :=
+    match x with
+    | NomColim i x' => NomColim i (p · x')
+    end.
+
+  Program Definition nom_colimit_mixin :=
+    Nominal.Mixin 
+      nom_colimit_type 
+      nom_colimit_eq_mixin
+      nom_colimit_papp
+      (fun x => ‖ nom_colim_elem x ‖)
+      _ _ _ _ _.
+  Next Obligation.
+    destruct a as [i a]. exists i. simpl.
+    exists (ord_refl _ _).
+    exists (ord_refl _ _).
+    apply Nominal.eq_axiom.
+    apply nom_ident.
+  Qed.
+  Next Obligation.
+    destruct a as [i a]. exists i. simpl.
+    exists (ord_refl _ _).
+    exists (ord_refl _ _).
+    apply Nominal.eq_axiom.
+    apply nom_compose.
+  Qed.
+  Next Obligation.
+    destruct H0 as [k [Hk1 [Hk2 ?]]].
+    destruct a as [i a].
+    destruct a' as [j b].
+    simpl in *.
+    exists k. simpl. exists Hk1. exists Hk2.
+    rewrite Nominal.equivariant.
+    rewrite Nominal.equivariant.
+    apply papp_morphism; auto.
+  Qed.
+  Next Obligation.
+    destruct a as [i a]. simpl.
+    exists i.
+    exists (ord_refl _ _).
+    exists (ord_refl _ _).
+    simpl.
+    apply Nominal.eq_axiom.
+    apply support_axiom; auto.
+  Qed.
+  Next Obligation.
+    destruct x as [i x]; simpl in *.
+    apply support_papp. auto.
+    destruct x as [i x]; simpl in *.
+    apply support_papp in H. auto.
+  Qed.
+
+  Canonical Structure nom_colimit : nominal :=
+    Nominal.Ob nom_colimit_type nom_colimit_eq_mixin nom_colimit_mixin.
+
+  Program Definition nom_colimit_spoke (i:I) : ds_F DS i → nom_colimit :=
+    Nominal.Hom (ds_F DS i) nom_colimit (NomColim i) _ _.
+  Next Obligation.
+    exists i. simpl. exists (ord_refl _ _). exists (ord_refl _ _).
+    apply Nominal.eq_axiom. auto.
+  Qed.
+
+  Program Definition nom_colimit_cocone : cocone DS :=
+    Cocone DS nom_colimit nom_colimit_spoke _.
+  Next Obligation.
+    red; simpl. intro x.
+    destruct (choose_ub I i j) as [k [??]].
+    exists k. simpl. exists H. exists H0.
+    symmetry.
+    apply (ds_compose DS i j k Hij H0 H x).
+  Qed.
+  
+  Section nom_colimit_univ.
+    Variable YC:cocone DS.
+
+    Definition nom_colimit_univ_defn (x:nom_colimit) : cocone_point YC :=
+      match x with
+      | NomColim i x' => cocone_spoke YC i x'
+      end.
+
+    Program Definition nom_colimit_univ : nom_colimit → cocone_point YC :=
+      Nominal.Hom nom_colimit (cocone_point YC) nom_colimit_univ_defn _ _.
+    Next Obligation.
+      destruct x as [i x].
+      destruct y as [j y].
+      destruct H as [k [Hk1 [Hk2 ?]]]. simpl in *.
+      rewrite (cocone_commute YC i k Hk1).
+      rewrite (cocone_commute YC j k Hk2).
+      simpl. apply Nominal.eq_axiom. auto.
+    Qed.
+    Next Obligation.
+      destruct x as [i x]. simpl.
+      apply Nominal.equivariant.
+    Qed.
+
+    Lemma nom_colimit_commute : forall i,
+      cocone_spoke YC i ≈ nom_colimit_univ ∘ nom_colimit_spoke i.
+    Proof.
+      intro. intro. simpl. auto.
+    Qed.
+
+    Lemma nom_colimit_uniq : forall (f:nom_colimit → YC),
+      (forall i, cocone_spoke YC i ≈ f ∘ nom_colimit_spoke i) ->
+      f ≈ nom_colimit_univ.
+    Proof.
+      simpl; intros. intro x.
+      destruct x as [i x]. simpl.
+      symmetry. apply H.
+    Qed.
+  End nom_colimit_univ.
+    
+  Definition nom_has_colimits : directed_colimit DS nom_colimit_cocone
+    := DirectedColimit DS nom_colimit_cocone
+         nom_colimit_univ nom_colimit_commute nom_colimit_uniq.
+End nominal_directed_colimits.
+
+
+(** NOMINAL has least fixpoints of continuous functors. *)
+Section nominal_fixpoint.
+  Variable F : functor NOMINAL NOMINAL.
+  Variable HF : continuous_functor F.
+
+  Definition fixpoint : ob NOMINAL :=
+    (cont_functors.fixpoint initialized_nominal F nom_colimit_cocone).
+
+  Definition fixpoint_initial : Alg.initial_alg NOMINAL F :=
+    (cont_functors.fixpoint_initial 
+      initialized_nominal F nom_colimit_cocone nom_has_colimits HF).
+    
+  Definition fixpoint_iso : F fixpoint ↔ fixpoint :=
+    (cont_functors.fixpoint_iso
+      initialized_nominal F nom_colimit_cocone nom_has_colimits HF).
+
+End nominal_fixpoint.
+
+
 
 (** NOMINAL is a terminated category. *)
 
@@ -330,8 +556,7 @@ Canonical Structure nom_terminated :=
     Nominal.category_axioms
     nom_terminated_mixin.
 
-(**  NOMINAL is a cartesian category.
-  *)
+(**  NOMINAL is a cartesian category. *)
 Program Definition nom_prod_eq_mixin (A B :nominal) :=
    Eq.Mixin (A*B) (fun x y => fst x ≈ fst y /\ snd x ≈ snd y) _ _ _.
 Solve Obligations using intuition eauto.
@@ -427,7 +652,7 @@ Canonical Structure nom_cartesian : cartesian :=
      nom_terminated_mixin
      nom_cartesian_mixin.
 
-(**  NOMINAL is a cartesian closed category. *)
+(** NOMINAL is a cartesian closed category. *)
 
 Record nom_exp_type (A B:nominal) :=
   NomExp
@@ -1374,8 +1599,7 @@ Qed.
 Canonical Structure binding (A:nominal) : nominal :=
   Nominal.Ob (binding_ty A) (binding_eq_mixin A) (binding_nominal_mixin A).
 
-(**  [binding] induces an endofunctor on NOMINAL.
-  *)
+(**  [binding] induces an endofunctor on NOMINAL. *)
 
 Definition binding_fmap_defn (A B:nominal) (f:A → B) 
   (x:binding A) : binding B :=
