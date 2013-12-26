@@ -110,561 +110,6 @@ Proof.
 Qed.
 
 
-(**  Categories with terminal objects, which we call terminated categories.
-
-     Such categories have a distinguished object [terminus] (notation [!])
-     and a family of morphisms [terminate : A → !] for each object [A].
-     Furthermore, [terminate] is universial, in that every for every
-     [f : A → !], [f ≈ terminate].
-  *)
-Module Terminated.
-Section terminated.
-  Variables (ob:Type) (hom:ob -> ob -> Type).
-  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
-
-  Definition eq' A B := Eq.Pack _ (eq A B).
-
-  Canonical Structure eq'.
-
-  Record mixin_of :=
-  Mixin
-  { terminus : ob
-  ; terminate : forall A:ob, hom A terminus
-  ; axiom : forall A (f:hom A terminus), f ≈ terminate A
-  }.
-End terminated.
-  
-Record terminated :=
-  Terminated
-  { ob : Type
-  ; hom : ob -> ob -> Type
-  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
-  ; comp_mixin : Comp.mixin_of ob hom
-  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
-  ; mixin : mixin_of ob hom eq_mixin
-  }.
-
-Canonical Structure eq (X:terminated) (A B:ob X) :=
-  Eq.Pack (hom X A B) (eq_mixin X A B).
-Canonical Structure comp (X:terminated) :=
-  Comp.Pack (ob X) (hom X) (comp_mixin X).
-Canonical Structure category (X:terminated) :=
-  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
-
-Definition terminus_op (X:terminated) := terminus _ _ _ (mixin X).
-Definition terminate_op (X:terminated) := terminate _ _ _ (mixin X).
-End Terminated.
-
-Notation terminated := Terminated.terminated.
-Notation Terminated := Terminated.Terminated.
-
-Canonical Structure Terminated.eq.
-Canonical Structure Terminated.comp.
-Canonical Structure Terminated.category.
-Coercion Terminated.category : terminated >-> category.
-
-Notation "'!'" := (Terminated.terminus_op _).
-Notation terminate := (Terminated.terminate_op _ _).
-
-Lemma terminate_univ (X:terminated) :
-  forall (A:ob X) (f:A → !), f ≈ terminate.
-Proof (Terminated.axiom _ _ _ (Terminated.mixin X)).
-
-(**  Categories with initial objects, called initilized categories.
-
-     Such categories have a distinguished object [initium] (notation [¡])
-     and a family of morphisms [initiate : ¡ → A] for each object [A].
-     Furthermore, [initiate] is universial, in that every for every
-     [f : ¡ → A], [f ≈ initiate].
-  *)
-Module Initialized.
-Section initialized.
-  Variables (ob:Type) (hom:ob -> ob -> Type).
-  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
-
-  Definition eq' A B := Eq.Pack _ (eq A B).
-
-  Canonical Structure eq'.
-
-  Record mixin_of :=
-  Mixin
-  { initium : ob
-  ; initiate : forall A:ob, hom initium A
-  ; axiom : forall A (f:hom initium A), f ≈ initiate A
-  }.
-End initialized.
-  
-Record initialized :=
-  Initialized
-  { ob : Type
-  ; hom : ob -> ob -> Type
-  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
-  ; comp_mixin : Comp.mixin_of ob hom
-  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
-  ; mixin : mixin_of ob hom eq_mixin
-  }.
-
-Canonical Structure eq (X:initialized) (A B:ob X) :=
-  Eq.Pack (hom X A B) (eq_mixin X A B).
-Canonical Structure comp (X:initialized) :=
-  Comp.Pack (ob X) (hom X) (comp_mixin X).
-Canonical Structure category (X:initialized) :=
-  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
-
-Definition initium_op (X:initialized) := initium _ _ _ (mixin X).
-Definition initiate_op (X:initialized) := initiate _ _ _ (mixin X).
-End Initialized.
-
-Notation initialized := Initialized.initialized.
-Notation Initialized := Initialized.Initialized.
-
-Canonical Structure Initialized.eq.
-Canonical Structure Initialized.comp.
-Canonical Structure Initialized.category.
-Coercion Initialized.category : initialized >-> category.
-
-Notation "'¡'" := (Initialized.initium_op _).
-Notation initiate := (Initialized.initiate_op _ _).
-
-Lemma initiate_univ (X:initialized) :
-  forall (A:ob X) (f:¡ → A), f ≈ initiate.
-Proof (Initialized.axiom _ _ _ (Initialized.mixin X)).
-
-(**  Cartesian categories have all finite products.  In particular
-     they are terminated and have a binary product for every pair
-     of objects satisfying the usual universal property.
-
-     The product of [A] and [B] is written [A × B].  The projection
-     functions are [π₁] and [π₂].  When we have [f:C → A]  and [g:C → B],
-     the pairing function [〈 f, g 〉 : C → A×B] is the mediating universal
-     morphism for the limit diagram.
-  *)
-Module Cartesian.
-Section cartesian.
-  Variables (ob:Type) (hom:ob -> ob -> Type).
-  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
-  Variable comp:Comp.mixin_of ob hom.
-  
-  Definition eq' A B := Eq.Pack _ (eq A B).
-  Definition comp' := Comp.Pack ob hom comp.
-
-  Canonical Structure eq'.
-  Canonical Structure comp'.
-
-  Section axioms.
-
-    Variable product : ob -> ob -> ob.
-    Variable proj1 : forall A B, hom (product A B) A.
-    Variable proj2 : forall A B, hom (product A B) B.
-    Variable pairing : forall C A B:ob, hom C A -> hom C B -> hom C (product A B).
-
-    Record axioms :=
-      Axioms
-      { proj1_commute : forall (C A B:ob) f g,
-          proj1 A B ∘ pairing C A B f g ≈ f
-      ; proj2_commute : forall (C A B:ob) f g,
-          proj2 A B ∘ pairing C A B f g ≈ g
-      ; pairing_univ : forall (C A B:ob) f g h,
-          proj1 A B ∘ h ≈ f ->
-          proj2 A B ∘ h ≈ g ->
-          h ≈ pairing C A B f g
-      }.
-  End axioms.
-
-  Record mixin_of :=
-  Mixin
-  { product : ob -> ob -> ob
-  ; proj1 : forall A B:ob, hom (product A B) A
-  ; proj2 : forall A B:ob, hom (product A B) B
-  ; pairing : forall C A B:ob, hom C A -> hom C B -> hom C (product A B)
-  ; cartesian_axioms : axioms product proj1 proj2 pairing
-  }.
-End cartesian.
-  
-Record cartesian :=
-  Cartesian
-  { ob : Type
-  ; hom : ob -> ob -> Type
-  ; eq_mixin:forall A B:ob, Eq.mixin_of (hom A B)
-  ; comp_mixin:Comp.mixin_of ob hom
-  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
-  ; term_mixin : Terminated.mixin_of ob hom eq_mixin
-  ; mixin : mixin_of ob hom eq_mixin comp_mixin
-  }.
-
-Definition product_op (X:cartesian) := product _ _ _ _ (mixin X).
-Definition proj1_op (X:cartesian) := proj1 _ _ _ _ (mixin X).
-Definition proj2_op (X:cartesian) := proj2 _ _ _ _ (mixin X).
-Definition pairing_op (X:cartesian) := pairing _ _ _ _ (mixin X).
-
-Definition eq (X:cartesian) (A B:ob X) :=
-  Eq.Pack (hom X A B) (eq_mixin X A B).
-Definition comp (X:cartesian) :=
-  Comp.Pack (ob X) (hom X) (comp_mixin X).
-Definition terminated (X:cartesian) :=
-  Terminated (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (term_mixin X).
-Definition category (X:cartesian) :=
-  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
-End Cartesian.
-
-Notation cartesian := Cartesian.cartesian.
-Notation Cartesian := Cartesian.Cartesian.
-
-Canonical Structure Cartesian.eq.
-Canonical Structure Cartesian.comp.
-Canonical Structure Cartesian.category.
-Canonical Structure Cartesian.terminated.
-
-Coercion Cartesian.terminated : cartesian >-> terminated.
-Coercion Cartesian.category : cartesian >-> category.
-
-Notation "A × B" := (Cartesian.product_op _ A B) (at level 54, right associativity).
-Notation "'π₁'"  := (Cartesian.proj1_op _ _ _).
-Notation "'π₂'"  := (Cartesian.proj2_op _ _ _).
-Notation "〈 f , g 〉" := (Cartesian.pairing_op _ _ _ _ f g).
-
-Lemma proj1_commute (X:cartesian) :
-  forall (C A B:ob X) (f:C → A) (g:C → B), π₁ ∘ 〈 f, g 〉 ≈ f.
-
-Proof (Cartesian.proj1_commute _ _ _ _ _ _ _ _ 
-         (Cartesian.cartesian_axioms _ _ _ _ (Cartesian.mixin X))).
-
-Lemma proj2_commute (X:cartesian) :
-  forall (C A B:ob X) (f:C → A) (g:C → B), π₂ ∘ 〈 f, g 〉 ≈ g.
-
-Proof (Cartesian.proj2_commute _ _ _ _ _ _ _ _ 
-         (Cartesian.cartesian_axioms _ _ _ _ (Cartesian.mixin X))).
-
-Lemma pairing_univ (X:cartesian) :
-  forall (C A B:ob X) (f:C → A) (g:C → B) (h:C → A × B),
-  π₁ ∘ h ≈ f -> π₂ ∘ h ≈ g -> h ≈ 〈 f, g 〉.
-
-Proof (Cartesian.pairing_univ _ _ _ _ _ _ _ _
-         (Cartesian.cartesian_axioms _ _ _ _ (Cartesian.mixin X))).
-
-Program Definition pair_map (X:cartesian) (A B C D:ob X)
-  (f:A → B) (g:C → D) : A×C → B×D :=
-  〈 f ∘ π₁, g ∘ π₂ 〉.
-Arguments pair_map [X A B C D] f g.
-
-Add Parametric Morphism (X:cartesian) (C A B:ob X) :
-  (Cartesian.pairing_op X C A B)
-   with signature (eq_op (Cartesian.eq X C A)) ==>
-                  (eq_op (Cartesian.eq X C B)) ==>
-                  (eq_op (Cartesian.eq X C (A×B)))
-    as pairing_morphism.
-Proof.
-  intros. apply pairing_univ.
-  rewrite proj1_commute. auto.
-  rewrite proj2_commute. auto.
-Qed.
-
-
-(**  Cartesian closed categories, in addition to being cartesian,
-     have "internal" hom objects corresponding to each homset called
-     the exponential object.  Here we give the definition of cartesian
-     closure in terms of curry and apply morphisms.
-     
-     When [A] and [B] are objects, [A ⇒ B] is the exponential object.
-     The morphism [apply : (A⇒B) × A → B] applies an internal hom
-     to an argument.  For [f : C×A → B], we have a unique curried
-     morphism [Λ f : C → A⇒B] that commutes with the action of [apply].
-  *)
-Module CartesianClosed.
-Section cartesian_closed.
-  Variables (ob:Type) (hom:ob -> ob -> Type).
-  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
-  Variable comp:Comp.mixin_of ob hom.
-  Variable cat_axioms : Category.axioms ob hom eq comp.
-  Variable terminated : Terminated.mixin_of ob hom eq.
-  Variable cartesian : Cartesian.mixin_of ob hom eq comp.
-  
-  Definition eq' A B := Eq.Pack _ (eq A B).
-  Definition comp' := Comp.Pack ob hom comp.
-  Definition cartesian' := Cartesian ob hom eq comp cat_axioms terminated cartesian.
-
-  Canonical Structure eq'.
-  Canonical Structure comp'.
-  Canonical Structure cartesian'.
-
-  Section axioms.
-    Variable exp : ob -> ob -> ob.
-    Variable curry : forall C A B, (C×A → B) -> (C → exp A B).
-    Variable apply : forall A B, exp A B × A → B.
-
-    Record axioms :=
-      Axioms
-      { curry_commute : forall C A B (f:C×A → B),
-           apply A B ∘ 〈 curry C A B f ∘ π₁, π₂ 〉 ≈ f
-      ; curry_univ : forall C A B (f:C×A → B) (f':C → exp A B),
-           apply A B ∘ 〈 f' ∘ π₁, π₂ 〉 ≈ f ->
-           f' ≈ curry C A B f
-      }.
-  End axioms.
-
-  Record mixin_of :=
-  Mixin
-  { exp : ob -> ob -> ob
-  ; curry : forall C A B, (C×A → B) -> (C → exp A B)
-  ; apply : forall A B, exp A B × A → B
-  ; ccc_axioms : axioms exp curry apply
-  }.
-End cartesian_closed.
-
-Record cartesian_closed :=
-  CartesianClosed
-  { ob : Type
-  ; hom : ob -> ob -> Type
-  ; eq_mixin : forall A B:ob, Eq.mixin_of (hom A B)
-  ; comp_mixin : Comp.mixin_of ob hom
-  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
-  ; cartesian_mixin : Cartesian.mixin_of ob hom eq_mixin comp_mixin
-  ; terminated_mixin : Terminated.mixin_of ob hom eq_mixin
-  ; mixin : mixin_of ob hom eq_mixin comp_mixin cat_axioms terminated_mixin cartesian_mixin
-  }.
-
-Definition curry_op (X:cartesian_closed) := curry _ _ _ _ _ _ _ (mixin X).
-Definition apply_op (X:cartesian_closed) := apply _ _ _ _ _ _ _ (mixin X).
-Definition exp_op (X:cartesian_closed) := exp _ _ _ _ _ _ _ (mixin X).
-
-Definition eq (X:cartesian_closed) (A B:ob X) :=
-  Eq.Pack (hom X A B) (eq_mixin X A B).
-Definition comp (X:cartesian_closed) :=
-  Comp.Pack (ob X) (hom X) (comp_mixin X).
-Definition category (X:cartesian_closed) : category :=
-  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
-Definition terminated (X:cartesian_closed) : terminated :=
-  Terminated (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (terminated_mixin X).
-Definition cartesian (X:cartesian_closed) : cartesian :=
-  Cartesian (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
-     (terminated_mixin X) (cartesian_mixin X).
-End CartesianClosed.
-  
-Notation cartesian_closed := CartesianClosed.cartesian_closed.
-Notation CartesianClosed := CartesianClosed.CartesianClosed.
-
-Canonical Structure CartesianClosed.eq.
-Canonical Structure CartesianClosed.comp.
-Canonical Structure CartesianClosed.category.
-Canonical Structure CartesianClosed.terminated.
-Canonical Structure CartesianClosed.cartesian.
-
-Coercion CartesianClosed.category : cartesian_closed >-> category.
-Coercion CartesianClosed.terminated : cartesian_closed >-> terminated.
-Coercion CartesianClosed.cartesian : cartesian_closed >-> cartesian.
-
-Notation "'Λ' f" := (CartesianClosed.curry_op _ _ _ _ f) (at level 10).
-Notation "A ⇒ B" := (CartesianClosed.exp_op _ A B) (at level 35, right associativity).
-Notation apply := (CartesianClosed.apply_op _ _ _).
-
-Lemma curry_commute (X:cartesian_closed) : 
-  forall (C A B:ob X) (f:C×A → B), apply ∘ 〈 Λ f ∘ π₁, π₂ 〉 ≈ f.
-
-Proof (CartesianClosed.curry_commute _ _ _ _ _ _ _ _ _ _
-         (CartesianClosed.ccc_axioms _ _ _ _ _ _ _ (CartesianClosed.mixin X))).
-
-Lemma curry_univ (X:cartesian_closed) :
-  forall (C A B:ob X) (f:C×A → B) (f':C → A ⇒ B),
-          apply ∘ 〈 f' ∘ π₁, π₂ 〉 ≈ f -> f' ≈ Λ f.
-
-Proof (CartesianClosed.curry_univ _ _ _ _ _ _ _ _ _ _
-         (CartesianClosed.ccc_axioms _ _ _ _ _ _ _ (CartesianClosed.mixin X))).
-
-Add Parametric Morphism (X:cartesian_closed) (C A B:ob X) :
-  (CartesianClosed.curry_op X C A B)
-  with signature (eq_op (CartesianClosed.eq X (C×A) B)) ==>
-                 (eq_op (CartesianClosed.eq X C (A⇒B)))
-   as curry_morphism.
-Proof.
-  intros. apply curry_univ. rewrite curry_commute. auto.
-Qed.
-
-(**  Groupoids are categories in which every morphism has an inverse.
-     Groupoids generalize groups (hence the name) in the sense that
-     a groupoid with a single object form a group.
-     
-     When [f] is a morphism in a groupoid [f⁻¹] is its inverse.
-  *)
-Module Groupoid.
-Section groupoid.
-  Variables (ob:Type) (hom:ob -> ob -> Type).
-  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
-  Variable comp:Comp.mixin_of ob hom.
-  Variable cat_axioms : Category.axioms ob hom eq comp.
-
-  Section axioms.
-    Definition eq' A B := Eq.Pack _ (eq A B).
-    Definition comp' := Comp.Pack ob hom comp.
-    Canonical Structure eq'.
-    Canonical Structure comp'.
-
-    Variable inv : forall (A B:ob) (f:hom A B), hom B A.
-
-    Record axioms :=
-      Axioms
-      { inv_id1 : forall A B (f:hom A B), f ∘ inv A B f ≈ id
-      ; inv_id2 : forall A B (f:hom A B), inv A B f ∘ f ≈ id
-      }.
-  End axioms. 
-
-  Record mixin_of :=
-  Mixin
-  { inv : forall (A B:ob) (f:hom A B), hom B A
-  ; groupoid_axioms : axioms inv
-  }.
-End groupoid.
-
-Record groupoid :=
-  Groupoid
-  { ob : Type
-  ; hom : ob -> ob -> Type
-  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
-  ; comp_mixin : Comp.mixin_of ob hom
-  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
-  ; mixin : mixin_of ob hom eq_mixin comp_mixin
-  }.
-
-Definition eq (X:groupoid) (A B:ob X) :=
-  Eq.Pack (hom X A B) (eq_mixin X A B).
-Definition comp (X:groupoid) :=
-  Comp.Pack (ob X) (hom X) (comp_mixin X).
-Definition category (X:groupoid) : category :=
-  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
-
-Definition inv_op (X:groupoid) := inv _ _ _ _ (mixin X).
-
-End Groupoid.
-
-Notation groupoid := Groupoid.groupoid.
-Notation Groupoid := Groupoid.Groupoid.
-
-Canonical Structure Groupoid.category.
-Canonical Structure Groupoid.eq.
-Canonical Structure Groupoid.comp.
-
-Coercion Groupoid.category : groupoid >-> category.
-
-Notation "f '⁻¹'" := (Groupoid.inv_op _ _ _ f) (at level 1, format "f '⁻¹'").
-
-
-Lemma inv_id1 (X:groupoid) :
-  forall (A B:ob X) (f:A → B), f ∘ f⁻¹ ≈ id.
-
-Proof (Groupoid.inv_id1 _ _ _ _ _
-        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
-Arguments inv_id1 [X A B] f.
-
-
-Lemma inv_id2 (X:groupoid) :
-  forall (A B:ob X) (f:A → B), f⁻¹ ∘ f ≈ id.
-
-Proof (Groupoid.inv_id2 _ _ _ _ _
-        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
-Arguments inv_id2 [X A B] f.
-
-Lemma inv_inv (X:groupoid) :
-  forall (A B:ob X) (f:A → B), (f⁻¹)⁻¹ ≈ f.
-Proof.
-  intros.
-  generalize (inv_id2 f⁻¹). intro.
-  generalize (inv_id2 f). intro.
-  transitivity ((f⁻¹)⁻¹ ∘ f⁻¹ ∘ f).
-  rewrite <- (@cat_assoc X).
-  rewrite H0. symmetry. apply cat_ident1.
-  rewrite H. apply cat_ident2.
-Qed.
-
-Lemma inv_compose (X:groupoid) :
-  forall (A B C:ob X) (g:B → C) (f:A → B), (g ∘ f)⁻¹ ≈ f⁻¹ ∘ g⁻¹.
-Proof.
-  intros.
-  generalize (inv_id2 (g ∘ f)). intro.
-  generalize (inv_id1 f). intro.
-  generalize (inv_id1 g). intro.
-  assert ((g ∘ f)⁻¹ ∘ (g ∘ f) ∘ f⁻¹ ≈ (g ∘ f)⁻¹ ∘ g).
-  rewrite <- (@cat_assoc X).
-  rewrite <- (@cat_assoc X).
-  rewrite H0.
-  rewrite (@cat_assoc X).
-  apply cat_ident1.
-  rewrite H in H2.
-  rewrite (@cat_ident2 X) in H2.
-  rewrite H2.
-  rewrite <- (@cat_assoc X).
-  rewrite H1.
-  rewrite (@cat_ident1 X).
-  auto.  
-Qed.
-
-Lemma inv_eq (X:groupoid) (A B:ob X) (f g:A → B) : 
-  f ≈ g -> f⁻¹ ≈ g⁻¹.
-Proof.
-  intro.
-  generalize (inv_id1 f). intros.
-  transitivity (g⁻¹ ∘ (f ∘ f⁻¹)).
-  rewrite H at 2.  
-  rewrite (@cat_assoc X).
-  generalize (inv_id2 g). intros.
-  rewrite H1.
-  rewrite (@cat_ident2 X). auto.
-  rewrite H0.
-  rewrite (@cat_ident1 X). auto.
-Qed.
-
-Lemma inv_inj (X:groupoid) (A B:ob X) (f g:A → B) : 
-  f⁻¹ ≈ g⁻¹ -> f ≈ g.
-Proof.
-  intros.
-  apply (inv_eq X) in H.
-  rewrite inv_inv in H.
-  rewrite inv_inv in H.
-  auto.
-Qed.
-
-Add Parametric Morphism (X:groupoid) (A B:ob X) :
-  (Groupoid.inv_op X A B)
-    with signature (eq_op (Groupoid.eq X A B)) ==>
-                   (eq_op (Groupoid.eq X B A))
-     as inv_morophism.
-Proof (inv_eq X A B).
-
-
-
-(**  A concrete category is one where every object has a [Type]
-     carrier, and every hom defines a function between the carriers.
-
-     Further, equal homs produce extensionally-equal functions, and
-     compostion of homs corresponds to to the composition of functions.
-  *)
-Record concrete (C:category) :=
-  Concrete
-  { obmap : ob C -> Type
-  ; obeq : forall A:ob C, Eq.mixin_of (obmap A)
-  ; hommap : forall {X Y:ob C} (f:hom C X Y),
-               obmap X -> obmap Y
-  ; hommap_eq : forall (A B:ob C) (f g:hom C A B) (x y:obmap A),
-       f ≈ g -> Eq.eq _ (obeq A) x y -> Eq.eq _ (obeq B) (hommap f x) (hommap g y)
-  ; hommap_axiom : forall 
-    {X Y Z:ob C} 
-     (g:hom C Y Z) (f:hom C X Y) (x:obmap X),
-       Eq.eq _ (obeq Z) (hommap (g ∘ f) x) (hommap g (hommap f x))
-  }.
-
-Notation "f '#' x" := (hommap _ _ f x) (at level 33, right associativity).
-
-Canonical Structure CONCRETE_EQ (CAT:category) (CC:concrete CAT) (A:ob CAT) :=
-  Eq.Pack (obmap CAT CC A) (obeq CAT CC A).
-  
-Add Parametric Morphism (C:category) (CC:concrete C) (A B:ob C) :
-  (@hommap C CC A B)
-    with signature (eq_op (CAT_EQ C A B)) ==>
-                   (eq_op (CONCRETE_EQ _ CC A)) ==>
-                   (eq_op (CONCRETE_EQ _ CC B))
-   as apply_morphism.
-Proof.
-  intros; apply hommap_eq; auto.
-Qed.  
-
 
 (**  A monomorphism is a morphism which cancels on the left.
   *)
@@ -861,6 +306,782 @@ Canonical Structure ISO_EQ (C:category) A B
 Canonical Structure ISO_COMP (C:category)
   := Comp.Pack (ob C) (isomorphism C)
       (Comp.Mixin _ _ (iso_id C) (iso_compose C)).
+
+
+(**  Categories with terminal objects, which we call terminated categories.
+
+     Such categories have a distinguished object [terminus] (notation [!])
+     and a family of morphisms [terminate : A → !] for each object [A].
+     Furthermore, [terminate] is universial, in that every for every
+     [f : A → !], [f ≈ terminate].
+  *)
+Module Terminated.
+Section terminated.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+
+  Definition eq' A B := Eq.Pack _ (eq A B).
+
+  Canonical Structure eq'.
+
+  Record mixin_of :=
+  Mixin
+  { terminus : ob
+  ; terminate : forall A:ob, hom A terminus
+  ; axiom : forall A (f:hom A terminus), f ≈ terminate A
+  }.
+End terminated.
+  
+Record terminated :=
+  Terminated
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
+  ; comp_mixin : Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; mixin : mixin_of ob hom eq_mixin
+  }.
+
+Canonical Structure eq (X:terminated) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Canonical Structure comp (X:terminated) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Canonical Structure category (X:terminated) :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+
+Definition terminus_op (X:terminated) := terminus _ _ _ (mixin X).
+Definition terminate_op (X:terminated) := terminate _ _ _ (mixin X).
+End Terminated.
+
+Notation terminated := Terminated.terminated.
+Notation Terminated := Terminated.Terminated.
+
+Canonical Structure Terminated.eq.
+Canonical Structure Terminated.comp.
+Canonical Structure Terminated.category.
+Coercion Terminated.category : terminated >-> category.
+
+Notation "'!'" := (Terminated.terminus_op _).
+Notation terminate := (Terminated.terminate_op _ _).
+
+Lemma terminate_univ (X:terminated) :
+  forall (A:ob X) (f:A → !), f ≈ terminate.
+Proof (Terminated.axiom _ _ _ (Terminated.mixin X)).
+
+(**  Categories with initial objects, called initilized categories.
+
+     Such categories have a distinguished object [initium] (notation [¡])
+     and a family of morphisms [initiate : ¡ → A] for each object [A].
+     Furthermore, [initiate] is universial, in that every for every
+     [f : ¡ → A], [f ≈ initiate].
+  *)
+Module Initialized.
+Section initialized.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+
+  Definition eq' A B := Eq.Pack _ (eq A B).
+
+  Canonical Structure eq'.
+
+  Record mixin_of :=
+  Mixin
+  { initium : ob
+  ; initiate : forall A:ob, hom initium A
+  ; axiom : forall A (f:hom initium A), f ≈ initiate A
+  }.
+End initialized.
+  
+Record initialized :=
+  Initialized
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
+  ; comp_mixin : Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; mixin : mixin_of ob hom eq_mixin
+  }.
+
+Canonical Structure eq (X:initialized) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Canonical Structure comp (X:initialized) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Canonical Structure category (X:initialized) :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+
+Definition initium_op (X:initialized) := initium _ _ _ (mixin X).
+Definition initiate_op (X:initialized) := initiate _ _ _ (mixin X).
+End Initialized.
+
+Notation initialized := Initialized.initialized.
+Notation Initialized := Initialized.Initialized.
+
+Canonical Structure Initialized.eq.
+Canonical Structure Initialized.comp.
+Canonical Structure Initialized.category.
+Coercion Initialized.category : initialized >-> category.
+
+Notation "'¡'" := (Initialized.initium_op _).
+Notation initiate := (Initialized.initiate_op _ _).
+
+Lemma initiate_univ (X:initialized) :
+  forall (A:ob X) (f:¡ → A), f ≈ initiate.
+Proof (Initialized.axiom _ _ _ (Initialized.mixin X)).
+
+(*********)
+
+(**  Cocartesian categories have all finite coproducts.  In particular
+     they are initialized and have a binary coproduct for every pair
+     of objects satisfying the usual universal property.
+
+     The coproduct of [A] and [B] is written [A ⊕ B].  The injection
+     functions are [ι₁] and [ι₂].  When we have [f:A → C]  and [g:B → C],
+     the case function [ either f g : A⊕B → C] is the mediating universal
+     morphism for the colimit diagram.
+  *)
+Module Cocartesian.
+Section cocartesian.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+  Variable comp:Comp.mixin_of ob hom.
+  
+  Definition eq' A B := Eq.Pack _ (eq A B).
+  Definition comp' := Comp.Pack ob hom comp.
+
+  Canonical Structure eq'.
+  Canonical Structure comp'.
+
+  Section axioms.
+    Variable sum : ob -> ob -> ob.
+    Variable inl : forall A B, hom A (sum A B).
+    Variable inr : forall A B, hom B (sum A B).
+    Variable either : forall C A B:ob,
+      hom A C -> hom B C -> hom (sum A B) C.
+
+    Record axioms :=
+      Axioms
+      { inl_commute : forall (C A B:ob) f g,
+          either C A B f g ∘ inl A B ≈ f 
+      ; inr_commute : forall (C A B:ob) f g,
+          either C A B f g ∘ inr A B ≈ g
+      ; either_univ : forall (C A B:ob) f g h,
+          h ∘ inl A B ≈ f ->
+          h ∘ inr A B ≈ g ->
+          h ≈ either C A B f g
+      }.
+  End axioms.
+
+  Record mixin_of :=
+  Mixin
+  { sum : ob -> ob -> ob
+  ; inl : forall A B:ob, hom A (sum A B)
+  ; inr : forall A B:ob, hom B (sum A B)
+  ; either : forall C A B:ob, hom A C -> hom B C -> hom (sum A B) C
+  ; cocartesian_axioms : axioms sum inl inr either
+  }.
+End cocartesian.
+  
+Record cocartesian :=
+  Cocartesian
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin:forall A B:ob, Eq.mixin_of (hom A B)
+  ; comp_mixin:Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; init_mixin : Initialized.mixin_of ob hom eq_mixin
+  ; mixin : mixin_of ob hom eq_mixin comp_mixin
+  }.
+
+Definition sum_op (X:cocartesian) := sum _ _ _ _ (mixin X).
+Definition inl_op (X:cocartesian) := inl _ _ _ _ (mixin X).
+Definition inr_op (X:cocartesian) := inr _ _ _ _ (mixin X).
+Definition either_op (X:cocartesian) := either _ _ _ _ (mixin X).
+
+Definition eq (X:cocartesian) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Definition comp (X:cocartesian) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Definition initalized (X:cocartesian) :=
+  Initialized (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (init_mixin X).
+Definition category (X:cocartesian) :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+End Cocartesian.
+
+Notation cocartesian := Cocartesian.cocartesian.
+Notation Cocartesian := Cocartesian.Cocartesian.
+
+Canonical Structure Cocartesian.eq.
+Canonical Structure Cocartesian.comp.
+Canonical Structure Cocartesian.category.
+Canonical Structure Cocartesian.initalized.
+
+Coercion Cocartesian.initalized : cocartesian >-> initialized.
+Coercion Cocartesian.category : cocartesian >-> category.
+
+Notation "A ⊕ B" := (Cocartesian.sum_op _ A B)
+    (at level 56, right associativity).
+Notation "'ι₁'"  := (Cocartesian.inl_op _ _ _).
+Notation "'ι₂'"  := (Cocartesian.inr_op _ _ _).
+Notation either := Cocartesian.either_op.
+Arguments either [X C A B] f g.
+
+Lemma inl_commute (X:cocartesian) :
+  forall (C A B:ob X) (f:A → C) (g:B → C), either f g ∘ ι₁ ≈ f.
+
+Proof (Cocartesian.inl_commute _ _ _ _ _ _ _ _ 
+         (Cocartesian.cocartesian_axioms _ _ _ _ (Cocartesian.mixin X))).
+
+Lemma inr_commute (X:cocartesian) :
+  forall (C A B:ob X) (f:A → C) (g:B → C), either f g ∘ ι₂ ≈ g.
+
+Proof (Cocartesian.inr_commute _ _ _ _ _ _ _ _ 
+         (Cocartesian.cocartesian_axioms _ _ _ _ (Cocartesian.mixin X))).
+
+Lemma either_univ (X:cocartesian) :
+  forall (C A B:ob X) (f:A → C) (g:B → C) (h:A⊕B → C),
+  h ∘ ι₁ ≈ f -> h ∘ ι₂ ≈ g -> h ≈ either f g.
+
+Proof (Cocartesian.either_univ _ _ _ _ _ _ _ _
+         (Cocartesian.cocartesian_axioms _ _ _ _ (Cocartesian.mixin X))).
+
+
+Program Definition sum_map (X:cocartesian) (A B C D:ob X)
+  (f:A → B) (g:C → D) : A⊕C → B⊕D := either (ι₁ ∘ f) (ι₂ ∘ g).
+Arguments sum_map [X A B C D] f g.
+
+
+Add Parametric Morphism (X:cocartesian) (C A B:ob X) :
+  (@Cocartesian.either_op X C A B)
+   with signature (eq_op (Cocartesian.eq X A C)) ==>
+                  (eq_op (Cocartesian.eq X B C)) ==>
+                  (eq_op (Cocartesian.eq X (A⊕B) C))
+    as either_morphism.
+Proof.
+  intros. apply either_univ.
+  rewrite <- H. apply inl_commute.
+  rewrite <- H0. apply inr_commute.
+Qed.
+
+(**  Cartesian categories have all finite products.  In particular
+     they are terminated and have a binary product for every pair
+     of objects satisfying the usual universal property.
+
+     The product of [A] and [B] is written [A × B].  The projection
+     functions are [π₁] and [π₂].  When we have [f:C → A]  and [g:C → B],
+     the pairing function [〈 f, g 〉 : C → A×B] is the mediating universal
+     morphism for the limit diagram.
+  *)
+Module Cartesian.
+Section cartesian.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+  Variable comp:Comp.mixin_of ob hom.
+  
+  Definition eq' A B := Eq.Pack _ (eq A B).
+  Definition comp' := Comp.Pack ob hom comp.
+
+  Canonical Structure eq'.
+  Canonical Structure comp'.
+
+  Section axioms.
+
+    Variable product : ob -> ob -> ob.
+    Variable proj1 : forall A B, hom (product A B) A.
+    Variable proj2 : forall A B, hom (product A B) B.
+    Variable pairing : forall C A B:ob, hom C A -> hom C B -> hom C (product A B).
+
+    Record axioms :=
+      Axioms
+      { proj1_commute : forall (C A B:ob) f g,
+          proj1 A B ∘ pairing C A B f g ≈ f
+      ; proj2_commute : forall (C A B:ob) f g,
+          proj2 A B ∘ pairing C A B f g ≈ g
+      ; pairing_univ : forall (C A B:ob) f g h,
+          proj1 A B ∘ h ≈ f ->
+          proj2 A B ∘ h ≈ g ->
+          h ≈ pairing C A B f g
+      }.
+  End axioms.
+
+  Record mixin_of :=
+  Mixin
+  { product : ob -> ob -> ob
+  ; proj1 : forall A B:ob, hom (product A B) A
+  ; proj2 : forall A B:ob, hom (product A B) B
+  ; pairing : forall C A B:ob, hom C A -> hom C B -> hom C (product A B)
+  ; cartesian_axioms : axioms product proj1 proj2 pairing
+  }.
+End cartesian.
+  
+Record cartesian :=
+  Cartesian
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin:forall A B:ob, Eq.mixin_of (hom A B)
+  ; comp_mixin:Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; term_mixin : Terminated.mixin_of ob hom eq_mixin
+  ; mixin : mixin_of ob hom eq_mixin comp_mixin
+  }.
+
+Definition product_op (X:cartesian) := product _ _ _ _ (mixin X).
+Definition proj1_op (X:cartesian) := proj1 _ _ _ _ (mixin X).
+Definition proj2_op (X:cartesian) := proj2 _ _ _ _ (mixin X).
+Definition pairing_op (X:cartesian) := pairing _ _ _ _ (mixin X).
+
+Definition eq (X:cartesian) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Definition comp (X:cartesian) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Definition terminated (X:cartesian) :=
+  Terminated (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (term_mixin X).
+Definition category (X:cartesian) :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+End Cartesian.
+
+Notation cartesian := Cartesian.cartesian.
+Notation Cartesian := Cartesian.Cartesian.
+
+Canonical Structure Cartesian.eq.
+Canonical Structure Cartesian.comp.
+Canonical Structure Cartesian.category.
+Canonical Structure Cartesian.terminated.
+
+Coercion Cartesian.terminated : cartesian >-> terminated.
+Coercion Cartesian.category : cartesian >-> category.
+
+Notation "A × B" := (Cartesian.product_op _ A B) (at level 54, right associativity).
+Notation "'π₁'"  := (Cartesian.proj1_op _ _ _).
+Notation "'π₂'"  := (Cartesian.proj2_op _ _ _).
+Notation "〈 f , g 〉" := (Cartesian.pairing_op _ _ _ _ f g).
+
+Lemma proj1_commute (X:cartesian) :
+  forall (C A B:ob X) (f:C → A) (g:C → B), π₁ ∘ 〈 f, g 〉 ≈ f.
+
+Proof (Cartesian.proj1_commute _ _ _ _ _ _ _ _ 
+         (Cartesian.cartesian_axioms _ _ _ _ (Cartesian.mixin X))).
+
+Lemma proj2_commute (X:cartesian) :
+  forall (C A B:ob X) (f:C → A) (g:C → B), π₂ ∘ 〈 f, g 〉 ≈ g.
+
+Proof (Cartesian.proj2_commute _ _ _ _ _ _ _ _ 
+         (Cartesian.cartesian_axioms _ _ _ _ (Cartesian.mixin X))).
+
+Lemma pairing_univ (X:cartesian) :
+  forall (C A B:ob X) (f:C → A) (g:C → B) (h:C → A × B),
+  π₁ ∘ h ≈ f -> π₂ ∘ h ≈ g -> h ≈ 〈 f, g 〉.
+
+Proof (Cartesian.pairing_univ _ _ _ _ _ _ _ _
+         (Cartesian.cartesian_axioms _ _ _ _ (Cartesian.mixin X))).
+
+Program Definition pair_map (X:cartesian) (A B C D:ob X)
+  (f:A → B) (g:C → D) : A×C → B×D :=
+  〈 f ∘ π₁, g ∘ π₂ 〉.
+Arguments pair_map [X A B C D] f g.
+
+Add Parametric Morphism (X:cartesian) (C A B:ob X) :
+  (Cartesian.pairing_op X C A B)
+   with signature (eq_op (Cartesian.eq X C A)) ==>
+                  (eq_op (Cartesian.eq X C B)) ==>
+                  (eq_op (Cartesian.eq X C (A×B)))
+    as pairing_morphism.
+Proof.
+  intros. apply pairing_univ.
+  rewrite proj1_commute. auto.
+  rewrite proj2_commute. auto.
+Qed.
+
+
+(**  A distributive category has binary products and binary coproducts,
+     and sums distribute over products. 
+  *)
+Module Distributive.
+Section distributive.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+  Variable comp:Comp.mixin_of ob hom.
+  Variable cat_axioms : Category.axioms ob hom eq comp.
+  Variable terminated : Terminated.mixin_of ob hom eq.
+  Variable cartesian : Cartesian.mixin_of ob hom eq comp.
+  Variable initialized : Initialized.mixin_of ob hom eq.
+  Variable cocartesian : Cocartesian.mixin_of ob hom eq comp.
+  
+  Definition eq' A B := Eq.Pack _ (eq A B).
+  Definition comp' := Comp.Pack ob hom comp.
+  Definition cartesian' := Cartesian ob hom eq comp cat_axioms terminated cartesian.
+  Definition cocartesian' := Cocartesian ob hom eq comp cat_axioms initialized cocartesian.
+
+  Canonical Structure eq'.
+  Canonical Structure comp'.
+  Canonical Structure cartesian'.
+  Canonical Structure cocartesian'.
+
+  Record mixin_of :=
+  { distrib_law : forall A B C:ob, A×(B⊕C) ↔ (A×B) ⊕ (A×C)
+  }.
+
+End distributive.
+
+Record distributive :=
+  Distributive
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin : forall A B:ob, Eq.mixin_of (hom A B)
+  ; comp_mixin : Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; terminated_mixin : Terminated.mixin_of ob hom eq_mixin
+  ; cartesian_mixin : Cartesian.mixin_of ob hom eq_mixin comp_mixin
+  ; initialized_mixin : Initialized.mixin_of ob hom eq_mixin
+  ; cocartesian_mixin : Cocartesian.mixin_of ob hom eq_mixin comp_mixin
+  ; mixin : mixin_of ob hom eq_mixin comp_mixin cat_axioms terminated_mixin cartesian_mixin initialized_mixin cocartesian_mixin
+  }.
+
+Definition distrib_law_op (X:distributive) :=
+   distrib_law _ _ _ _ _ _ _ _ _ (mixin X).
+
+Definition eq (X:distributive) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Definition comp (X:distributive) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Definition category (X:distributive) : category :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+Definition terminated (X:distributive) : terminated :=
+  Terminated (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (terminated_mixin X).
+Definition cartesian (X:distributive) : cartesian :=
+  Cartesian (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
+     (terminated_mixin X) (cartesian_mixin X).
+Definition initialized (X:distributive) : initialized :=
+  Initialized (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (initialized_mixin X).
+Definition cocartesian (X:distributive) : cocartesian :=
+  Cocartesian (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
+     (initialized_mixin X) (cocartesian_mixin X).
+End Distributive.
+  
+Notation distributive := Distributive.distributive.
+Notation Distributive := Distributive.Distributive.
+
+Canonical Structure Distributive.eq.
+Canonical Structure Distributive.comp.
+Canonical Structure Distributive.category.
+Canonical Structure Distributive.terminated.
+Canonical Structure Distributive.cartesian.
+Canonical Structure Distributive.initialized.
+Canonical Structure Distributive.cocartesian.
+
+Coercion Distributive.category : distributive >-> category.
+Coercion Distributive.terminated : distributive >-> terminated.
+Coercion Distributive.cartesian : distributive >-> cartesian.
+Coercion Distributive.initialized : distributive >-> initialized.
+Coercion Distributive.cocartesian : distributive >-> cocartesian.
+
+Notation distrib_law := Distributive.distrib_law_op.
+Arguments distrib_law [X A B C].
+
+(**  Cartesian closed categories, in addition to being cartesian,
+     have "internal" hom objects corresponding to each homset called
+     the exponential object.  Here we give the definition of cartesian
+     closure in terms of curry and apply morphisms.
+     
+     When [A] and [B] are objects, [A ⇒ B] is the exponential object.
+     The morphism [apply : (A⇒B) × A → B] applies an internal hom
+     to an argument.  For [f : C×A → B], we have a unique curried
+     morphism [Λ f : C → A⇒B] that commutes with the action of [apply].
+  *)
+Module CartesianClosed.
+Section cartesian_closed.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+  Variable comp:Comp.mixin_of ob hom.
+  Variable cat_axioms : Category.axioms ob hom eq comp.
+  Variable terminated : Terminated.mixin_of ob hom eq.
+  Variable cartesian : Cartesian.mixin_of ob hom eq comp.
+  
+  Definition eq' A B := Eq.Pack _ (eq A B).
+  Definition comp' := Comp.Pack ob hom comp.
+  Definition cartesian' := Cartesian ob hom eq comp cat_axioms terminated cartesian.
+
+  Canonical Structure eq'.
+  Canonical Structure comp'.
+  Canonical Structure cartesian'.
+
+  Section axioms.
+    Variable exp : ob -> ob -> ob.
+    Variable curry : forall C A B, (C×A → B) -> (C → exp A B).
+    Variable apply : forall A B, exp A B × A → B.
+
+    Record axioms :=
+      Axioms
+      { curry_commute : forall C A B (f:C×A → B),
+           apply A B ∘ 〈 curry C A B f ∘ π₁, π₂ 〉 ≈ f
+      ; curry_univ : forall C A B (f:C×A → B) (f':C → exp A B),
+           apply A B ∘ 〈 f' ∘ π₁, π₂ 〉 ≈ f ->
+           f' ≈ curry C A B f
+      }.
+  End axioms.
+
+  Record mixin_of :=
+  Mixin
+  { exp : ob -> ob -> ob
+  ; curry : forall C A B, (C×A → B) -> (C → exp A B)
+  ; apply : forall A B, exp A B × A → B
+  ; ccc_axioms : axioms exp curry apply
+  }.
+End cartesian_closed.
+
+Record cartesian_closed :=
+  CartesianClosed
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin : forall A B:ob, Eq.mixin_of (hom A B)
+  ; comp_mixin : Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; cartesian_mixin : Cartesian.mixin_of ob hom eq_mixin comp_mixin
+  ; terminated_mixin : Terminated.mixin_of ob hom eq_mixin
+  ; mixin : mixin_of ob hom eq_mixin comp_mixin cat_axioms terminated_mixin cartesian_mixin
+  }.
+
+Definition curry_op (X:cartesian_closed) := curry _ _ _ _ _ _ _ (mixin X).
+Definition apply_op (X:cartesian_closed) := apply _ _ _ _ _ _ _ (mixin X).
+Definition exp_op (X:cartesian_closed) := exp _ _ _ _ _ _ _ (mixin X).
+
+Definition eq (X:cartesian_closed) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Definition comp (X:cartesian_closed) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Definition category (X:cartesian_closed) : category :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+Definition terminated (X:cartesian_closed) : terminated :=
+  Terminated (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) (terminated_mixin X).
+Definition cartesian (X:cartesian_closed) : cartesian :=
+  Cartesian (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
+     (terminated_mixin X) (cartesian_mixin X).
+End CartesianClosed.
+  
+Notation cartesian_closed := CartesianClosed.cartesian_closed.
+Notation CartesianClosed := CartesianClosed.CartesianClosed.
+
+Canonical Structure CartesianClosed.eq.
+Canonical Structure CartesianClosed.comp.
+Canonical Structure CartesianClosed.category.
+Canonical Structure CartesianClosed.terminated.
+Canonical Structure CartesianClosed.cartesian.
+
+Coercion CartesianClosed.category : cartesian_closed >-> category.
+Coercion CartesianClosed.terminated : cartesian_closed >-> terminated.
+Coercion CartesianClosed.cartesian : cartesian_closed >-> cartesian.
+
+Notation "'Λ' f" := (CartesianClosed.curry_op _ _ _ _ f) (at level 10).
+Notation "A ⇒ B" := (CartesianClosed.exp_op _ A B) (at level 35, right associativity).
+Notation apply := (CartesianClosed.apply_op _ _ _).
+
+Lemma curry_commute (X:cartesian_closed) : 
+  forall (C A B:ob X) (f:C×A → B), apply ∘ 〈 Λ f ∘ π₁, π₂ 〉 ≈ f.
+
+Proof (CartesianClosed.curry_commute _ _ _ _ _ _ _ _ _ _
+         (CartesianClosed.ccc_axioms _ _ _ _ _ _ _ (CartesianClosed.mixin X))).
+
+Lemma curry_univ (X:cartesian_closed) :
+  forall (C A B:ob X) (f:C×A → B) (f':C → A ⇒ B),
+          apply ∘ 〈 f' ∘ π₁, π₂ 〉 ≈ f -> f' ≈ Λ f.
+
+Proof (CartesianClosed.curry_univ _ _ _ _ _ _ _ _ _ _
+         (CartesianClosed.ccc_axioms _ _ _ _ _ _ _ (CartesianClosed.mixin X))).
+
+Add Parametric Morphism (X:cartesian_closed) (C A B:ob X) :
+  (CartesianClosed.curry_op X C A B)
+  with signature (eq_op (CartesianClosed.eq X (C×A) B)) ==>
+                 (eq_op (CartesianClosed.eq X C (A⇒B)))
+   as curry_morphism.
+Proof.
+  intros. apply curry_univ. rewrite curry_commute. auto.
+Qed.
+
+(**  Groupoids are categories in which every morphism has an inverse.
+     Groupoids generalize groups (hence the name) in the sense that
+     a groupoid with a single object forms a group.
+     
+     When [f] is a morphism in a groupoid [f⁻¹] is its inverse.
+  *)
+Module Groupoid.
+Section groupoid.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+  Variable comp:Comp.mixin_of ob hom.
+  Variable cat_axioms : Category.axioms ob hom eq comp.
+
+  Section axioms.
+    Definition eq' A B := Eq.Pack _ (eq A B).
+    Definition comp' := Comp.Pack ob hom comp.
+    Canonical Structure eq'.
+    Canonical Structure comp'.
+
+    Variable inv : forall (A B:ob) (f:hom A B), hom B A.
+
+    Record axioms :=
+      Axioms
+      { inv_id1 : forall A B (f:hom A B), f ∘ inv A B f ≈ id
+      ; inv_id2 : forall A B (f:hom A B), inv A B f ∘ f ≈ id
+      }.
+  End axioms. 
+
+  Record mixin_of :=
+  Mixin
+  { inv : forall (A B:ob) (f:hom A B), hom B A
+  ; groupoid_axioms : axioms inv
+  }.
+End groupoid.
+
+Record groupoid :=
+  Groupoid
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
+  ; comp_mixin : Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; mixin : mixin_of ob hom eq_mixin comp_mixin
+  }.
+
+Definition eq (X:groupoid) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Definition comp (X:groupoid) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Definition category (X:groupoid) : category :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+
+Definition inv_op (X:groupoid) := inv _ _ _ _ (mixin X).
+
+End Groupoid.
+
+Notation groupoid := Groupoid.groupoid.
+Notation Groupoid := Groupoid.Groupoid.
+
+Canonical Structure Groupoid.category.
+Canonical Structure Groupoid.eq.
+Canonical Structure Groupoid.comp.
+
+Coercion Groupoid.category : groupoid >-> category.
+
+Notation "f '⁻¹'" := (Groupoid.inv_op _ _ _ f) (at level 1, format "f '⁻¹'").
+
+
+Lemma inv_id1 (X:groupoid) :
+  forall (A B:ob X) (f:A → B), f ∘ f⁻¹ ≈ id.
+
+Proof (Groupoid.inv_id1 _ _ _ _ _
+        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
+Arguments inv_id1 [X A B] f.
+
+
+Lemma inv_id2 (X:groupoid) :
+  forall (A B:ob X) (f:A → B), f⁻¹ ∘ f ≈ id.
+
+Proof (Groupoid.inv_id2 _ _ _ _ _
+        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
+Arguments inv_id2 [X A B] f.
+
+Lemma inv_inv (X:groupoid) :
+  forall (A B:ob X) (f:A → B), (f⁻¹)⁻¹ ≈ f.
+Proof.
+  intros.
+  generalize (inv_id2 f⁻¹). intro.
+  generalize (inv_id2 f). intro.
+  transitivity ((f⁻¹)⁻¹ ∘ f⁻¹ ∘ f).
+  rewrite <- (@cat_assoc X).
+  rewrite H0. symmetry. apply cat_ident1.
+  rewrite H. apply cat_ident2.
+Qed.
+
+Lemma inv_compose (X:groupoid) :
+  forall (A B C:ob X) (g:B → C) (f:A → B), (g ∘ f)⁻¹ ≈ f⁻¹ ∘ g⁻¹.
+Proof.
+  intros.
+  generalize (inv_id2 (g ∘ f)). intro.
+  generalize (inv_id1 f). intro.
+  generalize (inv_id1 g). intro.
+  assert ((g ∘ f)⁻¹ ∘ (g ∘ f) ∘ f⁻¹ ≈ (g ∘ f)⁻¹ ∘ g).
+  rewrite <- (@cat_assoc X).
+  rewrite <- (@cat_assoc X).
+  rewrite H0.
+  rewrite (@cat_assoc X).
+  apply cat_ident1.
+  rewrite H in H2.
+  rewrite (@cat_ident2 X) in H2.
+  rewrite H2.
+  rewrite <- (@cat_assoc X).
+  rewrite H1.
+  rewrite (@cat_ident1 X).
+  auto.  
+Qed.
+
+Lemma inv_eq (X:groupoid) (A B:ob X) (f g:A → B) : 
+  f ≈ g -> f⁻¹ ≈ g⁻¹.
+Proof.
+  intro.
+  generalize (inv_id1 f). intros.
+  transitivity (g⁻¹ ∘ (f ∘ f⁻¹)).
+  rewrite H at 2.  
+  rewrite (@cat_assoc X).
+  generalize (inv_id2 g). intros.
+  rewrite H1.
+  rewrite (@cat_ident2 X). auto.
+  rewrite H0.
+  rewrite (@cat_ident1 X). auto.
+Qed.
+
+Lemma inv_inj (X:groupoid) (A B:ob X) (f g:A → B) : 
+  f⁻¹ ≈ g⁻¹ -> f ≈ g.
+Proof.
+  intros.
+  apply (inv_eq X) in H.
+  rewrite inv_inv in H.
+  rewrite inv_inv in H.
+  auto.
+Qed.
+
+Add Parametric Morphism (X:groupoid) (A B:ob X) :
+  (Groupoid.inv_op X A B)
+    with signature (eq_op (Groupoid.eq X A B)) ==>
+                   (eq_op (Groupoid.eq X B A))
+     as inv_morophism.
+Proof (inv_eq X A B).
+
+
+
+(**  A concrete category is one where every object has a [Type]
+     carrier, and every hom defines a function between the carriers.
+
+     Further, equal homs produce extensionally-equal functions, and
+     compostion of homs corresponds to to the composition of functions.
+  *)
+Record concrete (C:category) :=
+  Concrete
+  { obmap : ob C -> Type
+  ; obeq : forall A:ob C, Eq.mixin_of (obmap A)
+  ; hommap : forall {X Y:ob C} (f:hom C X Y),
+               obmap X -> obmap Y
+  ; hommap_eq : forall (A B:ob C) (f g:hom C A B) (x y:obmap A),
+       f ≈ g -> Eq.eq _ (obeq A) x y -> Eq.eq _ (obeq B) (hommap f x) (hommap g y)
+  ; hommap_axiom : forall 
+    {X Y Z:ob C} 
+     (g:hom C Y Z) (f:hom C X Y) (x:obmap X),
+       Eq.eq _ (obeq Z) (hommap (g ∘ f) x) (hommap g (hommap f x))
+  }.
+
+Notation "f '#' x" := (hommap _ _ f x) (at level 33, right associativity).
+
+Canonical Structure CONCRETE_EQ (CAT:category) (CC:concrete CAT) (A:ob CAT) :=
+  Eq.Pack (obmap CAT CC A) (obeq CAT CC A).
+  
+Add Parametric Morphism (C:category) (CC:concrete C) (A B:ob C) :
+  (@hommap C CC A B)
+    with signature (eq_op (CAT_EQ C A B)) ==>
+                   (eq_op (CONCRETE_EQ _ CC A)) ==>
+                   (eq_op (CONCRETE_EQ _ CC B))
+   as apply_morphism.
+Proof.
+  intros; apply hommap_eq; auto.
+Qed.  
+
 
 
 Module Functor.
