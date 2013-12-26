@@ -93,10 +93,10 @@ Section category_axioms.
   Definition cat_assoc    := Category.assoc _ _ _ _ (Category.cat_axioms C).
   Definition cat_respects := Category.respects _ _ _ _ (Category.cat_axioms C).
 End category_axioms.
-Arguments cat_ident1 {C} [A] [B] f.
-Arguments cat_ident2 {C} [A] [B] f.
-Arguments cat_assoc {C} [A] [B] [C0] [D] f g h.
-Arguments cat_respects {C} [A] [B] [C0] [f] [f'] [g] [g'] _ _.
+Arguments cat_ident1 [C] [A] [B] f.
+Arguments cat_ident2 [C] [A] [B] f.
+Arguments cat_assoc [C] [A] [B] [C0] [D] f g h.
+Arguments cat_respects [C] [A] [B] [C0] [f] [f'] [g] [g'] _ _.
 
 (** Register composition as a morphism for the setoid equality. *) 
 Add Parametric Morphism (CAT:category) (A B C:ob CAT) :

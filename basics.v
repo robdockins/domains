@@ -17,8 +17,8 @@ Module Eq.
     Mixin
     { eq : T -> T -> Prop
     ; refl : forall x, eq x x
-    ; symm : forall {x y}, eq x y -> eq y x
-    ; trans : forall {x y z},
+    ; symm : forall x y, eq x y -> eq y x
+    ; trans : forall x y z,
              eq x y -> eq y z -> eq x z
     }.
   Structure type : Type :=
