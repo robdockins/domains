@@ -109,6 +109,154 @@ Proof.
   intros. apply cat_respects; trivial.
 Qed.
 
+(**  Groupoids are categories in which every morphism has an inverse.
+     Groupoids generalize groups (hence the name) in the sense that
+     a groupoid with a single object forms a group.
+     
+     When [f] is a morphism in a groupoid [f⁻¹] is its inverse.
+  *)
+Module Groupoid.
+Section groupoid.
+  Variables (ob:Type) (hom:ob -> ob -> Type).
+  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
+  Variable comp:Comp.mixin_of ob hom.
+  Variable cat_axioms : Category.axioms ob hom eq comp.
+
+  Section axioms.
+    Definition eq' A B := Eq.Pack _ (eq A B).
+    Definition comp' := Comp.Pack ob hom comp.
+    Canonical Structure eq'.
+    Canonical Structure comp'.
+
+    Variable inv : forall (A B:ob) (f:hom A B), hom B A.
+
+    Record axioms :=
+      Axioms
+      { inv_id1 : forall A B (f:hom A B), f ∘ inv A B f ≈ id
+      ; inv_id2 : forall A B (f:hom A B), inv A B f ∘ f ≈ id
+      }.
+  End axioms. 
+
+  Record mixin_of :=
+  Mixin
+  { inv : forall (A B:ob) (f:hom A B), hom B A
+  ; groupoid_axioms : axioms inv
+  }.
+End groupoid.
+
+Record groupoid :=
+  Groupoid
+  { ob : Type
+  ; hom : ob -> ob -> Type
+  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
+  ; comp_mixin : Comp.mixin_of ob hom
+  ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
+  ; mixin : mixin_of ob hom eq_mixin comp_mixin
+  }.
+
+Definition eq (X:groupoid) (A B:ob X) :=
+  Eq.Pack (hom X A B) (eq_mixin X A B).
+Definition comp (X:groupoid) :=
+  Comp.Pack (ob X) (hom X) (comp_mixin X).
+Definition category (X:groupoid) : category :=
+  Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+
+Definition inv_op (X:groupoid) := inv _ _ _ _ (mixin X).
+
+End Groupoid.
+
+Notation groupoid := Groupoid.groupoid.
+Notation Groupoid := Groupoid.Groupoid.
+
+Canonical Structure Groupoid.category.
+Canonical Structure Groupoid.eq.
+Canonical Structure Groupoid.comp.
+
+Coercion Groupoid.category : groupoid >-> category.
+
+Notation "f '⁻¹'" := (Groupoid.inv_op _ _ _ f) (at level 1, format "f '⁻¹'").
+
+
+Lemma inv_id1 (X:groupoid) :
+  forall (A B:ob X) (f:A → B), f ∘ f⁻¹ ≈ id.
+
+Proof (Groupoid.inv_id1 _ _ _ _ _
+        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
+Arguments inv_id1 [X A B] f.
+
+
+Lemma inv_id2 (X:groupoid) :
+  forall (A B:ob X) (f:A → B), f⁻¹ ∘ f ≈ id.
+
+Proof (Groupoid.inv_id2 _ _ _ _ _
+        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
+Arguments inv_id2 [X A B] f.
+
+Lemma inv_inv (X:groupoid) :
+  forall (A B:ob X) (f:A → B), (f⁻¹)⁻¹ ≈ f.
+Proof.
+  intros.
+  generalize (inv_id2 f⁻¹). intro.
+  generalize (inv_id2 f). intro.
+  transitivity ((f⁻¹)⁻¹ ∘ f⁻¹ ∘ f).
+  rewrite <- (@cat_assoc X).
+  rewrite H0. symmetry. apply cat_ident1.
+  rewrite H. apply cat_ident2.
+Qed.
+
+Lemma inv_compose (X:groupoid) :
+  forall (A B C:ob X) (g:B → C) (f:A → B), (g ∘ f)⁻¹ ≈ f⁻¹ ∘ g⁻¹.
+Proof.
+  intros.
+  generalize (inv_id2 (g ∘ f)). intro.
+  generalize (inv_id1 f). intro.
+  generalize (inv_id1 g). intro.
+  assert ((g ∘ f)⁻¹ ∘ (g ∘ f) ∘ f⁻¹ ≈ (g ∘ f)⁻¹ ∘ g).
+  rewrite <- (@cat_assoc X).
+  rewrite <- (@cat_assoc X).
+  rewrite H0.
+  rewrite (@cat_assoc X).
+  apply cat_ident1.
+  rewrite H in H2.
+  rewrite (@cat_ident2 X) in H2.
+  rewrite H2.
+  rewrite <- (@cat_assoc X).
+  rewrite H1.
+  rewrite (@cat_ident1 X).
+  auto.  
+Qed.
+
+Lemma inv_eq (X:groupoid) (A B:ob X) (f g:A → B) : 
+  f ≈ g -> f⁻¹ ≈ g⁻¹.
+Proof.
+  intro.
+  generalize (inv_id1 f). intros.
+  transitivity (g⁻¹ ∘ (f ∘ f⁻¹)).
+  rewrite H at 2.  
+  rewrite (@cat_assoc X).
+  generalize (inv_id2 g). intros.
+  rewrite H1.
+  rewrite (@cat_ident2 X). auto.
+  rewrite H0.
+  rewrite (@cat_ident1 X). auto.
+Qed.
+
+Lemma inv_inj (X:groupoid) (A B:ob X) (f g:A → B) : 
+  f⁻¹ ≈ g⁻¹ -> f ≈ g.
+Proof.
+  intros.
+  apply (inv_eq X) in H.
+  rewrite inv_inv in H.
+  rewrite inv_inv in H.
+  auto.
+Qed.
+
+Add Parametric Morphism (X:groupoid) (A B:ob X) :
+  (Groupoid.inv_op X A B)
+    with signature (eq_op (Groupoid.eq X A B)) ==>
+                   (eq_op (Groupoid.eq X B A))
+     as inv_morophism.
+Proof (inv_eq X A B).
 
 
 (**  A monomorphism is a morphism which cancels on the left.
@@ -156,11 +304,30 @@ Next Obligation.
   auto.
 Qed.
 
+Definition mono_comp_mixin C :=
+  Comp.Mixin _ _ (mono_id C) (mono_compose C).
+
+Program Definition mono_cat_axioms (C:category) :
+  Category.axioms (ob C) (monomorphism C)
+     (mono_eq C) (mono_comp_mixin C).
+Proof.
+  intro. constructor.
+
+  intros. apply cat_ident1.
+  intros. apply cat_ident2.
+  intros. apply cat_assoc.
+  intros. apply cat_respects; auto.
+Qed.
+
 Canonical Structure MONO_EQ (C:category) A B
   := Eq.Pack (monomorphism C A B) (mono_eq C A B).
 Canonical Structure MONO_COMP (C:category)
   := Comp.Pack (ob C) (monomorphism C)
        (Comp.Mixin _ _ (mono_id C) (mono_compose C)).
+Canonical Structure MONO_CAT (C:category)
+  := Category (ob C) (monomorphism C) (mono_eq C)
+         (mono_comp_mixin C) (mono_cat_axioms C).
+
 (*
 Canonical Structure MONO_CONCRETE
   (C:category)
@@ -221,11 +388,28 @@ Next Obligation.
   auto.
 Qed.
 
+Definition epi_comp_mixin C :=
+  Comp.Mixin _ _ (epi_id C) (epi_compose C).
+
+Program Definition epi_cat_axioms (C:category) :
+  Category.axioms (ob C) (epimorphism C)
+     (epi_eq C) (epi_comp_mixin C).
+Proof.
+  intro. constructor.
+
+  intros. apply cat_ident1.
+  intros. apply cat_ident2.
+  intros. apply cat_assoc.
+  intros. apply cat_respects; auto.
+Qed.
+
 Canonical Structure EPI_EQ (C:category) A B
   := Eq.Pack (epimorphism C A B) (epi_eq C A B).
 Canonical Structure EPI_COMP (C:category)
-  := Comp.Pack (ob C) (epimorphism C)
-       (Comp.Mixin _ _ (epi_id C) (epi_compose C)).
+  := Comp.Pack (ob C) (epimorphism C) (epi_comp_mixin C).
+Canonical Structure EPI_CAT (C:category)
+  := Category (ob C) (epimorphism C) (epi_eq C)
+         (epi_comp_mixin C) (epi_cat_axioms C).
 
 (*
 Canonical Structure EPI_CONCRETE
@@ -242,7 +426,7 @@ Arguments EPI_CONCRETE [C] [CC].
 *)
 
 
-(**  An isomorphism is a pair of functions that, when comoposed
+(**  An isomorphism is a pair of functions that, when composed
      in each direction, are equal to the identity.
   *)
 Section iso.
@@ -272,12 +456,12 @@ Next Obligation.
 Qed.
 
 Program Definition iso_id (C:category) (A:ob C) :=
-  Isomorphism C A A (id(A)) (id(A)) _ _.  
+  Isomorphism C A A (id(A)) (id(A)) _ _.
 Next Obligation.
-  apply cat_ident1.  
+  apply cat_ident1.
 Qed.
 Next Obligation.
-  apply cat_ident1.  
+  apply cat_ident1.
 Qed.
 
 Program Definition iso_compose
@@ -301,11 +485,49 @@ Next Obligation.
   auto.
 Qed.
 
+Definition iso_comp_mixin C :=
+  Comp.Mixin _ _ (iso_id C) (iso_compose C).
+
+Program Definition iso_cat_axioms (C:category) :
+  Category.axioms (ob C) (isomorphism C)
+     (iso_eq C) (iso_comp_mixin C).
+Proof.
+  intros. constructor.
+
+  intros; simpl. apply cat_ident1.
+  intros; simpl. apply cat_ident2.
+  intros; simpl. apply cat_assoc.
+  simpl; intros. apply cat_respects; auto.
+Qed.
+
+Definition iso_inverse (C:category) (A B:ob C)
+  (f:A ↔ B) : B ↔ A :=
+  Isomorphism C B A (iso_inv f) (iso_hom f)
+    (iso_axiom2 f) (iso_axiom1 f).
+
+Program Definition iso_groupoid_mixin (C:category) :=
+  Groupoid.Mixin (ob C) (isomorphism C)
+      (iso_eq C) (iso_comp_mixin C) (iso_inverse C) _.
+Next Obligation.
+  constructor.
+
+  simpl; intros. 
+  apply iso_axiom2.
+  apply iso_axiom1.
+Qed.
+
+
 Canonical Structure ISO_EQ (C:category) A B
   := Eq.Pack (isomorphism C A B) (iso_eq C A B).
 Canonical Structure ISO_COMP (C:category)
-  := Comp.Pack (ob C) (isomorphism C)
-      (Comp.Mixin _ _ (iso_id C) (iso_compose C)).
+  := Comp.Pack (ob C) (isomorphism C) (iso_comp_mixin C).
+Canonical Structure ISO_CAT (C:category)
+  := Category (ob C) (isomorphism C)
+          (iso_eq C) (iso_comp_mixin C) (iso_cat_axioms C).
+Canonical Structure ISO_GROUPOID (C:category)
+  := Groupoid (ob C) (isomorphism C)
+          (iso_eq C) (iso_comp_mixin C)
+          (iso_cat_axioms C) (iso_groupoid_mixin C).
 
 
 (**  Categories with terminal objects, which we call terminated categories.
@@ -428,7 +650,6 @@ Lemma initiate_univ (X:initialized) :
   forall (A:ob X) (f:¡ → A), f ≈ initiate.
 Proof (Initialized.axiom _ _ _ (Initialized.mixin X)).
 
-(*********)
 
 (**  Cocartesian categories have all finite coproducts.  In particular
      they are initialized and have a binary coproduct for every pair
@@ -436,7 +657,7 @@ Proof (Initialized.axiom _ _ _ (Initialized.mixin X)).
 
      The coproduct of [A] and [B] is written [A ⊕ B].  The injection
      functions are [ι₁] and [ι₂].  When we have [f:A → C]  and [g:B → C],
-     the case function [ either f g : A⊕B → C] is the mediating universal
+     the case function [either f g : A⊕B → C] is the mediating universal
      morphism for the colimit diagram.
   *)
 Module Cocartesian.
@@ -896,154 +1117,81 @@ Proof.
   intros. apply curry_univ. rewrite curry_commute. auto.
 Qed.
 
-(**  Groupoids are categories in which every morphism has an inverse.
-     Groupoids generalize groups (hence the name) in the sense that
-     a groupoid with a single object forms a group.
-     
-     When [f] is a morphism in a groupoid [f⁻¹] is its inverse.
+
+(**  Here I define "polynomial categories" as categories with finite sums,
+     finite products, and exponents where sums distribute over products.
+
+     As far as I know, this terminology is not already taken.
   *)
-Module Groupoid.
-Section groupoid.
-  Variables (ob:Type) (hom:ob -> ob -> Type).
-  Variable eq:forall A B:ob, Eq.mixin_of (hom A B).
-  Variable comp:Comp.mixin_of ob hom.
-  Variable cat_axioms : Category.axioms ob hom eq comp.
+Module PolynomialCategory.
 
-  Section axioms.
-    Definition eq' A B := Eq.Pack _ (eq A B).
-    Definition comp' := Comp.Pack ob hom comp.
-    Canonical Structure eq'.
-    Canonical Structure comp'.
-
-    Variable inv : forall (A B:ob) (f:hom A B), hom B A.
-
-    Record axioms :=
-      Axioms
-      { inv_id1 : forall A B (f:hom A B), f ∘ inv A B f ≈ id
-      ; inv_id2 : forall A B (f:hom A B), inv A B f ∘ f ≈ id
-      }.
-  End axioms. 
-
-  Record mixin_of :=
-  Mixin
-  { inv : forall (A B:ob) (f:hom A B), hom B A
-  ; groupoid_axioms : axioms inv
-  }.
-End groupoid.
-
-Record groupoid :=
-  Groupoid
+Record polynomial_category :=
+  PolynomialCategory
   { ob : Type
   ; hom : ob -> ob -> Type
-  ; eq_mixin : forall A B, Eq.mixin_of (hom A B)
+  ; eq_mixin : forall A B:ob, Eq.mixin_of (hom A B)
   ; comp_mixin : Comp.mixin_of ob hom
   ; cat_axioms : Category.axioms ob hom eq_mixin comp_mixin
-  ; mixin : mixin_of ob hom eq_mixin comp_mixin
+  ; terminated_mixin : Terminated.mixin_of ob hom eq_mixin
+  ; cartesian_mixin : Cartesian.mixin_of ob hom eq_mixin comp_mixin
+  ; initialized_mixin : Initialized.mixin_of ob hom eq_mixin
+  ; cocartesian_mixin : Cocartesian.mixin_of ob hom eq_mixin comp_mixin
+  ; ccc_mixin : CartesianClosed.mixin_of ob hom eq_mixin comp_mixin 
+       cat_axioms terminated_mixin cartesian_mixin
+  ; distributive_mixin : Distributive.mixin_of ob hom eq_mixin comp_mixin
+       cat_axioms terminated_mixin cartesian_mixin
+                  initialized_mixin cocartesian_mixin
   }.
 
-Definition eq (X:groupoid) (A B:ob X) :=
+Definition eq (X:polynomial_category) (A B:ob X) :=
   Eq.Pack (hom X A B) (eq_mixin X A B).
-Definition comp (X:groupoid) :=
+Definition comp (X:polynomial_category) :=
   Comp.Pack (ob X) (hom X) (comp_mixin X).
-Definition category (X:groupoid) : category :=
+Definition category (X:polynomial_category) : category :=
   Category (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X).
+Definition terminated (X:polynomial_category) : terminated :=
+  Terminated (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X)
+     (terminated_mixin X).
+Definition cartesian (X:polynomial_category) : cartesian :=
+  Cartesian (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
+     (terminated_mixin X) (cartesian_mixin X).
+Definition initialized (X:polynomial_category) : initialized :=
+  Initialized (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X)
+     (initialized_mixin X).
+Definition cocartesian (X:polynomial_category) : cocartesian :=
+  Cocartesian (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
+     (initialized_mixin X) (cocartesian_mixin X).
+Definition cartesian_closed (X:polynomial_category) : cartesian_closed :=
+  CartesianClosed (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X) 
+      (cartesian_mixin X) (terminated_mixin X) (ccc_mixin X).
+Definition distributive (X:polynomial_category) : distributive :=
+  Distributive (ob X) (hom X) (eq_mixin X) (comp_mixin X) (cat_axioms X)
+      (terminated_mixin X) (cartesian_mixin X)
+      (initialized_mixin X) (cocartesian_mixin X)
+      (distributive_mixin X).
+End PolynomialCategory.
 
-Definition inv_op (X:groupoid) := inv _ _ _ _ (mixin X).
+Notation polynomial_category := PolynomialCategory.polynomial_category.
+Notation PolynomialCategory := PolynomialCategory.PolynomialCategory.
 
-End Groupoid.
+Canonical Structure PolynomialCategory.eq.
+Canonical Structure PolynomialCategory.comp.
+Canonical Structure PolynomialCategory.category.
+Canonical Structure PolynomialCategory.terminated.
+Canonical Structure PolynomialCategory.cartesian.
+Canonical Structure PolynomialCategory.initialized.
+Canonical Structure PolynomialCategory.cocartesian.
+Canonical Structure PolynomialCategory.cartesian_closed.
+Canonical Structure PolynomialCategory.distributive.
 
-Notation groupoid := Groupoid.groupoid.
-Notation Groupoid := Groupoid.Groupoid.
+Coercion PolynomialCategory.category : polynomial_category >-> category.
+Coercion PolynomialCategory.terminated : polynomial_category >-> terminated.
+Coercion PolynomialCategory.cartesian : polynomial_category >-> cartesian.
+Coercion PolynomialCategory.initialized : polynomial_category >-> initialized.
+Coercion PolynomialCategory.cocartesian : polynomial_category >-> cocartesian.
+Coercion PolynomialCategory.cartesian_closed : polynomial_category >-> cartesian_closed.
+Coercion PolynomialCategory.distributive : polynomial_category >-> distributive.
 
-Canonical Structure Groupoid.category.
-Canonical Structure Groupoid.eq.
-Canonical Structure Groupoid.comp.
-
-Coercion Groupoid.category : groupoid >-> category.
-
-Notation "f '⁻¹'" := (Groupoid.inv_op _ _ _ f) (at level 1, format "f '⁻¹'").
-
-
-Lemma inv_id1 (X:groupoid) :
-  forall (A B:ob X) (f:A → B), f ∘ f⁻¹ ≈ id.
-
-Proof (Groupoid.inv_id1 _ _ _ _ _
-        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
-Arguments inv_id1 [X A B] f.
-
-
-Lemma inv_id2 (X:groupoid) :
-  forall (A B:ob X) (f:A → B), f⁻¹ ∘ f ≈ id.
-
-Proof (Groupoid.inv_id2 _ _ _ _ _
-        (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
-Arguments inv_id2 [X A B] f.
-
-Lemma inv_inv (X:groupoid) :
-  forall (A B:ob X) (f:A → B), (f⁻¹)⁻¹ ≈ f.
-Proof.
-  intros.
-  generalize (inv_id2 f⁻¹). intro.
-  generalize (inv_id2 f). intro.
-  transitivity ((f⁻¹)⁻¹ ∘ f⁻¹ ∘ f).
-  rewrite <- (@cat_assoc X).
-  rewrite H0. symmetry. apply cat_ident1.
-  rewrite H. apply cat_ident2.
-Qed.
-
-Lemma inv_compose (X:groupoid) :
-  forall (A B C:ob X) (g:B → C) (f:A → B), (g ∘ f)⁻¹ ≈ f⁻¹ ∘ g⁻¹.
-Proof.
-  intros.
-  generalize (inv_id2 (g ∘ f)). intro.
-  generalize (inv_id1 f). intro.
-  generalize (inv_id1 g). intro.
-  assert ((g ∘ f)⁻¹ ∘ (g ∘ f) ∘ f⁻¹ ≈ (g ∘ f)⁻¹ ∘ g).
-  rewrite <- (@cat_assoc X).
-  rewrite <- (@cat_assoc X).
-  rewrite H0.
-  rewrite (@cat_assoc X).
-  apply cat_ident1.
-  rewrite H in H2.
-  rewrite (@cat_ident2 X) in H2.
-  rewrite H2.
-  rewrite <- (@cat_assoc X).
-  rewrite H1.
-  rewrite (@cat_ident1 X).
-  auto.  
-Qed.
-
-Lemma inv_eq (X:groupoid) (A B:ob X) (f g:A → B) : 
-  f ≈ g -> f⁻¹ ≈ g⁻¹.
-Proof.
-  intro.
-  generalize (inv_id1 f). intros.
-  transitivity (g⁻¹ ∘ (f ∘ f⁻¹)).
-  rewrite H at 2.  
-  rewrite (@cat_assoc X).
-  generalize (inv_id2 g). intros.
-  rewrite H1.
-  rewrite (@cat_ident2 X). auto.
-  rewrite H0.
-  rewrite (@cat_ident1 X). auto.
-Qed.
-
-Lemma inv_inj (X:groupoid) (A B:ob X) (f g:A → B) : 
-  f⁻¹ ≈ g⁻¹ -> f ≈ g.
-Proof.
-  intros.
-  apply (inv_eq X) in H.
-  rewrite inv_inv in H.
-  rewrite inv_inv in H.
-  auto.
-Qed.
-
-Add Parametric Morphism (X:groupoid) (A B:ob X) :
-  (Groupoid.inv_op X A B)
-    with signature (eq_op (Groupoid.eq X A B)) ==>
-                   (eq_op (Groupoid.eq X B A))
-     as inv_morophism.
-Proof (inv_eq X A B).
 
 
 
