@@ -63,6 +63,32 @@ Proof.
 Qed.
 
 
+Program Definition empty_plotkin hf : plotkin_order hf emptypo :=
+  PlotkinOrder hf emptypo _ (fun _ => nil) _ _ _.
+Solve Obligations of empty_plotkin using (repeat intro; simpl in *; intuition).
+
+Program Definition unit_plotkin hf : plotkin_order hf unitpo :=
+  PlotkinOrder hf _ _ (fun M => (tt::nil)%list) _ _ _.
+Solve Obligations of unit_plotkin using (repeat intro; hnf; auto).
+Next Obligation.
+  repeat intro. exists tt.
+  split; hnf; auto.
+Qed.
+Next Obligation.
+  repeat intro.
+  destruct a. apply cons_elem; auto.
+Qed.
+Next Obligation.
+  repeat intro.
+  destruct x. apply cons_elem; auto.
+Qed.
+Next Obligation.
+  repeat intro.
+  hnf in H1. apply (H1 M); auto.
+  split; hnf; auto.
+  repeat intro. hnf. auto.
+Qed.
+ 
 Section dec_lemmas.
   Variable hf:bool.
   Variable A:preord.

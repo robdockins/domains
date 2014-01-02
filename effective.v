@@ -196,6 +196,18 @@ Next Obligation.
   intro. apply single_axiom. destruct x; auto.
 Qed.
 
+
+(** The empty preorder is effective. *)
+Program Definition effective_empty : effective_order emptypo :=
+  EffectiveOrder _ _ (fun x => None) _.
+Next Obligation.
+  intros. elim x.
+Qed.
+Next Obligation.
+  intros. elim x.
+Qed.
+
+
 (** The binary product of effective preorders is effective. *)
 Program Definition effective_prod {A B:preord}
   (HA:effective_order A)
