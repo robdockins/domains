@@ -212,7 +212,7 @@ Canonical Structure PPLT_EMBED_initialized :=
 Section ep_pairs.
   Variable hf:bool.
 
-  Notation PLT := (PLT hf).
+  Notation PLT := (PLT.PLT hf).
 
   Record is_ep_pair (X Y:ob PLT) (e:X → Y) (p:Y → X) :=
   IsEP

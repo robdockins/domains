@@ -50,13 +50,13 @@ Next Obligation.
   intros. rewrite <- H4; auto.
 Qed.
 
-Definition forgetPLT_ob (X:ob TPLT) : ob PPLT :=
+Definition forgetPLT_ob (X:ob PLT) : ob ∂PLT :=
   PLT.Ob _ (PLT.carrier _ X) (PLT.Class _ _
     (Preord.mixin (PLT.ord X))
     (PLT.effective X)
     (plotkin_forget _ (PLT.effective X) (PLT.plotkin X))).
 
-Program Definition forgetPLT_map (X Y:ob TPLT) (f:X → Y) 
+Program Definition forgetPLT_map (X Y:ob PLT) (f:X → Y) 
   : forgetPLT_ob X → forgetPLT_ob Y :=
 
   PLT.Hom _ (forgetPLT_ob X) (forgetPLT_ob Y) 
@@ -65,11 +65,11 @@ Next Obligation.
   repeat intro. apply (PLT.hom_directed _ _ _ f); hnf; auto.
 Qed.
 
-Program Definition forgetPLT : functor TPLT PPLT :=
-  Functor TPLT PPLT forgetPLT_ob forgetPLT_map _ _ _.
+Program Definition forgetPLT : functor PLT ∂PLT :=
+  Functor PLT ∂PLT forgetPLT_ob forgetPLT_map _ _ _.
 Solve Obligations of forgetPLT using auto.
 
-Definition liftPPLT_ob (X:ob PPLT) : ob TPLT :=
+Definition liftPPLT_ob (X:ob ∂PLT) : ob PLT :=
   PLT.Ob _ (option (PLT.carrier _ X)) (PLT.Class _ _
     (lift_mixin (PLT.ord X)) 
     (effective_lift (PLT.effective X)) 
@@ -124,7 +124,7 @@ Proof.
   split; split; auto.
 Qed.  
 
-Program Definition liftPPLT_map (X Y:ob PPLT) (f:X → Y) 
+Program Definition liftPPLT_map (X Y:ob ∂PLT) (f:X → Y) 
   : liftPPLT_ob X → liftPPLT_ob Y :=
 
   PLT.Hom _ (liftPPLT_ob X) (liftPPLT_ob Y)
@@ -212,8 +212,8 @@ Next Obligation.
   destruct H2. elim H4.
 Qed.
 
-Program Definition liftPPLT : functor PPLT TPLT :=
-  Functor PPLT TPLT liftPPLT_ob liftPPLT_map _ _ _.
+Program Definition liftPPLT : functor ∂PLT PLT :=
+  Functor ∂PLT PLT liftPPLT_ob liftPPLT_map _ _ _.
 Next Obligation.
   simpl; intros.
   split; hnf; simpl; intros.
@@ -385,7 +385,7 @@ Proof.
   simpl. exists x. split; auto. apply eff_complete.
 Qed.
 
-Program Definition adj_unit_hom (X:ob TPLT) 
+Program Definition adj_unit_hom (X:ob PLT) 
   : X → (liftPPLT (forgetPLT X))
 
   := PLT.Hom _ X (liftPPLT (forgetPLT X)) (adj_unit_rel (PLT.ord X) (PLT.effective X)) _ _.
@@ -409,8 +409,8 @@ Next Obligation.
   auto.
 Qed.
 
-Program Definition adj_unit : nt id(TPLT) (liftPPLT ∘ forgetPLT)
-  := NT id(TPLT) (liftPPLT ∘ forgetPLT) adj_unit_hom _.
+Program Definition adj_unit : nt id(PLT) (liftPPLT ∘ forgetPLT)
+  := NT id(PLT) (liftPPLT ∘ forgetPLT) adj_unit_hom _.
 Next Obligation.
   simpl; intros.
   split; hnf; simpl; intros.
@@ -456,7 +456,7 @@ Next Obligation.
   apply adj_unit_hom_obligation_1.
 Qed.
 
-Definition adj_counit_rel (Y:ob PPLT) 
+Definition adj_counit_rel (Y:ob ∂PLT) 
   : erel (forgetPLT (liftPPLT Y)) Y :=
 
     (image (pair_map (liftup Y) (id(PLT.ord Y)))
@@ -530,8 +530,8 @@ Next Obligation.
   elim H0.
 Qed.
 
-Program Definition adj_counit : nt (forgetPLT ∘ liftPPLT) id(PPLT)
-  := NT (forgetPLT ∘ liftPPLT) id(PPLT) adj_counit_hom _.
+Program Definition adj_counit : nt (forgetPLT ∘ liftPPLT) id(∂PLT)
+  := NT (forgetPLT ∘ liftPPLT) id(∂PLT) adj_counit_hom _.
 Next Obligation.
   intros.
   split; hnf; simpl; intros.
@@ -742,7 +742,7 @@ Next Obligation.
   elim H.  
 Qed.
 
-Lemma liftPPLT_reflects : forall (X Y:ob PPLT) (f f':X → Y),
+Lemma liftPPLT_reflects : forall (X Y:ob ∂PLT) (f f':X → Y),
   liftPPLT@f ≤ liftPPLT@f' -> f ≤ f'.
 Proof.
   repeat intro; simpl in *.
@@ -761,7 +761,7 @@ Proof.
   split; split; auto.
 Qed.
 
-Lemma liftPPLT_mono : forall (X Y:ob PPLT) (f f':X → Y),
+Lemma liftPPLT_mono : forall (X Y:ob ∂PLT) (f f':X → Y),
   f ≤ f' -> liftPPLT@f ≤ liftPPLT@f'.
 Proof.
   repeat intro; simpl in *.
@@ -773,20 +773,20 @@ Proof.
   exists a. exists b. split; auto.
 Qed.  
 
-Lemma forgetPLT_mono : forall (X Y:ob TPLT) (f f':X → Y),
+Lemma forgetPLT_mono : forall (X Y:ob PLT) (f f':X → Y),
   f ≤ f' -> forgetPLT@f ≤ forgetPLT@f'.
 Proof.
   auto.
 Qed.
 
-Lemma forgetPLT_reflects : forall (X Y:ob TPLT) (f f':X → Y),
+Lemma forgetPLT_reflects : forall (X Y:ob PLT) (f f':X → Y),
   forgetPLT@f ≤ forgetPLT@f' -> f ≤ f'.
 Proof.
   auto.
 Qed.
 
 Section strictify.
-  Variables X Y:ob PPLT.
+  Variables X Y:ob ∂PLT.
   Variable f: liftPPLT X → liftPPLT Y.  
 
   Let strictify := adj_counit Y ∘ forgetPLT@f ∘ adj_counit_inv_hom X.
