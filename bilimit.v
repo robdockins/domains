@@ -796,29 +796,7 @@ Section colimit_decompose2.
   Qed.
 End colimit_decompose2.
 
-(** The category of embeddings over _partial_ plotkin orders has
-    an initial object.  The category of embeddings over total plotkin
-    orders, however, does not.
- *)
-Program Definition PPLT_EMBED_initialized_mixin :=
-  Initialized.Mixin
-    (PLT.ob true) (embedding true)
-    (embed_eq_mixin true)
-    (empty_plt true)
-    empty_bang
-    _.
-Next Obligation.
-  repeat intro.
-  split; intro x; elim x.
-Qed.
 
-Canonical Structure PPLT_EMBED_initialized :=
-  Initialized 
-    (PLT.ob true) (embedding true)
-    (embed_eq_mixin true)
-    (embed_comp_mixin true)
-    (embed_cat_axioms true)
-    PPLT_EMBED_initialized_mixin.
 
 (** With the bilimit in hand, we can construct the least
     fixpoint of continuous functors in the embeddings

@@ -99,6 +99,20 @@ Section PLT.
     intros. split; apply compose_mono; auto.
   Qed.
 
+  Program Definition empty : ob :=
+    Ob False
+      (Class _
+        (Preord.mixin emptypo)
+        effective_empty
+        (empty_plotkin hf)).
+   
+  Program Definition unit : ob :=
+    Ob unit
+      (Class _
+        (Preord.mixin unitpo)
+        effective_unit
+        (unit_plotkin hf)).
+
   Definition prod (A B:ob) : ob :=
     Ob (carrier A * carrier B)
        (Class _ 
@@ -124,6 +138,50 @@ Section PLT.
          (joinable_rel_effective hf (ord A) (ord B) (effective A) (effective B) (plotkin A))
          (joinable_rel_plt hf (ord A) (ord B) (effective A) (plotkin A) (effective B) (plotkin B))).
   Canonical Structure exp.
+
+  Program Definition initiate A : hom empty A :=
+    Hom empty A (esets.empty (prod_preord (ord empty) (ord A))) _ _.
+  Next Obligation.
+    intros. apply empty_elem in H1. elim H1.
+  Qed.
+  Next Obligation.
+    intros A x. elim x.
+  Qed.
+
+  Program Definition terminate A : hom A unit :=
+    Hom A unit (eprod (eff_enum _ (effective A)) (eff_enum _ (effective unit))) _ _.
+  Next Obligation.
+    intros.
+    apply eprod_elem. split; apply eff_complete.
+  Qed.
+  Next Obligation.    
+    intros A x. repeat intro.
+    exists tt. split.
+    hnf; simpl; intros. hnf; auto.
+    apply erel_image_elem.
+    apply eprod_elem; split; apply eff_complete.
+  Qed.
+
+  Definition iota1 A B : hom A (sum A B) :=
+    Hom A (sum A B)
+      (iota1_rel (ord A) (ord B) (effective A))
+      (iota1_ordering (ord A) (ord B) (effective A))
+      (iota1_dir (ord A) (ord B) (effective A) hf).
+
+  Definition iota2 A B : hom B (sum A B) :=
+    Hom B (sum A B)
+      (iota2_rel (ord A) (ord B) (effective B))
+      (iota2_ordering (ord A) (ord B) (effective B))
+      (iota2_dir (ord A) (ord B) (effective B) hf).
+  
+  Definition sum_cases {C A B} (f:hom A C) (g:hom B C) : hom (sum A B) C :=
+    Hom (sum A B) C
+      (sum_cases (ord C) (ord A) (ord B) f g)
+      (sum_cases_ordering (ord C) (ord A) (ord B) f g
+           (hom_order _ _ f) (hom_order _ _ g))
+      (sum_cases_dir (ord C) (ord A) (ord B)
+          (effective A) (effective B) hf f g
+          (hom_directed _ _ f) (hom_directed _ _ g)).
 
   Definition app {A B} : hom (prod (exp A B) A) B :=
     Hom (prod (exp A B) A) B
@@ -236,6 +294,46 @@ Section PLT.
 
   Canonical Structure PLT : category := Category ob hom hom_eq_mixin comp_mixin cat_axioms.
 
+  Theorem initiate_univ A (f:hom empty A) :
+    f ≈ initiate A.
+  Proof.
+    split; hnf; intros.
+    destruct a. elim c.
+    destruct a. elim c.
+  Qed.
+
+  Theorem terminate_le_univ A (f:hom A unit) :
+    f ≤ terminate A.
+  Proof.
+    hnf; intros.
+    red. simpl.
+    destruct a.
+    apply eprod_elem. split. apply eff_complete.
+    apply single_axiom. destruct c0. auto.
+  Qed.
+
+  Theorem iota1_cases_commute C A B (f:hom A C) (g:hom B C) :
+    sum_cases f g ∘ iota1 A B ≈ f.
+  Proof.
+    apply iota1_cases_commute.
+    apply (hom_order _ _ f).
+  Qed.
+
+  Theorem iota2_cases_commute C A B (f:hom A C) (g:hom B C) :
+    sum_cases f g ∘ iota2 A B ≈ g.
+  Proof.
+    apply iota2_cases_commute.
+    apply (hom_order _ _ g).
+  Qed.
+
+  Theorem sum_cases_universal C A B (f:hom A C) (g:hom B C) (CASES:hom (sum A B) C) :
+    CASES ∘ iota1 A B ≈ f -> CASES ∘ iota2 A B ≈ g -> CASES ≈ sum_cases f g.
+  Proof.
+    intros. symmetry.
+    apply (sum_cases_univ _ _ _ (effective A) (effective B) f g); auto.
+    apply (hom_order _ _ CASES).
+  Qed.
+
   Theorem pair_universal C A B (f:hom C A) (g:hom C B) (PAIR:hom C (prod A B)) :
     pi1 ∘ PAIR ≈ f -> pi2 ∘ PAIR ≈ g -> PAIR ≈ pair f g.
   Proof.
@@ -275,7 +373,21 @@ Section PLT.
     rewrite pair_map_eq in H. apply H.
   Qed.
 
-  
+  Definition initialized_mixin :=
+    Initialized.Mixin ob hom hom_eq_mixin empty initiate initiate_univ.
+
+  Program Definition cocartesian_mixin :=
+    Cocartesian.Mixin ob hom hom_eq_mixin comp_mixin sum iota1 iota2 (@sum_cases) _.
+  Next Obligation.
+    constructor.
+    apply iota1_cases_commute.
+    apply iota2_cases_commute.
+    apply sum_cases_universal.
+  Qed.
+
+  Definition cocartesian :=
+    Cocartesian ob hom hom_eq_mixin comp_mixin cat_axioms initialized_mixin cocartesian_mixin.
+
   Section homset_cpo.
     Variables A B:ob.
 
@@ -397,6 +509,7 @@ Canonical Structure PLT.hom_eq.
 Canonical Structure PLT.comp.
 Canonical Structure PLT.prod.
 Canonical Structure PLT.homset_cpo.
+Canonical Structure PLT.cocartesian.
 
 Arguments PLT.hom [hf] A B.
 Arguments PLT.hom_rel [hf] [A] [B] h n.
@@ -407,6 +520,9 @@ Arguments PLT.dec [hf] X.
 Arguments PLT.pi1 [hf] [A] [B].
 Arguments PLT.pi2 [hf] [A] [B].
 Arguments PLT.pair [hf] [C] [A] [B] f g.
+Arguments PLT.iota1 [hf] [A] [B].
+Arguments PLT.iota1 [hf] [A] [B].
+Arguments PLT.sum_cases [hf] [C] [A] [B] f g.
 Arguments PLT.prod [hf] A B.
 Arguments PLT.exp [hf] A B.
 Arguments PLT.app [hf] A B.
@@ -414,35 +530,6 @@ Arguments PLT.curry [hf] C A B f.
 
 Coercion PLT.ord : PLT.ob >-> preord.
 Coercion PLT.carrier : PLT.ob >-> Sortclass.
-
-
-
-Program Definition empty_eff : effective_order emptypo :=
-  EffectiveOrder _ _ (fun x => None) _.
-Next Obligation.
-  intros. elim x.
-Qed.
-Next Obligation.
-  intros. elim x.
-Qed.
-
-Program Definition empty_plotkin hf : plotkin_order hf emptypo :=
-  PlotkinOrder hf emptypo _ (fun _ => nil) _ _ _.
-Next Obligation.
-  repeat intro. elim x.
-Qed.
-Next Obligation.
-  repeat intro. elim a.
-Qed.
-Next Obligation.  
-  repeat intro. elim x.
-Qed.
-Next Obligation.
-  repeat intro. elim a.
-Qed.
-
-Definition empty_plt hf : ob (PLT hf) :=
-  PLT.Ob hf False (PLT.Class _ _ (Preord.mixin emptypo) empty_eff (empty_plotkin hf)).
 
 Record embedding (hf:bool) (A B:PLT.ob hf) :=
   Embedding
@@ -599,8 +686,13 @@ Proof.
   intros; split; hnf; auto.
 Qed.  
 
-Program Definition empty_bang X : empty_plt true ⇀ X :=
-  Embedding true (empty_plt true) X (fun x => False_rect _ x) _ _ _ _.
+
+(** The category of embeddings over _partial_ plotkin orders has
+    an initial object.  The category of embeddings over total plotkin
+    orders, however, does not.
+ *)
+Program Definition embed_initiate X : PLT.empty true ⇀ X :=
+  Embedding true (PLT.empty true) X (fun x => False_rect _ x) _ _ _ _.
 Next Obligation.
   intros. elim a.
 Qed.
@@ -613,6 +705,27 @@ Qed.
 Next Obligation.
   intros. elim a.
 Qed.
+
+Program Definition PPLT_EMBED_initialized_mixin :=
+  Initialized.Mixin
+    (PLT.ob true)
+    (embedding true)
+    (embed_eq_mixin true)
+    (PLT.empty true)
+    embed_initiate
+    _.
+Next Obligation.
+  repeat intro.
+  split; intro x; elim x.
+Qed.
+
+Canonical Structure PPLT_EMBED_initialized :=
+  Initialized 
+    (PLT.ob true) (embedding true)
+    (embed_eq_mixin true)
+    (embed_comp_mixin true)
+    (embed_cat_axioms true)
+    PPLT_EMBED_initialized_mixin.
 
 
 Section ep_pairs.

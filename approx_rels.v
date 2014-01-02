@@ -461,6 +461,387 @@ Proof.
 Qed.
 
 
+(****************)
+
+Program Definition iota1_rel (A B:preord)
+  (HA:effective_order A) : erel A (sum_preord A B) :=
+  image (Preord.Hom (A×A) (A×sum_preord A B) (fun x => (fst x, inl (snd x))) _)
+  (esubset_dec 
+    (A×A) (fun x => fst x ≥ snd x)
+    (fun x => eff_ord_dec A HA (snd x) (fst x))
+    (eprod (eff_enum A HA) (eff_enum A HA))).
+Next Obligation.
+  intros.
+  destruct H; split; simpl; auto.
+Qed.
+
+Program Definition iota2_rel (A B:preord)
+  (HB:effective_order B) : erel B (sum_preord A B) :=
+  image (Preord.Hom (B×B) (B×sum_preord A B) (fun x => (fst x, inr (snd x))) _)
+  (esubset_dec 
+    (B×B) (fun x => fst x ≥ snd x)
+    (fun x => eff_ord_dec B HB (snd x) (fst x))
+    (eprod (eff_enum B HB) (eff_enum B HB))).
+Next Obligation.
+  intros.
+  destruct H; split; simpl; auto.
+Qed.
+
+Program Definition sum_cases (C A B:preord)
+  (f: erel A C) (g:erel B C) : erel (sum_preord A B) C :=
+  union2
+    (image (Preord.Hom (A×C) (sum_preord A B × C) (fun x => (inl (fst x), snd x)) _) f)
+    (image (Preord.Hom (B×C) (sum_preord A B × C) (fun x => (inr (fst x), snd x)) _) g).
+Next Obligation.
+  simpl; intros.
+  destruct H; split; simpl; auto.
+Qed.
+Next Obligation.
+  simpl; intros.
+  destruct H; split; simpl; auto.
+Qed.
+
+Lemma sum_cases_elem (C A B:preord) (f:erel A C) (g:erel B C) x y :
+  (x,y) ∈ sum_cases C A B f g <-> 
+  match x with
+  | inl a => (a,y) ∈ f
+  | inr b => (b,y) ∈ g
+  end.
+Proof.  
+  split; intros.
+  unfold sum_cases in H.
+  apply union2_elem in H.
+  destruct H; apply image_axiom2 in H; destruct H as [[??] [??]]; simpl in *.
+  destruct x.
+  apply member_eq with (c,c0); auto.
+  destruct H0 as [[??][??]]. simpl in *. elim H0.
+  destruct x.
+  destruct H0 as [[??][??]]. simpl in *. elim H0.
+  apply member_eq with (c,c0); auto.
+  unfold sum_cases.
+  apply union2_elem.
+  destruct x.
+  left. apply image_axiom1'; simpl. exists (c,y). split; auto.
+  right. apply image_axiom1'; simpl. exists (c,y). split; auto.
+Qed.
+
+
+Lemma iota1_elem : forall A B HA x y,
+  (x,y) ∈ iota1_rel A B HA <-> exists x', y ≈ inl x' /\ x' ≤ x.
+Proof.
+  intros; split; intros.
+  unfold iota1_rel in H.
+  apply image_axiom2 in H.
+  destruct H as [[a a'] ?]. destruct H.
+  simpl in H0.
+  apply esubset_dec_elem in H. destruct H. simpl in *.
+  exists a'. split.
+  destruct H0 as [[??][??]]; split; auto.
+  rewrite H1.   destruct H0 as [[??][??]]; auto.
+  intros ? ? [[??][??]] ?; eauto.
+  destruct H as [x' [??]].  
+  unfold iota1_rel.
+  apply image_axiom1'.
+  simpl.
+  exists (x, x'). simpl.
+  split. split; split; auto.
+  apply esubset_dec_elem.
+  intros ? ? [[??][??]] ?; eauto.
+  split; auto.  
+  apply eprod_elem. split; apply eff_complete.
+Qed.
+
+Lemma iota2_elem : forall A B HB x y,
+  (x,y) ∈ iota2_rel A B HB <-> exists x', y ≈ inr x' /\ x' ≤ x.
+Proof.
+  intros; split; intros.
+  unfold iota2_rel in H.
+  apply image_axiom2 in H.
+  destruct H as [[a a'] ?]. destruct H.
+  simpl in H0.
+  apply esubset_dec_elem in H. destruct H. simpl in *.
+  exists a'. split.
+  destruct H0 as [[??][??]]; split; auto.
+  rewrite H1.  destruct H0 as [[??][??]]; auto.
+  intros ? ? [[??][??]] ?; eauto.
+  destruct H as [x' [??]].  
+  unfold iota2_rel.
+  apply image_axiom1'.
+  simpl.
+  exists (x, x'). simpl.
+  split. split; split; auto.
+  apply esubset_dec_elem.
+  intros ? ? [[??][??]] ?; eauto.
+  split; auto.  
+  apply eprod_elem. split; apply eff_complete.
+Qed.
+  
+
+Lemma iota1_ordering (A B:preord) 
+  (HAeff:effective_order A) :
+  forall a a' b b',
+    a ≤ a' ->
+    b' ≤ b -> 
+    (a,b) ∈ iota1_rel A B HAeff ->
+    (a',b') ∈ iota1_rel A B HAeff.
+Proof.
+  intros.
+  apply iota1_elem in H1. apply iota1_elem.
+  destruct H1 as [x' [??]].
+  rewrite H1 in H0.
+  destruct b'. 2: elim H0.
+  exists c. split; auto.
+  transitivity x'; auto.
+  transitivity a; auto.
+Qed.
+
+Lemma iota2_ordering (A B:preord) 
+  (HBeff:effective_order B) :
+  forall a a' b b',
+    a ≤ a' ->
+    b' ≤ b -> 
+    (a,b) ∈ iota2_rel A B HBeff ->
+    (a',b') ∈ iota2_rel A B HBeff.
+Proof.
+  intros.
+  apply iota2_elem in H1.
+  apply iota2_elem.
+  destruct H1 as [x' [??]].
+  rewrite H1 in H0.
+  destruct b'. elim H0.
+  exists c. split; auto.
+  transitivity x'; auto.
+  transitivity a; auto.
+Qed.
+
+Lemma sum_cases_ordering (C A B:preord) (f:erel A C) (g:erel B C) :
+  (forall a a' b b', a ≤ a' -> b' ≤ b -> (a,b) ∈ f -> (a',b') ∈ f) ->
+  (forall a a' b b', a ≤ a' -> b' ≤ b -> (a,b) ∈ g -> (a',b') ∈ g) ->
+  (forall a a' b b', a ≤ a' -> b' ≤ b -> 
+    (a,b) ∈ sum_cases C A B f g -> (a',b') ∈ sum_cases C A B f g).
+Proof.
+  intros.
+  apply sum_cases_elem in H3. apply sum_cases_elem.
+  destruct a; destruct a'.
+  apply H with c b; auto.
+  elim H1.
+  elim H1.
+  apply H0 with c b; auto.
+Qed.
+
+Lemma iota1_dir A B HAeff hf :
+  directed_rel hf A (sum_preord A B) HAeff (iota1_rel A B HAeff).
+Proof.
+  intro. apply prove_directed.
+  destruct hf. auto.
+  simpl.
+  exists (inl x).
+  apply erel_image_elem.
+  apply iota1_elem. exists x; split; auto.
+  intros.
+  apply erel_image_elem in H.
+  apply erel_image_elem in H0.
+  apply iota1_elem in H.
+  apply iota1_elem in H0.
+  destruct H as [p [??]].
+  destruct H0 as [q [??]].
+  exists (inl x).
+  split. rewrite H. auto.
+  split. rewrite H0. auto.
+  apply erel_image_elem.
+  apply iota1_elem. exists x; split; auto.
+Qed.
+
+Lemma iota2_dir A B HBeff hf :
+  directed_rel hf B (sum_preord A B) HBeff (iota2_rel A B HBeff).
+Proof.
+  intro. apply prove_directed.
+  destruct hf. auto.
+  simpl.
+  exists (inr x).
+  apply erel_image_elem.
+  apply iota2_elem. exists x; split; auto.
+  intros.
+  apply erel_image_elem in H.
+  apply erel_image_elem in H0.
+  apply iota2_elem in H.
+  apply iota2_elem in H0.
+  destruct H as [p [??]].
+  destruct H0 as [q [??]].
+  exists (inr x).
+  split. rewrite H. auto.
+  split. rewrite H0. auto.
+  apply erel_image_elem.
+  apply iota2_elem. exists x; split; auto.
+Qed.
+
+Lemma sum_cases_dir C A B HAeff HBeff hf (f:erel A C) (g:erel B C) :
+  directed_rel hf A C HAeff f ->
+  directed_rel hf B C HBeff g ->
+  directed_rel hf (sum_preord A B) C (effective_sum HAeff HBeff) (sum_cases C A B f g).
+Proof.
+  intros. intro x.
+  apply prove_directed.
+  destruct hf. auto.
+  destruct x.
+  destruct (H c nil). hnf. auto.
+  hnf; simpl; intros. apply nil_elem in H1. elim H1.
+  destruct H1.
+  apply erel_image_elem in H2.
+  exists x. apply erel_image_elem.
+  apply sum_cases_elem. auto.
+  destruct (H0 c nil). hnf. auto.
+  hnf; simpl; intros. apply nil_elem in H1. elim H1.
+  destruct H1.
+  apply erel_image_elem in H2.
+  exists x. apply erel_image_elem.
+  apply sum_cases_elem. auto.
+  
+  intros.
+  apply erel_image_elem in H1.
+  apply erel_image_elem in H2.
+  apply sum_cases_elem in H1.
+  apply sum_cases_elem in H2.
+  destruct x.
+  destruct (H c (x0::y::nil)%list).
+  apply elem_inh with x0. apply cons_elem; auto.
+  hnf; simpl; intros.
+  apply erel_image_elem.
+  apply cons_elem in H3. destruct H3.
+  apply member_eq with (c,x0); auto.
+  split; split; auto.
+  apply cons_elem in H3. destruct H3.
+  apply member_eq with (c,y); auto.
+  split; split; auto.
+  apply nil_elem in H3. elim H3.
+  destruct H3.
+  apply erel_image_elem in H4.
+  exists x.
+  split. apply H3. apply cons_elem; auto.
+  split. apply H3. apply cons_elem. right. apply cons_elem; auto.
+  apply erel_image_elem.
+  apply sum_cases_elem. auto.
+
+  destruct (H0 c (x0::y::nil)%list).
+  apply elem_inh with x0. apply cons_elem; auto.
+  hnf; simpl; intros.
+  apply erel_image_elem.
+  apply cons_elem in H3. destruct H3.
+  apply member_eq with (c,x0); auto.
+  split; split; auto.
+  apply cons_elem in H3. destruct H3.
+  apply member_eq with (c,y); auto.
+  split; split; auto.
+  apply nil_elem in H3. elim H3.
+  destruct H3.
+  apply erel_image_elem in H4.
+  exists x.
+  split. apply H3. apply cons_elem; auto.
+  split. apply H3. apply cons_elem. right. apply cons_elem; auto.
+  apply erel_image_elem.
+  apply sum_cases_elem. auto.
+Qed.
+
+Lemma iota1_cases_commute C A B HAeff HBeff (f:erel A C) (g:erel B C) :
+  (forall a a' b b', a ≤ a' -> b' ≤ b -> (a,b) ∈ f -> (a',b') ∈ f) ->
+  compose_rel (effective_sum HAeff HBeff) 
+      (sum_cases C A B f g) (iota1_rel A B HAeff) ≈ f.
+Proof.
+  intros Hf.
+  split; hnf; simpl; intros.
+  destruct a as [a c].
+  apply compose_elem in H.
+  destruct H as [x [??]].  
+  apply iota1_elem in H.
+  destruct H as [x' [??]].
+  apply sum_cases_elem in H0.
+  destruct x.
+  apply Hf with c0 c; auto.
+  transitivity x'; auto.
+  destruct H. elim H.
+  apply iota1_ordering.
+  destruct a.
+  apply compose_elem.
+  apply iota1_ordering.
+  exists (inl c).
+  split.
+  apply iota1_elem.
+  exists c. split; auto.
+  apply sum_cases_elem. auto.
+Qed.
+
+Lemma iota2_cases_commute C A B HAeff HBeff (f:erel A C) (g:erel B C) :
+  (forall a a' b b', a ≤ a' -> b' ≤ b -> (a,b) ∈ g -> (a',b') ∈ g) ->
+  compose_rel (effective_sum HAeff HBeff) 
+      (sum_cases C A B f g) (iota2_rel A B HBeff) ≈ g.
+Proof.
+  intros Hg.
+  split; hnf; simpl; intros.
+  destruct a as [a c].
+  apply compose_elem in H.
+  destruct H as [x [??]].  
+  apply iota2_elem in H.
+  destruct H as [x' [??]].
+  apply sum_cases_elem in H0.
+  destruct x.
+  destruct H. elim H.
+  apply Hg with c0 c; auto.
+  transitivity x'; auto.
+  apply iota2_ordering.
+  destruct a.
+  apply compose_elem.
+  apply iota2_ordering.
+  exists (inr c).
+  split.
+  apply iota2_elem.
+  exists c. split; auto.
+  apply sum_cases_elem. auto.
+Qed.
+
+Lemma sum_cases_univ C A B HAeff HBeff (f:erel A C) (g:erel B C) (h:erel (sum_preord A B) C):
+  (forall a a' b b', a ≤ a' -> b' ≤ b -> (a,b) ∈ h -> (a',b') ∈ h) ->
+  compose_rel (effective_sum HAeff HBeff) h (iota1_rel A B HAeff) ≈ f ->
+  compose_rel (effective_sum HAeff HBeff) h (iota2_rel A B HBeff) ≈ g ->
+  sum_cases C A B f g ≈ h.
+Proof.
+  intros Hh Hh1 Hh2.
+  split; hnf; simpl; intros.
+  destruct a as [x c].
+  apply sum_cases_elem in H.  
+  destruct x.
+  destruct Hh1. apply H1 in H.
+  apply compose_elem in H.
+  destruct H as [y [??]].
+  apply iota1_elem in H.
+  destruct H as [x' [??]].
+  apply Hh with y c; auto.  
+  transitivity (@inl A B x'); auto.
+  apply iota1_ordering.
+  destruct Hh2. apply H1 in H.
+  apply compose_elem in H.
+  destruct H as [y [??]].
+  apply iota2_elem in H.
+  destruct H as [x' [??]].
+  apply Hh with y c; auto.  
+  transitivity (@inr A B x'); auto.
+  apply iota2_ordering.    
+  destruct a.
+  apply sum_cases_elem.
+  destruct s.
+  destruct Hh1. apply H0.
+  apply compose_elem.
+  apply iota1_ordering.
+  exists (inl c0). split; auto.
+  apply iota1_elem. exists c0; split; auto.
+  destruct Hh2.
+  apply H0.
+  apply compose_elem.
+  apply iota2_ordering.
+  exists (inr c0). split; auto.
+  apply iota2_elem. exists c0; split; auto.
+Qed.
+
+
 Definition apply_acceptable hf (A B:preord) 
   (tuple:(joinable_rel_order hf A B × A) × B) :=
   match tuple with
