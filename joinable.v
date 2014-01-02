@@ -205,7 +205,7 @@ Proof.
   apply q; auto.
   apply (mub_clos_mub HAplt (image π₁ G)) with (image π₁ G); auto.
   apply inh_image; auto.
-  apply inh_image; auto.
+
   apply mub_clos_incl.
   left. intro. contradiction.
   left.
@@ -269,12 +269,10 @@ Proof.
   apply H3. red. intros.
   exists q. split; auto.
   
-
   elim H3; red; intros. elim n; auto.
   elim H1. red; intros.
   apply q; auto.
   apply (mub_clos_mub HAplt (image π₁ G)) with (image π₁ G); auto.
-  apply inh_image; auto.
   apply inh_image; auto.
   apply mub_clos_incl.
   elim H1.
@@ -434,7 +432,6 @@ Section directed_joinables.
       unfold RS'. apply finprod_elem. split.
       apply (mub_clos_mub HAplt (image π₁ RS)) with (image π₁ G0); auto.
       apply inh_image. auto.
-      apply inh_image. auto.
       red; intros.
       apply image_axiom2 in H3. destruct H3 as [y [??]].
       apply HG0 in H3.
@@ -445,7 +442,6 @@ Section directed_joinables.
       rewrite H4. simpl.
       destruct H3; auto.
       apply (mub_clos_mub HBplt (image π₂ RS)) with (image π₂ G0); auto.
-      apply inh_image. auto.
       apply inh_image. auto.
       red; intros.
       apply image_axiom2 in H3. destruct H3 as [y [??]].
@@ -1271,4 +1267,3 @@ Section joinable_plt.
          (joinable_rel_has_normals).
 
 End joinable_plt.
-

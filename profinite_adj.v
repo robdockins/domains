@@ -68,7 +68,7 @@ Next Obligation.
   destruct Hinh as [x ?].
   exists x. apply mub_clos_incl; auto.
   repeat intro.
-  generalize (mub_clos_mub HA X I M).
+  generalize (mub_clos_mub HA X M).
   intros. 
   destruct (mub_complete HA M z).
   hnf; auto.

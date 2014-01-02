@@ -266,7 +266,7 @@ Section bilimit.
     assert (q' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
     apply mub_clos_mub with nil; auto.
     hnf. pattern hf at 1. rewrite H. auto.
-    hnf. pattern hf at 1. rewrite H. auto.
+
     hnf; intros. apply nil_elem in H3; elim H3.
     destruct H3 as [q'' [??]].
     exists (LimSet k q'').
@@ -323,17 +323,6 @@ Section bilimit.
     apply nil_elem in H8. elim H8.
     assert (c' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
     apply mub_clos_mub with (x''::y''::nil); auto.
-
-    clear -Hinh HM.
-      revert Hinh.
-      unfold inh. simpl.
-      pattern hf at 1 2. case hf; auto.
-      intros [x ?].
-      rewrite HM in H.
-      destruct H as [x' [??]].
-      apply in_map_iff in H.
-      destruct H as [q [??]].
-      exists q. exists q. split; auto.
 
     apply elem_inh with x''. apply cons_elem; auto.
     hnf; simpl; intros.

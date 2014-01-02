@@ -15,19 +15,16 @@ Definition is_mub_complete hf (A:preord) :=
     exists mub:A, minimal_upper_bound mub M /\ mub ≤ x.
 
 Definition mub_closed hf (A:preord) (X:finset A) :=
-  forall M:finset A, inh hf M -> M ⊆ X -> forall x:A, minimal_upper_bound x M -> x ∈ X.
-
-Definition minimum (A:preord) (x:A) :=
-  forall y, y ≤ x -> x ≤ y.
+  forall M:finset A, inh hf M -> M ⊆ X ->
+    forall x:A, minimal_upper_bound x M -> x ∈ X.
 
 Record plotkin_order (hf:bool) (A:preord) :=
   PlotkinOrder
   { mub_complete : is_mub_complete hf A
   ; mub_closure : finset A -> finset A
   ; mub_clos_incl : forall M:finset A, M ⊆ mub_closure M
-  ; mub_clos_mub : forall (M:finset A), inh hf M -> mub_closed hf A (mub_closure M)
+  ; mub_clos_mub : forall (M:finset A), mub_closed hf A (mub_closure M)
   ; mub_clos_smallest : forall (M X:finset A),
-        inh hf M ->
         M ⊆ X ->
         mub_closed hf A X -> 
         mub_closure M ⊆ X
@@ -35,11 +32,11 @@ Record plotkin_order (hf:bool) (A:preord) :=
 Arguments mub_closure [hf] [A] p _.
 Arguments mub_complete [hf] [A] p _ _ _ _.
 Arguments mub_clos_incl [hf] [A] p _ _ _.
-Arguments mub_clos_mub [hf] [A] p _ _ _ _ _ _ _.
-Arguments mub_clos_smallest [hf] [A] p _ _ _ _ _ _ _.
+Arguments mub_clos_mub [hf] [A] p _ _ _ _ _ _.
+Arguments mub_clos_smallest [hf] [A] p _ _ _ _ _ _.
 
 Lemma mub_clos_mono : forall hf A (H:plotkin_order hf A),
-  forall (M N:finset A), inh hf M ->
+  forall (M N:finset A),
     M ⊆ N -> mub_closure H M ⊆ mub_closure H N.
 Proof.
   intros.
@@ -50,25 +47,22 @@ Proof.
 Qed.
 
 Lemma mub_clos_idem : forall hf A (H:plotkin_order hf A), 
-  forall (M:finset A), inh hf M ->
+  forall (M:finset A),
     mub_closure H M ≈ mub_closure H (mub_closure H M).
 Proof.
   intros. split.
   apply mub_clos_incl.
   apply mub_clos_smallest; auto.
-  apply inh_sub with M; auto.
-  apply mub_clos_incl.
   red; auto.
   apply mub_clos_mub; auto.
 Qed.
-
 
 Program Definition empty_plotkin hf : plotkin_order hf emptypo :=
   PlotkinOrder hf emptypo _ (fun _ => nil) _ _ _.
 Solve Obligations of empty_plotkin using (repeat intro; simpl in *; intuition).
 
 Program Definition unit_plotkin hf : plotkin_order hf unitpo :=
-  PlotkinOrder hf _ _ (fun M => (tt::nil)%list) _ _ _.
+  PlotkinOrder hf _ _ (fun M => if hf then M else (tt::nil)) _ _ _.
 Solve Obligations of unit_plotkin using (repeat intro; hnf; auto).
 Next Obligation.
   repeat intro. exists tt.
@@ -76,15 +70,21 @@ Next Obligation.
 Qed.
 Next Obligation.
   repeat intro.
+  destruct hf.
+  auto.
   destruct a. apply cons_elem; auto.
 Qed.
 Next Obligation.
   repeat intro.
+  destruct hf.
+  hnf in H. destruct H.
+  destruct x0. destruct x. apply H0. auto.
   destruct x. apply cons_elem; auto.
 Qed.
 Next Obligation.
   repeat intro.
-  hnf in H1. apply (H1 M); auto.
+  destruct hf. apply H; auto.
+  apply (H0 M); auto. red; auto.
   split; hnf; auto.
   repeat intro. hnf. auto.
 Qed.
@@ -171,7 +171,6 @@ Section dec_lemmas.
     apply n; auto.
   Qed.
 End dec_lemmas.
-
 
 
 Lemma upper_bound_ok : forall A (G:finset A) (x y:A),
@@ -450,9 +449,9 @@ Section normal_sets.
   End normal_mubs.
 
   Lemma normal_sub_mub_closed_dec Q : normal_set Q ->
-    forall (M:finset A) (Hinh:inh hf M), M ⊆ Q -> { mub_closed hf A M }+{ ~mub_closed hf A M }.
+    forall (M:finset A), M ⊆ Q -> { mub_closed hf A M }+{ ~mub_closed hf A M }.
   Proof.
-    intros HQ M Hinh HM.
+    intros HQ M HM. 
     unfold mub_closed.
     set (P' (N:finset A) := inh hf N -> N ⊆ M -> forall x, minimal_upper_bound x N -> x ∈ M).
     assert (forall x y, x ≈ y -> P' x -> P' y).
@@ -824,25 +823,25 @@ Section normal_sets.
     unfold norm_closure in *.
     destruct (check_inh M).
     destruct a. subst.
-    destruct H0. apply H1 in H0.
-    apply nil_elem in H0. elim H0.
+    destruct H. apply H0 in H.
+    apply nil_elem in H. elim H.
     destruct (Hnorm M i) as [Q [??]].
     destruct (normal_set_mub_closure Q n M i i0).
     simpl in *.
     destruct a. 
-    destruct H4.
-    apply H4 with M0; auto.
+    destruct H3.
+    apply H3 with M0; auto.
   Qed.    
   Next Obligation.
     repeat intro.
     unfold norm_closure in *.
     destruct (check_inh M).
-    apply nil_elem in H2. elim H2.
+    apply nil_elem in H1. elim H1.
     destruct (Hnorm M i) as [Q [??]].
     destruct (normal_set_mub_closure Q n M i i0).
     simpl in *.
     destruct a0 as [?[??]].
-    apply H5; auto.
+    apply H4; auto.
   Qed.    
 End normal_sets.
 
@@ -930,7 +929,7 @@ Proof.
   apply finprod_elem. split.
   apply (mub_clos_mub HA (image π₁ X) ) with (image π₁ M).
   apply inh_image; auto.
-  apply inh_image; auto.
+
   red; intros.
   apply image_axiom2 in H1. destruct H1 as [y [??]].
   apply H in H1.
@@ -958,7 +957,6 @@ Proof.
   simpl in *. auto.
 
   apply (mub_clos_mub HB (image π₂ X)) with  (image π₂ M); auto.
-  apply inh_image; auto.
   apply inh_image; auto.
   red; intros.
   apply image_axiom2 in H1. destruct H1 as [y [??]].
@@ -1492,9 +1490,6 @@ Proof.
   exists ub. split; auto.
   rewrite <- H4.
   apply mub_clos_mub with (unlift_list M); auto.
-  rewrite H4.
-  destruct hf1; simpl; auto.
-  exists c1. apply cons_elem; auto.
   rewrite H1.
   destruct hf1; simpl; auto.
   exists c. apply cons_elem; auto.
