@@ -84,6 +84,7 @@ VFILES:=nominal.v\
   permutations.v\
   atoms.v\
   profinite_adj.v\
+  embed.v\
   profinite.v\
   sumprod_functor.v\
   exp_functor.v\

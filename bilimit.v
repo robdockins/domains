@@ -10,9 +10,11 @@ Require Import esets.
 Require Import effective.
 Require Import plotkin.
 Require Import profinite.
+Require Import embed.
 Require Import directed.
 Require Import cont_functors.
 Require Import cpo.
+
 
 (**  * Bilimits and fixpoints of continuous functors.
 

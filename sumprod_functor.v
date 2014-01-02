@@ -10,6 +10,7 @@ Require Import esets.
 Require Import effective.
 Require Import plotkin.
 Require Import profinite.
+Require Import embed.
 Require Import joinable.
 Require Import directed.
 Require Import cont_functors.

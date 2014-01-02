@@ -12,47 +12,6 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import profinite.
 
-Notation TPLT := (PLT false).
-Notation PPLT := (PLT true).
-
-Module TPLT.
-  Theorem pair_commute1 (C A B:ob TPLT) (f:C → A) (g:C → B) :
-    PLT.pi1 ∘ PLT.pair f g ≈ f.
-  Proof.
-    apply pair_proj_commute1.
-    apply PLT.hom_order.
-    apply PLT.hom_order.
-    apply PLT.hom_directed.
-  Qed.
-
-  Theorem pair_commute2 (C A B:ob TPLT) (f:C → A) (g:C → B) :
-    PLT.pi2 ∘ PLT.pair f g ≈ g.
-  Proof.
-    apply pair_proj_commute2.
-    apply PLT.hom_order.
-    apply PLT.hom_order.
-    apply PLT.hom_directed.
-  Qed.
-End TPLT.
-
-Module PPLT.
-  Theorem pair_commute1 (C A B:ob PPLT) (f:C → A) (g:C → B) :
-    PLT.pi1 ∘ PLT.pair f g ≤ f.
-  Proof.
-    apply pair_proj_commute1_le.
-    apply PLT.hom_order.
-    apply PLT.hom_order.
-  Qed.
-
-  Theorem pair_commute2 (C A B:ob TPLT) (f:C → A) (g:C → B) :
-    PLT.pi2 ∘ PLT.pair f g ≤ g.
-  Proof.
-    apply pair_proj_commute2_le.
-    apply PLT.hom_order.
-    apply PLT.hom_order.
-  Qed.
-End PPLT.
-
 
 Program Definition plotkin_forget (A:preord)
   (Heff:effective_order A)
