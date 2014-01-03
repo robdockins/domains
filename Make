@@ -15,11 +15,12 @@ cpo.v
 joinable.v
 approx_rels.v
 bilimit.v
-exp_functor.v
-sumprod_functor.v
 profinite.v
 embed.v
 profinite_adj.v
+exp_functor.v
+sumprod_functor.v
+cont_adj.v
 atoms.v
 permutations.v
 nominal.v

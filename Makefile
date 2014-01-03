@@ -83,11 +83,12 @@ endif
 VFILES:=nominal.v\
   permutations.v\
   atoms.v\
+  cont_adj.v\
+  sumprod_functor.v\
+  exp_functor.v\
   profinite_adj.v\
   embed.v\
   profinite.v\
-  sumprod_functor.v\
-  exp_functor.v\
   bilimit.v\
   approx_rels.v\
   joinable.v\
