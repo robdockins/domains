@@ -632,8 +632,11 @@ Section bilimit.
 End bilimit.
 
 
-(**  These two constructions show that a cocone is a colimit
-     iff every element can be factored through a spoke of the cocone.
+(**  The following two constructions show that a cocone is a colimit
+     in EMBED iff every element can be factored through a spoke of the cocone.
+
+     Passing thorough these constructions is generally the easiest way to
+     demonstrate that an embedding functor is continuous.
   *)
 Section colimit_decompose.
   Variable hf:bool.
@@ -810,24 +813,217 @@ Section fixpoint.
   Hypothesis Fcontinuous : continuous_functor F.
 
   Definition fixpoint : ob (EMBED true) :=
-    (cont_functors.fixpoint
+    cont_functors.fixpoint
            PPLT_EMBED_initialized
            F 
-           (bilimit_cocone true)).
+           (bilimit_cocone true).
 
   Definition fixpoint_initial : Alg.initial_alg (EMBED true) F :=
-    (cont_functors.fixpoint_initial
+    cont_functors.fixpoint_initial
            PPLT_EMBED_initialized
            F 
            (bilimit_cocone true)
            (bilimit_construction true)
-           Fcontinuous).
+           Fcontinuous.
 
   Definition fixpoint_iso : F fixpoint ↔ fixpoint :=
-    (cont_functors.fixpoint_iso
+    cont_functors.fixpoint_iso
            PPLT_EMBED_initialized
            F 
            (bilimit_cocone true)
            (bilimit_construction true)
-           Fcontinuous).
+           Fcontinuous.
 End fixpoint.
+
+
+Require Import Arith.
+
+(** We can also build fixpoints in the category of total
+    Plotkin orders by requiring a little more data.
+    This proof is a modification of Theorem 79 from
+    Carl Gunter's PhD thesis (CMU, 1985).
+ *)
+Section total_fixpoint.
+  Variable F:functor (EMBED false) (EMBED false).
+  Hypothesis Fcontinuous : continuous_functor F.
+
+  Variable A:ob PLT.
+  Variable h:A ⇀ F A.
+
+  Fixpoint iterF (x:nat) : ob PLT :=
+    match x with
+    | O => A
+    | S x' => F (iterF x')
+    end.
+
+  Fixpoint injectA (j:nat) : A ⇀ iterF j :=
+    match j as j' return A ⇀ iterF j' with
+    | 0 => id
+    | S n => F@(injectA n) ∘ h
+    end.
+
+  Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i ⇀ iterF j :=
+    match i as i' return forall (j:nat) (Hij:i' <= j), iterF i' ⇀ iterF j with
+    | O => fun j Hij => injectA j
+    | S i' => fun j =>
+        match j as j' return forall (Hij:S i' <= j'), iterF (S i') ⇀ iterF j' with
+        | O => fun Hij => False_rect _ (HSle0 i' Hij) (* impossible case *)
+        | S j' => fun Hij => F@(iter_hom i' j' (gt_S_le i' j' Hij))
+        end
+    end.
+
+  Lemma iter_hom_proof_irr i : forall j H1 H2,
+    iter_hom i j H1 ≈ iter_hom i j H2.
+  Proof.
+    induction i; simpl; intros; auto.
+    destruct j.
+    elimtype False. inversion H1.
+    apply Functor.respects.
+    apply IHi.
+  Qed.
+
+  Program Definition kleene_chain_alt : directed_system nat_dirord (EMBED false) :=
+    DirSys nat_dirord _ iterF iter_hom _ _.
+  Next Obligation.      
+    induction i; simpl; intros.
+    auto.
+    apply Functor.ident; auto.
+  Qed.
+  Next Obligation.
+    induction i. simpl; intros.
+    clear Hij Hik.
+    revert k Hjk; induction j; simpl; intros.
+    apply cat_ident1.
+    destruct k.
+    elimtype False. inversion Hjk.
+    simpl.
+    rewrite (@cat_assoc (EMBED false)).
+    apply cat_respects; auto.
+    symmetry. apply Functor.compose.
+    symmetry. apply IHj.
+    
+    intros. destruct j.
+    elimtype False. inversion Hij.
+    destruct k.
+    elimtype False. inversion Hjk.
+    simpl.
+    rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
+    reflexivity. auto.
+  Qed.
+
+  Definition fixpoint_alt : ob PLT := bilimit false nat_dirord kleene_chain_alt.
+  
+  Let BL := Fcontinuous
+               nat_dirord kleene_chain_alt
+               (bilimit_cocone false nat_dirord kleene_chain_alt)
+               (bilimit_construction false nat_dirord kleene_chain_alt).
+
+  Program Definition cocone_plus1 : cocone (dir_sys_app kleene_chain_alt F)
+    := Cocone (dir_sys_app kleene_chain_alt F) fixpoint_alt
+      (fun i => cocone_spoke (bilimit_cocone false nat_dirord kleene_chain_alt) (S i)) _.
+  Next Obligation.
+    simpl; intros.
+    assert (Hij' : S i <= S j). auto with arith.
+    rewrite (cocone_commute (bilimit_cocone false nat_dirord kleene_chain_alt) (S i) (S j) Hij').
+    simpl. apply cat_respects; auto.
+    apply Functor.respects.
+    apply iter_hom_proof_irr.
+  Qed.
+
+  Program Definition cocone_minus1 : cocone kleene_chain_alt
+    := Cocone kleene_chain_alt (F fixpoint_alt) 
+           (fun i => 
+              F@(cocone_spoke (bilimit_cocone false nat_dirord kleene_chain_alt) i) ∘
+              iter_hom i (S i) (le_S i i (le_refl i)))
+           _.
+  Next Obligation.
+    simpl. intros.
+    assert (i <= S j). auto with arith.
+    rewrite <- (@cat_assoc (EMBED false)).
+    rewrite (kleene_chain_alt_obligation_2 i j (S j) Hij (le_S j j (le_refl j)) H).
+    destruct i. simpl.
+
+    rewrite Functor.ident; auto.
+    rewrite (@cat_ident2 (EMBED false)).
+    rewrite (@cat_assoc (EMBED false)).
+    apply cat_respects; auto.
+    apply Functor.compose.
+    rewrite (limset_spoke_commute false nat_dirord kleene_chain_alt 0 j Hij).
+    simpl. auto.
+
+    simpl.
+    etransitivity.
+    symmetry.
+    apply (Functor.compose F) with 
+      (f:=limset_spoke false nat_dirord kleene_chain_alt (S i))
+      (g:=iter_hom i (S i) (gt_S_le i (S i) (le_S (S i) (S i) (le_refl (S i)))))
+      (h:=limset_spoke false nat_dirord kleene_chain_alt j ∘
+          iter_hom i j (gt_S_le i j H)).
+    2: apply (Functor.compose F); auto.
+    assert (i <= j) by auto with arith.
+    rewrite <- (limset_spoke_commute false nat_dirord kleene_chain_alt i j).
+    rewrite <- (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
+    auto.
+  Qed.
+
+  Definition fixpoint_alt_in : F fixpoint_alt ⇀ fixpoint_alt :=
+    colim_univ BL cocone_plus1.
+  Definition fixpoint_alt_out : fixpoint_alt ⇀ F fixpoint_alt :=
+    limord_univ false nat_dirord kleene_chain_alt cocone_minus1.
+
+  Lemma fixpoint_alt_in_out : fixpoint_alt_in ∘ fixpoint_alt_out ≈ id.
+  Proof.
+    transitivity (limord_univ false nat_dirord kleene_chain_alt 
+      (bilimit_cocone false nat_dirord kleene_chain_alt)).
+    apply (limord_univ_uniq false nat_dirord kleene_chain_alt
+      (bilimit_cocone false nat_dirord kleene_chain_alt)).
+    simpl; intros. unfold fixpoint_alt_in. unfold fixpoint_alt_out.
+    rewrite <- (@cat_assoc (EMBED false)).
+    rewrite <- (limord_univ_commute false nat_dirord kleene_chain_alt cocone_minus1 i).
+    simpl.
+    generalize (colim_commute BL cocone_plus1 i). simpl. intros.
+    transitivity (limset_spoke false nat_dirord kleene_chain_alt (S i)
+      ∘ iter_hom i (S i) (le_S i i (le_refl i))).
+    apply (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
+    rewrite (@cat_assoc (EMBED false)).
+    apply cat_respects; auto.
+    symmetry.
+    apply (limord_univ_uniq false nat_dirord kleene_chain_alt
+      (bilimit_cocone false nat_dirord kleene_chain_alt)).
+    simpl; intros.  
+    symmetry. apply cat_ident2.
+  Qed.
+
+  Lemma fixpoint_alt_out_in : fixpoint_alt_out ∘ fixpoint_alt_in ≈ id.
+  Proof.
+    transitivity (colim_univ BL 
+        (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
+    apply (colim_uniq BL (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
+    simpl. unfold fixpoint_alt_out. unfold fixpoint_alt_in.
+    intros.
+    generalize (colim_commute BL cocone_plus1 i).
+    simpl. intros. 
+    rewrite <- (@cat_assoc (EMBED false)).
+    rewrite <- H.
+    generalize (limord_univ_commute false nat_dirord kleene_chain_alt
+      cocone_minus1 (S i)). simpl. intros.
+    rewrite <- H0.
+    apply Functor.compose.
+    apply (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
+    symmetry. 
+    apply (colim_uniq BL (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
+    simpl; intros.
+    symmetry. apply cat_ident2.
+  Qed.
+
+  Definition fixpoint_embed : A ⇀ fixpoint_alt :=
+    limset_spoke false nat_dirord kleene_chain_alt 0.
+  
+  Definition fixpoint_alt_iso : F fixpoint_alt ↔ fixpoint_alt :=
+    Isomorphism (EMBED false) (F fixpoint_alt) fixpoint_alt
+       fixpoint_alt_in
+       fixpoint_alt_out
+       fixpoint_alt_out_in
+       fixpoint_alt_in_out.
+
+End total_fixpoint.
