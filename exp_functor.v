@@ -879,10 +879,68 @@ Proof.
   apply identF_continuous.
 Qed.
 
-Definition lamModel := fixpoint (lamF true).
+Definition lamModelCBV : ob ∂PLT
+  := fixpoint (lamF true).
 
-Lemma lamModel_iso : (PLT.exp lamModel lamModel : ob (EMBED true)) ↔ lamModel.
+Lemma lamModelCBV_iso : (PLT.exp lamModelCBV lamModelCBV : ob (EMBED true)) ↔ lamModelCBV.
 Proof.
   apply (fixpoint_iso (lamF true)).
+  apply lamF_continuous.
+Qed.
+
+
+Program Definition lamModelIn : PLT.unit false ⇀ lamF false (PLT.unit false) :=
+  Embedding false (PLT.unit false) (lamF false (PLT.unit false)) 
+    (fun x => exist _ ((tt,tt)::nil) _) _ _ _ _.
+Next Obligation.
+  repeat intro.
+  hnf. split. hnf; auto.
+  simpl. intros. exists tt.
+  destruct x0. split; auto.
+  apply cons_elem. auto.
+  hnf; simpl; intros.
+  hnf; auto.
+Qed.
+Next Obligation.
+  hnf; simpl; intros.
+  red. hnf. simpl. intros.
+  exists tt. exists tt.
+  split.
+  apply cons_elem; auto.
+  split; hnf; auto.
+Qed.
+Next Obligation.
+  repeat intro; hnf; auto.
+Qed.
+Next Obligation.
+  intros. exists tt.
+  simpl. hnf; auto.
+  simpl; intros.
+  exists tt. exists tt.
+  split.
+  destruct y. simpl.
+  destruct i.
+  simpl in H1.
+  destruct (H1 x) with tt; auto.
+  hnf; auto.
+  split.
+  hnf. intros; hnf; auto.
+  intros; hnf; auto.
+  destruct H2. destruct x0; auto.
+  split; hnf; auto.
+Qed.
+Next Obligation.
+  hnf; simpl. intros.
+  exists tt.
+  split; hnf; auto.
+  split; hnf; auto.
+Qed.
+
+Definition lamModelCBN : ob PLT
+  := fixpoint_alt (lamF false) (PLT.unit false) lamModelIn.
+
+Lemma lamModelCBN_iso : (PLT.exp lamModelCBN lamModelCBN : ob (EMBED false)) ↔ lamModelCBN.
+Proof.
+  apply (fixpoint_alt_iso (lamF false)).
   apply lamF_continuous.
 Qed.
