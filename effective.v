@@ -26,6 +26,7 @@ Record effective_order (A:preord) :=
   *)
 Canonical Structure eff_to_ord_dec A (Heff:effective_order A) : ord_dec A :=
   OrdDec A (eff_ord_dec A Heff).
+Coercion eff_to_ord_dec : effective_order >-> ord_dec.
 
 
 (**  The positive integers form an effective preorder.
