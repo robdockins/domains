@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import Setoid.
 Require Import Coq.Program.Basics.
 

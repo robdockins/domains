@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import Setoid.
 Require Import NArith.
 Require Import List.

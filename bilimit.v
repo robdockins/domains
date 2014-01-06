@@ -9,6 +9,8 @@ Require Import finsets.
 Require Import esets.
 Require Import effective.
 Require Import plotkin.
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import profinite.
 Require Import embed.
 Require Import directed.

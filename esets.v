@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import Relations.
 Require Import List.
 Require Import NArith.

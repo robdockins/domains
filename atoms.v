@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import Ascii.
 Require Export String.
 Open Scope string_scope.

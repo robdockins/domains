@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import NArith.
 
 Local Open Scope N_scope.

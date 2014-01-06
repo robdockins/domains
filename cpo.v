@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import basics.
 Require Import preord.
 Require Import categories.
