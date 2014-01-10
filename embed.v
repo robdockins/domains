@@ -759,3 +759,51 @@ Arguments embed_ep_pair [hf] [X] [Y] _.
 Canonical Structure PLT_EP.
 Canonical Structure ep_pair_eq.
 Canonical Structure ep_pair_comp.
+
+
+Program Definition embedForget hf : functor (EMBED hf) (PLT.PLT hf) :=
+  Functor (EMBED hf) (PLT.PLT hf) (fun X => X) (fun X Y f => embed_hom hf X Y f) _ _ _.
+Next Obligation.
+  intros. split; hnf; simpl; intros.
+  destruct a.
+  apply embed_rel_elem in H0.
+  apply ident_elem.
+  rewrite H0.
+  destruct H. apply H.
+  destruct a.
+  apply embed_rel_elem.
+  apply ident_elem in H0.
+  rewrite H0. destruct H. apply H1.
+Qed.
+Next Obligation.
+  simpl; intros.
+  split; hnf; simpl; intros.
+  destruct a as [a c].
+  apply embed_rel_elem in H0.
+  destruct H. 
+  apply compose_elem.
+  apply embed_hom_obligation_1.
+  exists (g a).
+  split.
+  apply embed_rel_elem. auto.
+  apply embed_rel_elem. 
+  rewrite H0. apply H.
+  destruct a as [a c].
+  apply compose_elem in H0.
+  2: apply embed_hom_obligation_1.
+  destruct H0 as [y [??]].
+  apply embed_rel_elem.
+  apply embed_rel_elem in H0.
+  apply embed_rel_elem in H1.
+  rewrite H1. rewrite H0.
+  destruct H. apply H2.
+Qed.
+Next Obligation.
+  repeat intro. split; hnf; simpl; intros.
+  destruct a as [a b].
+  apply embed_rel_elem in H0. apply embed_rel_elem.
+  rewrite H0. destruct H. apply H.
+  destruct a as [a b].
+  apply embed_rel_elem in H0. apply embed_rel_elem.
+  rewrite H0. destruct H. apply H1.
+Qed.
