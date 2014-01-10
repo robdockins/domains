@@ -149,8 +149,8 @@ Section sum_functor.
     | inr b => inr (g b)
     end.
 
-  Program Definition sum_fmap : PLT.sum hf A C ⇀ PLT.sum hf B D
-    := Embedding hf (PLT.sum hf A C) (PLT.sum hf B D) sum_fmap_func _ _ _ _.
+  Program Definition sum_fmap : PLT.sum A C ⇀ PLT.sum B D
+    := Embedding hf (PLT.sum A C) (PLT.sum B D) sum_fmap_func _ _ _ _.
   Next Obligation.
     intros. destruct a as [a|c]. destruct a' as [a'|c']; simpl.
     apply embed_mono; auto.
@@ -201,8 +201,8 @@ Program Definition sumF hf
 
   Functor (PROD (EMBED hf) (EMBED hf)) (EMBED hf) 
      (fun (AB:ob (PROD (EMBED hf) (EMBED hf))) =>
-         PLT.sum hf (@obl (EMBED hf) (EMBED hf) AB)
-                    (@obr (EMBED hf) (EMBED hf) AB))
+         PLT.sum (@obl (EMBED hf) (EMBED hf) AB)
+                 (@obr (EMBED hf) (EMBED hf) AB))
      (fun (AB CD:ob (PROD (EMBED hf) (EMBED hf))) (f:AB → CD) => 
        sum_fmap hf _ _ _ _
          (@homl (EMBED hf) (EMBED hf) AB CD f)

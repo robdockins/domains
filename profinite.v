@@ -362,7 +362,103 @@ Section PLT.
     apply curry_apply. 
     apply hom_directed. 
     apply plotkin.
-  Qed. 
+  Qed.
+
+  Theorem pair_monotone (C A B:ob) (f f':C → A) (g g':C → B) :
+    f ≤ f' -> g ≤ g' -> pair f g ≤ pair f' g'.
+  Proof.
+    repeat intro.
+    destruct a as [c [a b]]. simpl in *.
+    apply (pair_rel_elem _ _ _ _ f g) in H1.
+    apply pair_rel_elem.
+    destruct H1; split; auto.
+  Qed.
+
+  Theorem pair_eq (C A B:ob) (f f':C → A) (g g':C → B) :
+    f ≈ f' -> g ≈ g' -> pair f g ≈ pair f' g'.
+  Proof.
+    intros. split; apply pair_monotone; auto.
+  Qed.
+
+  Theorem pair_map_pair C X Y Z W (f1:C → X) (f2:X → Y) (g1:C → Z) (g2:Z → W) :
+    pair (f2 ∘ f1) (g2 ∘ g1) ≈ pair_map f2 g2 ∘ pair f1 g1.
+  Proof.
+    split; hnf; simpl; intros.
+    destruct a as [c [y w]].
+    apply (pair_rel_elem (ord Y) (ord W) (ord C) (effective C)
+         (compose_rel (effective X) f2 f1)
+         (compose_rel (effective Z) g2 g1)) in H.
+    destruct H.
+    apply compose_elem.
+    apply pair_rel_ordering; apply hom_order.
+    simpl.
+    apply compose_elem in H. 2: apply hom_order.
+    apply compose_elem in H0. 2: apply hom_order.
+    destruct H as [x [??]].
+    destruct H0 as [z [??]].
+    exists (x,z). split; auto.
+    apply pair_rel_elem; split; auto.
+    apply pair_rel_elem. split; auto.
+    apply compose_elem. apply pi1_rel_ordering.
+    exists x; split; auto.
+    apply pi1_rel_elem. auto.
+    apply compose_elem. apply pi2_rel_ordering.
+    exists z. split; auto.
+    apply pi2_rel_elem. auto.
+
+    destruct a as [c [y w]].
+    apply compose_elem in H; simpl in *.
+    2: apply pair_rel_ordering; apply hom_order.
+    destruct H as [[x z] [??]].
+    apply pair_rel_elem in H.
+    apply (pair_rel_elem _ _ _ _
+           (compose_rel (effective X) f2
+              (pi1_rel (effective X) (effective Z)))
+           (compose_rel (effective Z) g2
+              (pi2_rel (effective X) (effective Z)))) in H0.
+    destruct H0.
+    apply compose_elem in H0. 2: apply pi1_rel_ordering.
+    apply compose_elem in H1. 2: apply pi2_rel_ordering.
+    destruct H0 as [x' [??]].
+    destruct H1 as [y' [??]].
+    apply pair_rel_elem.
+    split.
+    apply compose_elem. apply hom_order.
+    destruct H.
+    exists x. split; auto.
+    apply (hom_order _ _ f2) with x' y; auto.
+    apply pi1_rel_elem in H0. auto.
+    apply compose_elem. apply hom_order.
+    destruct H.
+    exists z. split; auto.
+    apply (hom_order _ _ g2) with y' w; auto.
+    apply pi2_rel_elem in H1. auto.
+  Qed.
+
+  Theorem curry_apply2 A B C (f:hom (prod C A) B) (g:C → A) :
+    app ∘ pair (curry f) g ≈ f ∘ pair id g.
+  Proof.
+    cut (pair (curry f) g ≈ pair_map (curry f) id ∘ pair id g).
+    intros. rewrite H.
+    rewrite (@cat_assoc PLT).
+    rewrite curry_apply. auto.
+    rewrite <- pair_map_pair.
+    apply pair_eq.
+    symmetry. apply cat_ident1.
+    symmetry. apply cat_ident2.
+  Qed.
+
+  Theorem curry_apply3 A B C D (f:hom (prod D A) B) (h:C → D) (g:C → A) :
+    app ∘ pair (curry f ∘ h) g ≈ f ∘ pair h g.
+  Proof.
+    cut (pair (curry f ∘ h) g ≈ pair_map (curry f) id ∘ pair h g).
+    intros. rewrite H.
+    rewrite (@cat_assoc PLT).
+    rewrite curry_apply. auto.
+    rewrite <- pair_map_pair.
+    apply pair_eq. auto.
+    symmetry. apply cat_ident2.
+  Qed.
 
   Theorem curry_universal A B C (f:hom (prod C A) B) (CURRY:hom C (exp A B)) :
     app ∘ pair_map CURRY id ≈ f -> CURRY ≈ curry f.
@@ -525,15 +621,82 @@ Arguments PLT.iota1 [hf] [A] [B].
 Arguments PLT.iota1 [hf] [A] [B].
 Arguments PLT.sum_cases [hf] [C] [A] [B] f g.
 Arguments PLT.prod [hf] A B.
+Arguments PLT.sum [hf] A B.
 Arguments PLT.exp [hf] A B.
-Arguments PLT.app [hf] A B.
-Arguments PLT.curry [hf] C A B f.
+Arguments PLT.app [hf A B].
+Arguments PLT.curry [hf C A B] f.
 
 Coercion PLT.ord : PLT.ob >-> preord.
 Coercion PLT.carrier : PLT.ob >-> Sortclass.
 
 Notation PLT := (PLT.PLT false).
 Notation "'∂PLT'" := (PLT.PLT true).
+
+
+Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
+    (@PLT.pair hf C A B)
+    with signature (Preord.ord_op (PLT.hom_ord hf C A)) ==>
+                   (Preord.ord_op (PLT.hom_ord hf C B)) ==>
+                   (Preord.ord_op (PLT.hom_ord hf C (PLT.prod A B)))
+     as plt_le_pair_morphism.
+Proof.
+  intros. apply PLT.pair_monotone; auto.
+Qed.
+
+Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
+    (@PLT.sum_cases hf C A B)
+    with signature (Preord.ord_op (PLT.hom_ord hf A C)) ==>
+                   (Preord.ord_op (PLT.hom_ord hf B C)) ==>
+                   (Preord.ord_op (PLT.hom_ord hf (PLT.sum A B) C))
+     as plt_le_cases_morphism.
+Proof.
+  repeat intro.
+  destruct a as [z c].
+  simpl in *.
+  apply (sum_cases_elem C A B (PLT.hom_rel x) (PLT.hom_rel x0)) in H1.
+  apply (sum_cases_elem C A B (PLT.hom_rel y) (PLT.hom_rel y0)).
+  destruct z; auto.
+Qed.
+
+Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
+    (@PLT.pair hf C A B)
+    with signature (eq_op (PLT.hom_eq hf C A)) ==>
+                   (eq_op (PLT.hom_eq hf C B)) ==>
+                   (eq_op (PLT.hom_eq hf C (PLT.prod A B)))
+     as plt_pair_morphism.
+Proof.
+  intros. apply PLT.pair_eq; auto.
+Qed.
+
+Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
+    (@PLT.sum_cases hf C A B)
+    with signature (eq_op (PLT.hom_eq hf A C)) ==>
+                   (eq_op (PLT.hom_eq hf B C)) ==>
+                   (eq_op (PLT.hom_eq hf (PLT.sum A B) C))
+     as plt_cases_morphism.
+Proof.
+  intros. split; apply plt_le_cases_morphism; auto.
+Qed.
+
+Program Definition pplt_bot (A B:ob ∂PLT) : A → B :=
+  PLT.Hom true A B ∅ _ _.
+Next Obligation.
+  intros. apply empty_elem in H1. elim H1.
+Qed.
+Next Obligation.
+  repeat intro.
+  destruct Hinh as [q ?].
+  apply H in H0.
+  apply erel_image_elem in H0.
+  apply empty_elem in H0. elim H0.
+Qed.
+Notation "⊥" := (pplt_bot _ _).
+
+Lemma bot_least (A B:∂PLT) (f:A → B) : ⊥ ≤ f.
+Proof.
+  repeat intro; simpl in *.
+  apply empty_elem in H. elim H.
+Qed.
 
 Theorem pair_commute1 (C A B:ob PLT) (f:C → A) (g:C → B) :
   PLT.pi1 ∘ PLT.pair f g ≈ f.
@@ -553,13 +716,110 @@ Proof.
   apply PLT.hom_directed.
 Qed.
 
+Section plt_const.
+  Variable hf:bool.
+  Variables A B:PLT.PLT hf.
+  Variable b:B.
+  
+  Definition plt_const_rel :=
+    eprod (eff_enum A (PLT.effective A))
+                       (esubset_dec B (fun x => x ≤ b) 
+                          (fun x => eff_ord_dec B (PLT.effective B) x b)
+                          (eff_enum B (PLT.effective B))). 
+  
+  Lemma plt_const_rel_elem : forall a b',
+    (a,b') ∈ plt_const_rel <-> b' ≤ b.
+  Proof.
+    repeat intro. unfold plt_const_rel. split; intro.
+    apply eprod_elem in H. destruct H.
+    apply esubset_dec_elem in H0. destruct H0; auto.
+    intros. rewrite <- H1; auto.
+    apply eprod_elem. split.
+    apply eff_complete.
+    apply esubset_dec_elem.
+    intros. rewrite <- H0. auto.
+    split; auto.
+    apply eff_complete.
+  Qed.
+
+  Program Definition plt_const :=
+    PLT.Hom hf A B plt_const_rel _ _.
+  Next Obligation.
+    intros.
+    apply plt_const_rel_elem in H1.
+    apply plt_const_rel_elem.
+    eauto.
+  Qed.
+  Next Obligation.
+    repeat intro.
+    exists b; split; repeat intro.
+    apply H in H0.
+    apply erel_image_elem in H0.
+    apply plt_const_rel_elem in H0. auto.
+    apply erel_image_elem.
+    apply plt_const_rel_elem. auto.
+  Qed.
+End plt_const.  
+
+Lemma compose_hom_rel : forall hf (A B C:PLT.PLT hf) (f:A → B) (g:B → C) x z,
+  (x,z) ∈ PLT.hom_rel (g ∘ f) <-> 
+  exists y, (x,y) ∈ PLT.hom_rel f /\ (y,z) ∈ PLT.hom_rel g.
+Proof.
+  simpl; intros.
+  split; intros.
+  apply compose_elem in H. auto.
+  apply PLT.hom_order.
+  apply compose_elem. apply PLT.hom_order.
+  auto.
+Qed.
+
 Module PPLT.
+  Theorem pair_bot1 (C A B:ob ∂PLT) (f:C → A) :
+    PLT.pair f (⊥ : C → B) ≈ ⊥.
+  Proof.
+    split. hnf; simpl; intros.
+    destruct a as [c [a b]].
+    apply (pair_rel_elem A B C (PLT.effective C) (PLT.hom_rel f) ∅) in H.
+    destruct H.
+    apply empty_elem in H0. elim H0.
+    apply bot_least.
+  Qed.
+
+  Theorem pair_bot2 (C A B:ob ∂PLT) (g:C → B) :
+    PLT.pair (⊥ : C → A) g ≈ ⊥.
+  Proof.
+    split. hnf; simpl; intros.
+    destruct a as [c [a b]].
+    apply (pair_rel_elem A B C (PLT.effective C) ∅ (PLT.hom_rel g)) in H.
+    destruct H.
+    apply empty_elem in H. elim H.
+    apply bot_least.
+  Qed.
+
   Theorem pair_commute1 (C A B:ob ∂PLT) (f:C → A) (g:C → B) :
     PLT.pi1 ∘ PLT.pair f g ≤ f.
   Proof.
     apply pair_proj_commute1_le.
     apply PLT.hom_order.
     apply PLT.hom_order.
+  Qed.
+
+  Theorem pi1_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → A) :
+    (forall C (f:C → A) (g:C → B), proj ∘ PLT.pair f g ≤ f) -> proj ≤ PLT.pi1.
+  Proof.
+    repeat intro.
+    destruct a as [[a b] a']. simpl in *.
+    apply pi1_rel_elem.
+    apply (plt_const_rel_elem true B A a b a').
+    apply (H B (plt_const _ _ _ a) (id) (b,a')).
+    apply compose_hom_rel.
+    exists (a,b).
+    split; auto.
+    simpl.
+    apply pair_rel_elem.
+    split; auto.
+    apply plt_const_rel_elem. auto.
+    apply ident_elem. auto.
   Qed.
 
   Theorem pair_commute2 (C A B:ob ∂PLT) (f:C → A) (g:C → B) :
@@ -569,4 +829,23 @@ Module PPLT.
     apply PLT.hom_order.
     apply PLT.hom_order.
   Qed.
+
+  Theorem pi2_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → B) :
+    (forall C (f:C → A) (g:C → B), proj ∘ PLT.pair f g ≤ g) -> proj ≤ PLT.pi2.
+  Proof.
+    repeat intro.
+    destruct a as [[a b] b']. simpl in *.
+    apply pi2_rel_elem.
+    apply (plt_const_rel_elem true A B b a b').
+    apply (H A (id) (plt_const _ _ _ b) (a,b')).
+    apply compose_hom_rel.
+    exists (a,b).
+    split; auto.
+    simpl.
+    apply pair_rel_elem.
+    split; auto.
+    apply ident_elem. auto.
+    apply plt_const_rel_elem. auto.
+  Qed.
+
 End PPLT.
