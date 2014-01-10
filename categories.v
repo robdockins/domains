@@ -80,6 +80,8 @@ Notation ob := Category.ob.
 Notation hom := Category.hom.
 Notation "A → B" := (Category.hom _ A B) (at level 65).
 
+Coercion ob : category >-> Sortclass.
+
 Canonical Structure CAT_EQ (C:category) A B
   := Eq.Pack (hom C A B) (Category.eq C A B).
 Canonical Structure CAT_COMP (C:category) 
@@ -180,22 +182,21 @@ Notation "f '⁻¹'" := (Groupoid.inv_op _ _ _ f) (at level 1, format "f '⁻¹'
 
 
 Lemma inv_id1 (X:groupoid) :
-  forall (A B:ob X) (f:A → B), f ∘ f⁻¹ ≈ id.
+  forall (A B:X) (f:A → B), f ∘ f⁻¹ ≈ id.
 
 Proof (Groupoid.inv_id1 _ _ _ _ _
         (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
 Arguments inv_id1 [X A B] f.
 
-
 Lemma inv_id2 (X:groupoid) :
-  forall (A B:ob X) (f:A → B), f⁻¹ ∘ f ≈ id.
+  forall (A B:X) (f:A → B), f⁻¹ ∘ f ≈ id.
 
 Proof (Groupoid.inv_id2 _ _ _ _ _
         (Groupoid.groupoid_axioms _ _ _ _ (Groupoid.mixin X))).
 Arguments inv_id2 [X A B] f.
 
 Lemma inv_inv (X:groupoid) :
-  forall (A B:ob X) (f:A → B), (f⁻¹)⁻¹ ≈ f.
+  forall (A B:X) (f:A → B), (f⁻¹)⁻¹ ≈ f.
 Proof.
   intros.
   generalize (inv_id2 f⁻¹). intro.
@@ -207,7 +208,7 @@ Proof.
 Qed.
 
 Lemma inv_compose (X:groupoid) :
-  forall (A B C:ob X) (g:B → C) (f:A → B), (g ∘ f)⁻¹ ≈ f⁻¹ ∘ g⁻¹.
+  forall (A B C:X) (g:B → C) (f:A → B), (g ∘ f)⁻¹ ≈ f⁻¹ ∘ g⁻¹.
 Proof.
   intros.
   generalize (inv_id2 (g ∘ f)). intro.
@@ -228,7 +229,7 @@ Proof.
   auto.  
 Qed.
 
-Lemma inv_eq (X:groupoid) (A B:ob X) (f g:A → B) : 
+Lemma inv_eq (X:groupoid) (A B:X) (f g:A → B) : 
   f ≈ g -> f⁻¹ ≈ g⁻¹.
 Proof.
   intro.
@@ -243,7 +244,7 @@ Proof.
   rewrite (@cat_ident1 X). auto.
 Qed.
 
-Lemma inv_inj (X:groupoid) (A B:ob X) (f g:A → B) : 
+Lemma inv_inj (X:groupoid) (A B:X) (f g:A → B) : 
   f⁻¹ ≈ g⁻¹ -> f ≈ g.
 Proof.
   intros.
@@ -253,7 +254,7 @@ Proof.
   auto.
 Qed.
 
-Add Parametric Morphism (X:groupoid) (A B:ob X) :
+Add Parametric Morphism (X:groupoid) (A B:X) :
   (Groupoid.inv_op X A B)
     with signature (eq_op (Groupoid.eq X A B)) ==>
                    (eq_op (Groupoid.eq X B A))
@@ -266,7 +267,7 @@ Proof (inv_eq X A B).
 Section mono.
   Variable C:category.
 
-  Record monomorphism (A B:ob C) :=
+  Record monomorphism (A B:C) :=
     Monomorphism
     { mono_hom : A → B
     ; mono_axiom : forall X (g h:X → A),
@@ -279,14 +280,14 @@ Arguments mono_axiom [C] [A] [B] m [X] [g] [h] _.
 Coercion mono_hom : monomorphism >-> hom.
 Notation "A ↣ B" := (monomorphism _ A B) (at level 65).
 
-Program Definition mono_eq (C:category) (A B:ob C) :=
+Program Definition mono_eq (C:category) (A B:C) :=
   Eq.Mixin (monomorphism C A B)
      (fun f g => mono_hom f ≈ mono_hom g) _ _ _.
 Next Obligation.
   eauto.
 Qed.
 
-Program Definition mono_id (C:category) (A:ob C) :=
+Program Definition mono_id (C:category) (A:C) :=
   Monomorphism C A A (id(A)) _.  
 Next Obligation.
   rewrite (cat_ident2 g) in H.
@@ -295,7 +296,7 @@ Next Obligation.
 Qed.
 
 Program Definition mono_compose
-  (C:category) (X Y Z:ob C) (g:Y ↣ Z) (f:X ↣ Y) :=
+  (C:category) (X Y Z:C) (g:Y ↣ Z) (f:X ↣ Y) :=
   Monomorphism C X Z (mono_hom g ∘ mono_hom f) _.
 Next Obligation.
   intros.
@@ -349,7 +350,7 @@ Arguments MONO_CONCRETE [C] [CC].
 Section epic.
   Variable C:category.
 
-  Record epimorphism (A B:ob C) :=
+  Record epimorphism (A B:C) :=
     Epimorphism
     { epi_hom : A → B
     ; epi_axiom : forall X (g h:B → X),
@@ -363,14 +364,14 @@ Arguments epi_axiom [C] [A] [B] e _ _ _ _.
 Coercion epi_hom : epimorphism >-> hom.
 Notation "A ↠ B" := (epimorphism _ A B) (at level 65).
 
-Program Definition epi_eq (C:category) (A B:ob C) :=
+Program Definition epi_eq (C:category) (A B:C) :=
   Eq.Mixin (epimorphism C A B)
      (fun f g => epi_hom f ≈ epi_hom g) _ _ _.
 Next Obligation.
   eauto.
 Qed.
 
-Program Definition epi_id (C:category) (A:ob C) :=
+Program Definition epi_id (C:category) (A:C) :=
   Epimorphism C A A (id(A)) _.  
 Next Obligation.
   rewrite (cat_ident1 g) in H.
@@ -379,7 +380,7 @@ Next Obligation.
 Qed.
 
 Program Definition epi_compose
-  (C:category) (X Y Z:ob C) (g:Y ↠ Z) (f:X ↠ Y) :=
+  (C:category) (X Y Z:C) (g:Y ↠ Z) (f:X ↠ Y) :=
   Epimorphism C X Z (epi_hom g ∘ epi_hom f) _.
 Next Obligation.
   intros.
@@ -434,7 +435,7 @@ Arguments EPI_CONCRETE [C] [CC].
 Section iso.
   Variable C:category.
 
-  Record isomorphism (A B:ob C) :=
+  Record isomorphism (A B: C) :=
     Isomorphism
     { iso_hom : A → B
     ; iso_inv : B → A
@@ -450,14 +451,14 @@ Arguments iso_axiom2 [C] [A] [B] i.
 Coercion iso_hom : isomorphism >-> hom.
 Notation "A ↔ B" := (isomorphism _ A B) (at level 65).
 
-Program Definition iso_eq (C:category) (A B:ob C) :=
+Program Definition iso_eq (C:category) (A B:C) :=
   Eq.Mixin (isomorphism C A B)
      (fun f g => iso_hom f ≈ iso_hom g) _ _ _.
 Next Obligation.
   eauto.
 Qed.
 
-Program Definition iso_id (C:category) (A:ob C) :=
+Program Definition iso_id (C:category) (A:C) :=
   Isomorphism C A A (id(A)) (id(A)) _ _.
 Next Obligation.
   apply cat_ident1.
@@ -467,7 +468,7 @@ Next Obligation.
 Qed.
 
 Program Definition iso_compose
-  (C:category) (X Y Z:ob C) (g:Y ↔ Z) (f:X ↔ Y) :=
+  (C:category) (X Y Z:C) (g:Y ↔ Z) (f:X ↔ Y) :=
   Isomorphism C X Z (iso_hom g ∘ iso_hom f) (iso_inv f ∘ iso_inv g) _ _.
 Next Obligation.
   intros. 
@@ -502,7 +503,7 @@ Proof.
   simpl; intros. apply cat_respects; auto.
 Qed.
 
-Definition iso_inverse (C:category) (A B:ob C)
+Definition iso_inverse (C:category) (A B:C)
   (f:A ↔ B) : B ↔ A :=
   Isomorphism C B A (iso_inv f) (iso_hom f)
     (iso_axiom2 f) (iso_axiom1 f).
@@ -589,7 +590,7 @@ Notation "'!'" := (Terminated.terminus_op _).
 Notation terminate := (Terminated.terminate_op _ _).
 
 Lemma terminate_univ (X:terminated) :
-  forall (A:ob X) (f:A → !), f ≈ terminate.
+  forall (A:X) (f:A → !), f ≈ terminate.
 Proof (Terminated.axiom _ _ _ (Terminated.mixin X)).
 
 (**  Categories with initial objects, called initilized categories.
@@ -649,7 +650,7 @@ Notation "'¡'" := (Initialized.initium_op _).
 Notation initiate := (Initialized.initiate_op _ _).
 
 Lemma initiate_univ (X:initialized) :
-  forall (A:ob X) (f:¡ → A), f ≈ initiate.
+  forall (A:X) (f:¡ → A), f ≈ initiate.
 Proof (Initialized.axiom _ _ _ (Initialized.mixin X)).
 
 
