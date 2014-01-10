@@ -101,6 +101,9 @@ Section PLT.
     intros. split; apply compose_mono; auto.
   Qed.
 
+  Canonical Structure PLT : category :=
+    Category ob hom hom_eq_mixin comp_mixin cat_axioms.
+
   Program Definition empty : ob :=
     Ob False
       (Class _
@@ -141,7 +144,7 @@ Section PLT.
          (joinable_rel_plt hf (ord A) (ord B) (effective A) (plotkin A) (effective B) (plotkin B))).
   Canonical Structure exp.
 
-  Program Definition initiate A : hom empty A :=
+  Program Definition initiate A : empty → A :=
     Hom empty A (esets.empty (prod_preord (ord empty) (ord A))) _ _.
   Next Obligation.
     intros. apply empty_elem in H1. elim H1.
@@ -150,7 +153,7 @@ Section PLT.
     intros A x. elim x.
   Qed.
 
-  Program Definition terminate A : hom A unit :=
+  Program Definition terminate A : A → unit :=
     Hom A unit (eprod (eff_enum _ (effective A)) (eff_enum _ (effective unit))) _ _.
   Next Obligation.
     intros.
@@ -164,19 +167,19 @@ Section PLT.
     apply eprod_elem; split; apply eff_complete.
   Qed.
 
-  Definition iota1 A B : hom A (sum A B) :=
+  Definition iota1 A B : A → (sum A B) :=
     Hom A (sum A B)
       (iota1_rel (ord A) (ord B) (effective A))
       (iota1_ordering (ord A) (ord B) (effective A))
       (iota1_dir (ord A) (ord B) (effective A) hf).
 
-  Definition iota2 A B : hom B (sum A B) :=
+  Definition iota2 A B : B → (sum A B) :=
     Hom B (sum A B)
       (iota2_rel (ord A) (ord B) (effective B))
       (iota2_ordering (ord A) (ord B) (effective B))
       (iota2_dir (ord A) (ord B) (effective B) hf).
   
-  Definition sum_cases {C A B} (f:hom A C) (g:hom B C) : hom (sum A B) C :=
+  Definition sum_cases {C A B} (f:A → C) (g:B → C) : (sum A B) → C :=
     Hom (sum A B) C
       (sum_cases (ord C) (ord A) (ord B) f g)
       (sum_cases_ordering (ord C) (ord A) (ord B) f g
@@ -185,13 +188,13 @@ Section PLT.
           (effective A) (effective B) hf f g
           (hom_directed _ _ f) (hom_directed _ _ g)).
 
-  Definition app {A B} : hom (prod (exp A B) A) B :=
+  Definition app {A B} : (prod (exp A B) A) → B :=
     Hom (prod (exp A B) A) B
       (apply_rel hf (ord A) (ord B) (effective A) (effective B) (plotkin A))
       (apply_rel_ordering hf (ord A) (ord B) (effective A) (effective B) (plotkin A))
       (apply_rel_dir hf (ord A) (ord B) (effective A) (effective B) (plotkin A)).
  
-  Definition curry {C A B} (f:hom (prod C A) B) : hom C (exp A B) :=
+  Definition curry {C A B} (f:(prod C A) → B) : C → (exp A B) :=
     Hom C (exp A B)
       (curry_rel hf (ord A) (ord B) (ord C)
         (effective A) (effective B) (effective C) (plotkin A) 
@@ -204,7 +207,7 @@ Section PLT.
         f (hom_order _ _ f) (hom_directed _ _ f)
         (plotkin B)).
 
-  Definition pair {C A B} (f:hom C A) (g:hom C B) : hom C (prod A B) :=
+  Definition pair {C A B} (f:C → A) (g:C → B) : C → (prod A B) :=
     Hom C (prod A B) 
       (pair_rel (effective C) f g)
       (pair_rel_ordering _ _ _ (effective C) f g (hom_order _ _ f) (hom_order _ _ g))
@@ -212,22 +215,22 @@ Section PLT.
         (hom_order _ _ f) (hom_order _ _ g)
         (hom_directed _ _ f) (hom_directed _ _ g)).
 
-  Definition pi1 {A B} : hom (prod A B) A :=
+  Definition pi1 {A B} : (prod A B) → A :=
     Hom (prod A B) A 
       (pi1_rel (effective A) (effective B))
       (pi1_rel_ordering _ _ (effective A) (effective B))
       (pi1_rel_dir _ _ _ (effective A) (effective B)).
 
-  Definition pi2 {A B} : hom (prod A B) B :=
+  Definition pi2 {A B} : (prod A B) → B :=
     Hom (prod A B) B 
       (pi2_rel (effective A) (effective B))
       (pi2_rel_ordering _ _ (effective A) (effective B))
       (pi2_rel_dir _ _ _ (effective A) (effective B)).
 
-  Definition pair_map {A B C D} (f:hom A C) (g:hom B D) : hom (prod A B) (prod C D) :=
+  Definition pair_map {A B C D} (f:A → C) (g:B → D) : (prod A B) → (prod C D) :=
     pair (f ∘ pi1) (g ∘ pi2).
 
-  Program Definition pair_map' {A B C D} (f:hom A C) (g:hom B D) : hom (prod A B) (prod C D) :=
+  Program Definition pair_map' {A B C D} (f:A → C) (g:B → D) : (prod A B) → (prod C D) :=
     Hom (prod A B) (prod C D) (pair_rel' f g) _ _.
   Next Obligation.
     intros A B C D f g.
@@ -285,7 +288,7 @@ Section PLT.
     split; auto.
   Qed.
 
-  Lemma pair_map_eq {A B C D} (f:hom A C) (g:hom B D) :
+  Lemma pair_map_eq {A B C D} (f:A → C) (g:B → D) :
     pair_map f g ≈ pair_map' f g.
   Proof.
     red. simpl. symmetry.
@@ -294,9 +297,7 @@ Section PLT.
     apply hom_order.
   Qed.
 
-  Canonical Structure PLT : category := Category ob hom hom_eq_mixin comp_mixin cat_axioms.
-
-  Theorem initiate_univ A (f:hom empty A) :
+  Theorem initiate_univ A (f:empty → A) :
     f ≈ initiate A.
   Proof.
     split; hnf; intros.
@@ -304,7 +305,7 @@ Section PLT.
     destruct a. elim c.
   Qed.
 
-  Theorem terminate_le_univ A (f:hom A unit) :
+  Theorem terminate_le_univ A (f:A → unit) :
     f ≤ terminate A.
   Proof.
     hnf; intros.
@@ -314,21 +315,21 @@ Section PLT.
     apply single_axiom. destruct c0. auto.
   Qed.
 
-  Theorem iota1_cases_commute C A B (f:hom A C) (g:hom B C) :
+  Theorem iota1_cases_commute C A B (f:A → C) (g:B → C) :
     sum_cases f g ∘ iota1 A B ≈ f.
   Proof.
     apply iota1_cases_commute.
     apply (hom_order _ _ f).
   Qed.
 
-  Theorem iota2_cases_commute C A B (f:hom A C) (g:hom B C) :
+  Theorem iota2_cases_commute C A B (f:A → C) (g:B → C) :
     sum_cases f g ∘ iota2 A B ≈ g.
   Proof.
     apply iota2_cases_commute.
     apply (hom_order _ _ g).
   Qed.
 
-  Theorem sum_cases_universal C A B (f:hom A C) (g:hom B C) (CASES:hom (sum A B) C) :
+  Theorem sum_cases_universal C A B (f:A → C) (g:B → C) (CASES:(sum A B) → C) :
     CASES ∘ iota1 A B ≈ f -> CASES ∘ iota2 A B ≈ g -> CASES ≈ sum_cases f g.
   Proof.
     intros. symmetry.
@@ -336,7 +337,7 @@ Section PLT.
     apply (hom_order _ _ CASES).
   Qed.
 
-  Theorem pair_universal C A B (f:hom C A) (g:hom C B) (PAIR:hom C (prod A B)) :
+  Theorem pair_universal C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
     pi1 ∘ PAIR ≈ f -> pi2 ∘ PAIR ≈ g -> PAIR ≈ pair f g.
   Proof.
     apply (pair_rel_universal hf).
@@ -346,7 +347,7 @@ Section PLT.
     apply hom_directed.
   Qed.
 
-  Theorem pair_universal_le C A B (f:hom C A) (g:hom C B) (PAIR:hom C (prod A B)) :
+  Theorem pair_universal_le C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
     pi1 ∘ PAIR ≤ f -> pi2 ∘ PAIR ≤ g -> PAIR ≤ pair f g.
   Proof.
     apply pair_rel_universal_le.
@@ -355,7 +356,7 @@ Section PLT.
     apply hom_order.
   Qed.
 
-  Theorem curry_apply A B C (f:hom (prod C A) B) :
+  Theorem curry_apply A B C (f:(prod C A) → B) :
     app ∘ pair_map (curry f) id ≈ f.
   Proof.
     rewrite pair_map_eq.
@@ -378,6 +379,39 @@ Section PLT.
     f ≈ f' -> g ≈ g' -> pair f g ≈ pair f' g'.
   Proof.
     intros. split; apply pair_monotone; auto.
+  Qed.
+
+  Theorem sum_cases_monotone (C A B:ob) (f f':A → C) (g g':B → C) :
+    f ≤ f' -> g ≤ g' -> sum_cases f g ≤ sum_cases f' g'.
+  Proof.
+    repeat intro.
+    destruct a as [z c]. simpl in *.
+    apply (sum_cases_elem (ord C) (ord A) (ord B) (hom_rel f) (hom_rel g)) in H1.
+    apply (sum_cases_elem (ord C) (ord A) (ord B) (hom_rel f') (hom_rel g')).
+    destruct z; auto.
+  Qed.
+
+  Theorem sum_cases_eq (C A B:ob) (f f':A → C) (g g':B → C) :
+    f ≈ f' -> g ≈ g' -> sum_cases f g ≈ sum_cases f' g'.
+  Proof.
+    intros. split; apply sum_cases_monotone; auto.
+  Qed.
+
+  Theorem curry_monotone (C A B:ob) (f f':prod C A → B) :
+    f ≤ f' -> curry f ≤ curry f'.
+  Proof.
+    repeat intro. destruct a as [c R].
+    simpl in H0.
+    simpl. apply curry_rel_elem. intros.
+    apply H.
+    revert H0 a b H1.
+    apply curry_rel_elem.
+  Qed.
+
+  Theorem curry_eq (C A B:ob) (f f':prod C A → B) :
+    f ≈ f' -> curry f ≈ curry f'.
+  Proof.
+    intros; split; apply curry_monotone; auto.
   Qed.
 
   Theorem pair_map_pair C X Y Z W (f1:C → X) (f2:X → Y) (g1:C → Z) (g2:Z → W) :
@@ -435,7 +469,7 @@ Section PLT.
     apply pi2_rel_elem in H1. auto.
   Qed.
 
-  Theorem curry_apply2 A B C (f:hom (prod C A) B) (g:C → A) :
+  Theorem curry_apply2 A B C (f:(prod C A) → B) (g:C → A) :
     app ∘ pair (curry f) g ≈ f ∘ pair id g.
   Proof.
     cut (pair (curry f) g ≈ pair_map (curry f) id ∘ pair id g).
@@ -448,7 +482,7 @@ Section PLT.
     symmetry. apply cat_ident2.
   Qed.
 
-  Theorem curry_apply3 A B C D (f:hom (prod D A) B) (h:C → D) (g:C → A) :
+  Theorem curry_apply3 A B C D (f:(prod D A) → B) (h:C → D) (g:C → A) :
     app ∘ pair (curry f ∘ h) g ≈ f ∘ pair h g.
   Proof.
     cut (pair (curry f ∘ h) g ≈ pair_map (curry f) id ∘ pair h g).
@@ -460,7 +494,7 @@ Section PLT.
     symmetry. apply cat_ident2.
   Qed.
 
-  Theorem curry_universal A B C (f:hom (prod C A) B) (CURRY:hom C (exp A B)) :
+  Theorem curry_universal A B C (f:(prod C A) → B) (CURRY:C → (exp A B)) :
     app ∘ pair_map CURRY id ≈ f -> CURRY ≈ curry f.
   Proof.
     intro. apply (curry_universal hf); auto.
@@ -604,7 +638,6 @@ Canonical Structure PLT.dec.
 Canonical Structure PLT.hom_ord.
 Canonical Structure PLT.hom_eq.
 Canonical Structure PLT.comp.
-Canonical Structure PLT.prod.
 Canonical Structure PLT.homset_cpo.
 Canonical Structure PLT.cocartesian.
 
@@ -676,6 +709,24 @@ Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
      as plt_cases_morphism.
 Proof.
   intros. split; apply plt_le_cases_morphism; auto.
+Qed.
+
+Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
+    (@PLT.curry hf C A B)
+    with signature (Preord.ord_op (PLT.hom_ord hf (PLT.prod C A) B)) ==>
+                   (Preord.ord_op (PLT.hom_ord hf C (PLT.exp A B)))
+     as plt_le_curry_morphism.
+Proof.
+  intros. apply PLT.curry_monotone; auto.
+Qed.
+
+Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
+    (@PLT.curry hf C A B)
+    with signature (eq_op (PLT.hom_eq hf (PLT.prod C A) B)) ==>
+                   (eq_op (PLT.hom_eq hf C (PLT.exp A B)))
+     as plt_curry_morphism.
+Proof.
+  intros. apply PLT.curry_eq; auto.
 Qed.
 
 Program Definition pplt_bot (A B:ob ∂PLT) : A → B :=
