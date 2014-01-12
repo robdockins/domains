@@ -257,7 +257,7 @@ Module CPO.
 
   Lemma axiom : forall CL (A B:ob (CPO CL)) (f:A → B),
     forall X, 
-      f#(sup_op X) ≈ sup_op (image f X).
+      f (sup_op X) ≈ sup_op (image f X).
   Proof.
     intros. apply ord_antisym. apply axiom'.
 
@@ -265,7 +265,7 @@ Module CPO.
     red. intros.
     apply image_axiom2 in H.
     destruct H as [y [??]].
-    transitivity (f#y).
+    transitivity (f y).
     destruct H0; auto.
     apply mono.
     apply sup_is_ub; auto.
@@ -279,7 +279,9 @@ Module CPO.
 
 End CPO.
 
-Notation cpo := CPO.type.
+Notation cpo  := (CPO.type (directed_hf_cl false)).
+Notation cppo := (CPO.type (directed_hf_cl true)).
+
 Notation CPO := CPO.CPO.
 
 Canonical Structure CPO.
@@ -291,9 +293,179 @@ Canonical Structure CPO.hom_ord.
 Canonical Structure CPO.hom_cpo.
 Canonical Structure hom_eq CL X Y:=
   Eq.Pack (CPO.hom CL X Y) (Preord.ord_eq (CPO.hom_ord CL X Y)).
-Coercion CPO.ord : cpo >-> preord.
+Coercion CPO.ord : CPO.type >-> preord.
 Coercion CPO.ord_hom : CPO.hom >-> Preord.hom.
 
 Notation "∐ XS" := (@CPO.sup_op _ _ XS) (at level 10).
 
 Hint Resolve CPO.sup_is_lub.
+
+Arguments CPO.axiom [CL A B] f X.
+Arguments CPO.mono [CL A B] h a b _.
+
+Lemma sup_monotone : forall CL (A:CPO.type CL) (X X':cl_eset CL A),
+  X ⊆ X' -> ∐X ≤ ∐X'.
+Proof.
+  intros. apply CPO.sup_is_least. repeat intro.
+  apply CPO.sup_is_ub. auto.
+Qed.  
+
+Lemma sup_equiv : forall CL (A:CPO.type CL) (X X':cl_eset CL A),
+  X ≈ X' -> ∐X ≈ ∐X'.
+Proof.
+  intros. destruct H; split; apply sup_monotone; auto.
+Qed.
+
+Section bottom.
+  Variables X Y:cppo.
+  
+  Lemma empty_semidirected : color_prop (directed_hf_cl true) (∅:eset X).
+  Proof.
+    hnf; simpl; intros.
+    destruct Hinh. apply H in H0.
+    apply empty_elem in H0. elim H0.
+  Qed.
+
+  Definition empty_dir : cl_eset (directed_hf_cl true) X := 
+    exist _ ∅ empty_semidirected.
+
+  Definition bot : X := ∐ empty_dir.
+
+  Lemma bot_least : forall x, bot ≤ x.
+  Proof.
+    intros. unfold bot.
+    apply CPO.sup_is_least.
+    repeat intro.
+    red in H; simpl in H.
+    apply empty_elem in H. elim H.
+  Qed.
+End bottom.
+
+Notation "⊥" := (bot _).
+
+Lemma strict_map (X Y:cppo) (f:X → Y) : f ⊥ ≈ ⊥.
+Proof.
+  unfold bot.
+  rewrite (CPO.axiom f (empty_dir X)).
+  apply sup_equiv.
+  split; intros a H.
+  apply image_axiom2 in H.
+  destruct H as [?[??]].
+  red in H; simpl in H.
+  apply empty_elem in H. elim H.
+  red in H; simpl in H.
+  apply empty_elem in H. elim H.
+Qed.    
+Arguments strict_map [X Y] f.
+
+Require Import NArith.
+
+Lemma Niter_succ A f (a:A) : forall n,
+  N.iter (N.succ n) f a = f (N.iter n f a).
+Proof.
+  induction n using N.peano_ind; simpl; auto.
+  rewrite N2Nat.inj_iter.
+  rewrite N2Nat.inj_succ.
+  simpl. f_equal.
+  rewrite <- N2Nat.inj_iter.
+  auto.
+Qed.
+
+Section lfp.
+  Variable X:cppo.
+  Variable f:X → X.
+  
+  Definition iter_set : eset X :=
+    fun q => Some (N.iter q f ⊥).
+
+  Lemma iter_le : forall n1 n2,
+    (n1 <= n2)%N -> N.iter n1 f ⊥ ≤ N.iter n2 f ⊥.
+  Proof.
+    induction n1 using N.peano_ind; simpl; intros.
+    apply bot_least.
+    induction n2 using N.peano_ind; simpl.
+    elim H. destruct n1; simpl; auto.
+    repeat rewrite Niter_succ.
+    apply CPO.mono.
+    apply IHn1.
+    apply N.succ_le_mono; auto.
+  Qed.    
+
+  Lemma iter_set_directed : color_prop (directed_hf_cl true) iter_set.
+  Proof.
+    red. simpl. apply prove_directed; auto.
+    simpl; intros.
+    destruct H as [n1 ?].
+    destruct H0 as [n2 ?].
+    simpl in H. simpl in H0.
+    destruct (N.lt_ge_cases n1 n2).
+    exists y.
+    split.
+    rewrite H. rewrite H0.
+    apply iter_le.
+    hnf in H1. hnf.
+    rewrite H1. discriminate.
+    split; auto. exists n2. auto.
+    exists x.
+    split. auto.
+    split.
+    rewrite H. rewrite H0.
+    apply iter_le; auto.
+    exists n1. auto.
+  Qed.
+
+  Definition iter_dirset : cl_eset (directed_hf_cl true) X := 
+    exist _ iter_set iter_set_directed.
+
+  Definition lfp : X := ∐iter_dirset.
+
+  Lemma scott_induction (P:X -> Prop) :
+    (forall XS:cl_eset (directed_hf_cl true) X,
+      (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
+    (forall x y, x ≈ y -> P x -> P y) ->
+    (forall x, P x -> P (f x)) ->
+    P lfp.
+  Proof.
+    intros. unfold lfp.
+    apply H. intros.
+    destruct H2 as [n ?]. simpl in *.
+    symmetry in H2. apply (H0 _ _ H2). clear x H2.
+    induction n using N.peano_ind; simpl; auto.
+    unfold bot.
+    apply H. intros. red in H2; simpl in H2.
+    apply empty_elem in H2. elim H2.
+    rewrite Niter_succ.
+    apply H1. auto.
+  Qed.
+
+  Lemma lfp_fixpoint : f lfp ≈ lfp.
+  Proof.
+    apply scott_induction.
+    intros. rewrite (CPO.axiom f XS).
+    apply sup_equiv.
+    split; intros ??.
+    apply image_axiom2 in H0.
+    destruct H0 as [y [??]].
+    rewrite H1.
+    rewrite H; auto.
+    rewrite <- H; auto.
+    apply image_axiom1; auto.
+    intros.
+    rewrite <- H; auto.
+    intros. rewrite H at 1. auto.
+  Qed.
+
+  Lemma lfp_least : forall x, f x ≈ x -> lfp ≤ x.
+  Proof.
+    apply scott_induction; intros.
+    apply CPO.sup_is_least. repeat intro.
+    apply H; auto.
+    rewrite <- H. apply H0; auto.
+    rewrite <- H0.
+    apply CPO.mono. apply H; auto.
+  Qed.
+
+End lfp.
+
+Arguments lfp [X] f.
+Arguments scott_induction [X] f P _ _ _.
