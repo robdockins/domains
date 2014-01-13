@@ -277,6 +277,92 @@ Module CPO.
     split. apply sup_is_ub. apply sup_is_least.
   Qed.
 
+  Section prod.  
+    Variable CL:color.
+    Variables A B:type CL.
+
+    Program Definition prod_sup (X:cl_eset CL (prod_preord (ord A) (ord B))) : A*B :=
+      (sup_op (image π₁ X), sup_op (image π₂ X)).
+
+    Program Definition prod_mixin : mixin_of CL (prod_preord (ord A) (ord B)) :=
+      Mixin CL _ prod_sup _ _.
+    Next Obligation.
+      repeat intro. destruct x as [a b].
+      unfold prod_sup. split; simpl.
+      apply sup_is_ub. apply image_axiom1'.
+      exists (a,b); auto.
+      apply sup_is_ub. apply image_axiom1'.
+      exists (a,b); auto.
+    Qed.
+    Next Obligation.
+      repeat intro. destruct ub as [ua ub].
+      unfold prod_sup; split; simpl;
+        apply sup_is_least; repeat intro.
+      apply image_axiom2 in H0.
+      destruct H0 as [y [??]].
+      rewrite H1.
+      assert (y ≤ (ua,ub)).
+      apply H; auto. destruct H2; auto.
+      apply image_axiom2 in H0.
+      destruct H0 as [y [??]].
+      rewrite H1.
+      assert (y ≤ (ua,ub)).
+      apply H; auto. destruct H2; auto.
+    Qed.     
+
+    Definition prod_cpo :=
+      Pack CL (A*B) (Preord.mixin (prod_preord (ord A) (ord B))) prod_mixin.
+
+    Program Definition pi1 : prod_cpo → A :=
+      Hom CL prod_cpo A (fun x => fst x) _ _.
+    Next Obligation.
+      intros. destruct H; auto.
+    Qed.
+    Next Obligation.
+      simpl; intros.
+      apply sup_is_least; repeat intro.
+      apply sup_is_ub.
+      apply image_axiom2 in H. destruct H as [y [??]].
+      apply image_axiom1'. exists y. split; auto.
+    Qed.    
+    
+    Program Definition pi2 : prod_cpo → B :=
+      Hom CL prod_cpo B (fun x => snd x) _ _.
+    Next Obligation.
+      intros. destruct H; auto.
+    Qed.
+    Next Obligation.
+      simpl; intros.
+      apply sup_is_least; repeat intro.
+      apply sup_is_ub.
+      apply image_axiom2 in H. destruct H as [y [??]].
+      apply image_axiom1'. exists y. split; auto.
+    Qed.    
+  End prod.
+
+  Program Definition pair CL (C A B:type CL) (f:C → A) (g:C → B) : C → prod_cpo CL A B :=
+    Hom CL C (prod_cpo CL A B) (fun x => (f x, g x)) _ _.
+  Next Obligation.
+    repeat intro. split; simpl; apply mono; auto.
+  Qed.
+  Next Obligation.
+    repeat intro. split; simpl.
+    rewrite axiom'.
+    apply sup_is_least; repeat intro.
+    apply sup_is_ub.
+    apply image_axiom2 in H. destruct H as [y [??]].
+    apply image_axiom1'. simpl in H0.
+    exists (f y, g y). split; auto.
+    apply image_axiom1'. exists y. split; auto.
+    rewrite axiom'.
+    apply sup_is_least; repeat intro.
+    apply sup_is_ub.
+    apply image_axiom2 in H. destruct H as [y [??]].
+    apply image_axiom1'. simpl in H0.
+    exists (f y, g y). split; auto.
+    apply image_axiom1'. exists y. split; auto.
+  Qed.
+
 End CPO.
 
 Notation cpo  := (CPO.type (directed_hf_cl false)).
@@ -469,3 +555,28 @@ End lfp.
 
 Arguments lfp [X] f.
 Arguments scott_induction [X] f P _ _ _.
+
+Lemma lfp_uniform (D E:cppo) (f:D → E) (d:D → D) (e:E → E) :
+  e ∘ f ≈ f ∘ d ->
+  lfp e ≈ f (lfp d).
+Proof.
+  intros. split.
+
+  apply (scott_induction e); intros.
+  apply CPO.sup_is_least. repeat intro; auto.
+  rewrite <- H0; auto.
+  rewrite H0.
+  rewrite <- (lfp_fixpoint D d) at 2.
+  destruct H. apply H.
+
+  apply (scott_induction d); intros.
+  rewrite (CPO.axiom f XS).
+  apply CPO.sup_is_least. repeat intro.
+  apply image_axiom2 in H1. destruct H1 as [y [??]].
+  apply H0 in H1.
+  rewrite H2. auto.
+  rewrite <- H0; auto.
+  rewrite <- (lfp_fixpoint E e).
+  rewrite <- H0.
+  destruct H. apply H1.
+Qed.
