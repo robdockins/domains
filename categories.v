@@ -97,10 +97,6 @@ Section category_axioms.
   Definition cat_assoc    := Category.assoc _ _ _ _ (Category.cat_axioms C).
   Definition cat_respects := Category.respects _ _ _ _ (Category.cat_axioms C).
 End category_axioms.
-Arguments cat_ident1 [C] [A] [B] f.
-Arguments cat_ident2 [C] [A] [B] f.
-Arguments cat_assoc [C] [A] [B] [C0] [D] f g h.
-Arguments cat_respects [C] [A] [B] [C0] [f] [f'] [g] [g'] _ _.
 
 (** Register composition as a morphism for the setoid equality. *) 
 Add Parametric Morphism (CAT:category) (A B C:ob CAT) :
@@ -202,7 +198,7 @@ Proof.
   generalize (inv_id2 f⁻¹). intro.
   generalize (inv_id2 f). intro.
   transitivity ((f⁻¹)⁻¹ ∘ f⁻¹ ∘ f).
-  rewrite <- (@cat_assoc X).
+  rewrite <- (cat_assoc X).
   rewrite H0. symmetry. apply cat_ident1.
   rewrite H. apply cat_ident2.
 Qed.
@@ -215,17 +211,17 @@ Proof.
   generalize (inv_id1 f). intro.
   generalize (inv_id1 g). intro.
   assert ((g ∘ f)⁻¹ ∘ (g ∘ f) ∘ f⁻¹ ≈ (g ∘ f)⁻¹ ∘ g).
-  rewrite <- (@cat_assoc X).
-  rewrite <- (@cat_assoc X).
+  rewrite <- (cat_assoc X).
+  rewrite <- (cat_assoc X).
   rewrite H0.
-  rewrite (@cat_assoc X).
+  rewrite (cat_assoc X).
   apply cat_ident1.
   rewrite H in H2.
-  rewrite (@cat_ident2 X) in H2.
+  rewrite (cat_ident2 X) in H2.
   rewrite H2.
-  rewrite <- (@cat_assoc X).
+  rewrite <- (cat_assoc X).
   rewrite H1.
-  rewrite (@cat_ident1 X).
+  rewrite (cat_ident1 X).
   auto.  
 Qed.
 
@@ -236,12 +232,12 @@ Proof.
   generalize (inv_id1 f). intros.
   transitivity (g⁻¹ ∘ (f ∘ f⁻¹)).
   rewrite H at 2.  
-  rewrite (@cat_assoc X).
+  rewrite (cat_assoc X).
   generalize (inv_id2 g). intros.
   rewrite H1.
-  rewrite (@cat_ident2 X). auto.
+  rewrite (cat_ident2 X). auto.
   rewrite H0.
-  rewrite (@cat_ident1 X). auto.
+  rewrite (cat_ident1 X). auto.
 Qed.
 
 Lemma inv_inj (X:groupoid) (A B:X) (f g:A → B) : 
@@ -290,8 +286,8 @@ Qed.
 Program Definition mono_id (C:category) (A:C) :=
   Monomorphism C A A (id(A)) _.  
 Next Obligation.
-  rewrite (cat_ident2 g) in H.
-  rewrite (cat_ident2 h) in H.
+  rewrite (cat_ident2 C) in H.
+  rewrite (cat_ident2 C) in H.
   auto.
 Qed.
 
@@ -300,8 +296,8 @@ Program Definition mono_compose
   Monomorphism C X Z (mono_hom g ∘ mono_hom f) _.
 Next Obligation.
   intros.
-  rewrite <- (cat_assoc g f g0) in H.
-  rewrite <- (cat_assoc g f h) in H.
+  rewrite <- (cat_assoc C) in H.
+  rewrite <- (cat_assoc C) in H.
   apply mono_axiom in H.
   apply mono_axiom in H.
   auto.
@@ -374,8 +370,8 @@ Qed.
 Program Definition epi_id (C:category) (A:C) :=
   Epimorphism C A A (id(A)) _.  
 Next Obligation.
-  rewrite (cat_ident1 g) in H.
-  rewrite (cat_ident1 h) in H.
+  rewrite (cat_ident1 C) in H.
+  rewrite (cat_ident1 C) in H.
   auto.
 Qed.
 
@@ -384,8 +380,8 @@ Program Definition epi_compose
   Epimorphism C X Z (epi_hom g ∘ epi_hom f) _.
 Next Obligation.
   intros.
-  rewrite (cat_assoc g0 g f) in H.
-  rewrite (cat_assoc h g f) in H.
+  rewrite (cat_assoc C) in H.
+  rewrite (cat_assoc C) in H.
   apply epi_axiom in H.
   apply epi_axiom in H.
   auto.
@@ -472,18 +468,18 @@ Program Definition iso_compose
   Isomorphism C X Z (iso_hom g ∘ iso_hom f) (iso_inv f ∘ iso_inv g) _ _.
 Next Obligation.
   intros. 
-  rewrite <- (cat_assoc (iso_inv f) (iso_inv g) (iso_hom g ∘ iso_hom f)).
-  rewrite (cat_assoc (iso_inv g) (iso_hom g) (iso_hom f)).
+  rewrite <- (cat_assoc C _ _ _ _ (iso_inv f) (iso_inv g) (iso_hom g ∘ iso_hom f)).
+  rewrite (cat_assoc C _ _ _ _ (iso_inv g) (iso_hom g) (iso_hom f)).
   rewrite (iso_axiom1 g).
-  rewrite (cat_ident2 f).
+  rewrite (cat_ident2 C).
   rewrite (iso_axiom1 f).
   auto.
 Qed.
 Next Obligation.
-  rewrite <- (cat_assoc (iso_hom g) (iso_hom f) (iso_inv f ∘ iso_inv g)).
-  rewrite (cat_assoc (iso_hom f) (iso_inv f) (iso_inv g)).
+  rewrite <- (cat_assoc C _ _ _ _ (iso_hom g) (iso_hom f) (iso_inv f ∘ iso_inv g)).
+  rewrite (cat_assoc C _ _ _ _(iso_hom f) (iso_inv f) (iso_inv g)).
   rewrite (iso_axiom2 f).
-  rewrite (cat_ident2 (iso_inv g)).
+  rewrite (cat_ident2 C).
   rewrite (iso_axiom2 g).
   auto.
 Qed.
@@ -1413,19 +1409,19 @@ Section nt_compose.
   Program Definition ident (F:functor C D) : nt F F :=
     NT F F (fun A => id(F A)) _.
   Next Obligation.
-    rewrite (cat_ident2 (F@f)).
-    rewrite (cat_ident1 (F@f)).
+    rewrite (cat_ident2 D).
+    rewrite (cat_ident1 D).
     trivial.
   Qed.
 
   Program Definition compose (F G H:functor C D) (s:nt G H) (t:nt F G) : nt F H :=
     NT F H (fun A => s A ∘ t A) _.
   Next Obligation.
-    rewrite <- (cat_assoc (s B) (t B) (F@f)).
+    rewrite <- (cat_assoc D _ _ _ _ (s B) (t B) (F@f)).
     rewrite (axiom t).
-    rewrite (cat_assoc (s B) (G@f) (t A)).
+    rewrite (cat_assoc D _ _ _ _ (s B) (G@f) (t A)).
     rewrite (axiom s).
-    rewrite <- (cat_assoc (H@f)).
+    rewrite <- (cat_assoc D).
     trivial.
   Qed.
 
@@ -1642,13 +1638,13 @@ Section pullback_lemma.
       assert (g1 ∘ k ≈ pullback_lemma1_map1 Q p q H).
       apply (uniq PB2).
       rewrite <- H0.
-      rewrite <- (cat_assoc f3 g2 _).
-      rewrite <- (cat_assoc f3 (g2 ∘ g1) _).
+      rewrite <- (cat_assoc _ _ _ _ _ f3 g2 _).
+      rewrite <- (cat_assoc _ _ _ _ _ f3 (g2 ∘ g1) _).
       apply cat_respects.
       auto.
       apply cat_assoc.
       apply (uniq PB1).
-      rewrite <- (cat_assoc f2 g1 _).
+      rewrite <- (cat_assoc _ _ _ _ _ f2 g1 _).
       rewrite H1. auto.
     Qed.      
   End pullback_lemma1.
@@ -1720,7 +1716,7 @@ Section cone.
   Program Definition cone_ident (M:cone) :=
     Cone_hom M M (id) _.
   Next Obligation. 
-    rewrite (cat_ident1 (spoke M j)). reflexivity.
+    rewrite (cat_ident1 C _ _ (spoke M j)). reflexivity.
   Qed.
 
   Program Definition cone_compose (M N O:cone)
@@ -1776,9 +1772,9 @@ Section alg.
     Alg_hom M M (id) _.
   Next Obligation.
     intros.
-    rewrite (cat_ident2 (iota M)).
+    rewrite (cat_ident2 _ _ _ (iota M)).
     rewrite (Functor.ident F); trivial.
-    rewrite (cat_ident1 (iota M)).
+    rewrite (cat_ident1 _ _ _ (iota M)).
     trivial.
   Qed.
 
@@ -1787,11 +1783,11 @@ Section alg.
     Alg_hom M O (hom_map _ _ f ∘ hom_map _ _ g) _.
   Next Obligation.
     intros.
-    rewrite <- (cat_assoc (hom_map N O f)).
+    rewrite <- (cat_assoc _ _ _ _ _ (hom_map N O f)).
     rewrite (hom_axiom _ _ g).
-    rewrite (cat_assoc (hom_map N O f)).
+    rewrite (cat_assoc _ _ _ _ _ (hom_map N O f)).
     rewrite (hom_axiom _ _ f).
-    rewrite <- (cat_assoc (iota O)).
+    rewrite <- (cat_assoc _ _ _ _ _ (iota O)).
     rewrite <- (Functor.compose F); reflexivity.
   Qed.
 
@@ -1823,16 +1819,16 @@ Section alg.
     intros.
     transitivity (hom_map _ _ (cata I I)).
     apply cata_axiom'.
-    rewrite <- (cat_assoc (iota I)).
+    rewrite <- (cat_assoc _ _ _ _ _ (iota I)).
     apply cat_respects; auto.
     rewrite (hom_axiom _ _ (cata I (lift_alg I))).
     simpl.
     symmetry. apply Functor.compose. auto.
 
     symmetry. apply cata_axiom'.
-    rewrite (cat_ident2 (iota I)).
+    rewrite (cat_ident2 _ _ _ (iota I)).
     rewrite (Functor.ident F); auto.
-    rewrite (cat_ident1 (iota I)).
+    rewrite (cat_ident1 _ _ _ (iota I)).
     auto.
   Qed.
 
@@ -1849,16 +1845,16 @@ Section alg.
     rewrite in_out.
     symmetry.
     apply cata_axiom'.
-    rewrite (cat_ident2 (iota I)).
+    rewrite (cat_ident2 _ _ _ (iota I)).
     rewrite Functor.ident.
-    rewrite (cat_ident1 (iota I)).
+    rewrite (cat_ident1 _ _ _ (iota I)).
     reflexivity. reflexivity.
     apply Functor.ident.
     symmetry.
     apply cata_axiom'.
-    rewrite (cat_ident2 (iota I)).
+    rewrite (cat_ident2 _ _ _ (iota I)).
     rewrite Functor.ident.
-    rewrite (cat_ident1 (iota I)).
+    rewrite (cat_ident1 _ _ _ (iota I)).
     reflexivity. reflexivity.
   Qed.    
 
@@ -1868,13 +1864,13 @@ Section alg.
   Proof.
     intros.
     cut (g ∘ id ≈ h ∘ id ).
-    rewrite (cat_ident1 g).
-    rewrite (cat_ident1 h).
+    rewrite (cat_ident1 _ _ _ g).
+    rewrite (cat_ident1 _ _ _ h).
     auto.
     rewrite <- (in_out I).
-    rewrite (cat_assoc g).
+    rewrite (cat_assoc _ _ _ _ _ g).
     rewrite H.
-    rewrite (cat_assoc h).
+    rewrite (cat_assoc _ _ _ _ _ h).
     trivial.
   Qed.
 
