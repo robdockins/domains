@@ -19,16 +19,7 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
-
-Parameter disc : Type -> PLT.
-Parameter disc_elem : forall (X:PLT) (Y:Type) (y:Y), X → (disc Y).
-
-Lemma disc_elem_inj : forall X Y y1 y2,
-  disc_elem X Y y1 ≈ disc_elem X Y y2 -> y1 = y2.
-Admitted.
-
-Arguments disc_elem [X Y] y.
-
+Require Import discrete.
 
 Inductive ty :=
   | ty_bool
@@ -85,7 +76,7 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
 
 Fixpoint tydom (τ:ty) : PLT :=
   match τ with
-  | ty_bool => disc bool
+  | ty_bool => disc finbool
   | ty_arrow τ₁ τ₂ => PLT.exp (tydom τ₁) (tydom τ₂)
   end.
 
@@ -425,10 +416,10 @@ Section push_under2.
   Notation I := (tI _).
 
   Definition push_under2 : term (a ⇒ b ⇒ d) :=
-    S@((S@(K@S))@(S@((S@(K@S))@((S@(K@K))@((S@(K@f))@I)))@(K@I)))@(K@(K@x)).
+    S@((S@(K@S))@(S@((S@(K@S))@((S@(K@K))@((S@(K@ f ))@I)))@(K@I)))@(K@(K@ x )).
 
   Definition push_under1 (z:term (b ⇒ c ⇒ d)) : term (b ⇒ d) :=
-    (S@((S@(K@(z)))@I))@(K@x).
+    (S@((S@(K@ z ))@I))@(K@x).
 End push_under2.
 
 Lemma push_under2_value : forall a b c d f x,
@@ -723,6 +714,7 @@ Section push_under2_denote.
 End push_under2_denote.
 
 Arguments push_under2 [a b c d] f x.
+Arguments push_under2_denote [a b c d] f x.
 Arguments push_under1 [b c d] x z.
 
 Lemma LR_S ls : forall σ t τ
@@ -801,7 +793,7 @@ Proof.
 
   destruct (IHls σ t τ
     (xs,x3,x2, push_under2 x1 x4)
-    (ys,y3,y2, push_under2_denote _ _ _ _ y1 y4)) as [q1 [??]]; clear IHls.
+    (ys,y3,y2, push_under2_denote y1 y4)) as [q1 [??]]; clear IHls.
 
   simpl. intuition.
   apply push_under2_value; auto.
@@ -931,7 +923,6 @@ Proof.
   eapply eval_eq; eauto. subst v1.
   clear H0 H9.
 
-  idtac.
   unfold push_under1 in H11.
   eapply eval_redex_walk in H11.
   2: apply redex_S.

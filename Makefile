@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=nominal.v\
+VFILES:=discrete.v\
+  nominal.v\
   permutations.v\
   atoms.v\
   cont_adj.v\
