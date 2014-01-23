@@ -356,6 +356,69 @@ Section PLT.
     apply hom_order.
   Qed.
 
+  Theorem pair_commute1 C A B (f:C → A) (g:C → B) :
+    pi1 ∘ pair f g ≤ f.
+  Proof.
+    apply pair_proj_commute1_le.
+    apply PLT.hom_order.
+    apply PLT.hom_order.
+  Qed.
+
+  Theorem pair_commute2 C A B (f:C → A) (g:C → B) :
+    pi2 ∘ pair f g ≤ g.
+  Proof.
+    apply pair_proj_commute2_le.
+    apply PLT.hom_order.
+    apply PLT.hom_order.
+  Qed.
+
+  Theorem pair_compose_commute A B C D
+    (f:C → A) (g:C → B) (h:D → C) :
+    PLT.pair f g ∘ h ≈ PLT.pair (f ∘ h) (g ∘ h).
+  Proof.
+    split.
+    apply pair_universal_le.
+    rewrite (cat_assoc _ _ _ _ _ pi1).
+    apply compose_mono; auto.
+    apply pair_commute1.
+    rewrite (cat_assoc _ _ _ _ _ pi2).
+    apply compose_mono; auto.
+    apply pair_commute2.
+    hnf; simpl; intros.
+    destruct a as  [d [a b]].
+    rewrite (pair_rel_elem _ _ _ (effective D) (compose_rel (effective C) f h) (compose_rel (effective C) g h) d a b) in H.
+    destruct H.
+    apply compose_elem.
+    apply hom_order.
+    apply compose_elem in H.
+    2: apply hom_order.
+    apply compose_elem in H0.
+    2: apply hom_order.
+    destruct H as [q1 [??]].
+    destruct H0 as [q2 [??]].
+    destruct (hom_directed _ _ h d (q1::q2::nil)%list).
+    apply elem_inh with q1. apply cons_elem; auto.
+    red; simpl; intros. apply erel_image_elem.
+    apply cons_elem in H3. destruct H3.
+    revert H. apply member_eq.
+    split; split; auto.
+    apply cons_elem in H3. destruct H3.
+    revert H0. apply member_eq.
+    split; split; auto.
+    apply nil_elem in H3. elim H3.
+    destruct H3.
+    apply erel_image_elem in H4.
+    exists x. split; auto.
+    apply pair_rel_elem.
+    split.
+    revert H1. apply hom_order; auto.
+    apply H3. apply cons_elem; auto.
+    revert H2. apply hom_order; auto.
+    apply H3. 
+    apply cons_elem; right.
+    apply cons_elem; auto.
+  Qed.
+
   Theorem curry_apply A B C (f:(prod C A) → B) :
     app ∘ pair_map (curry f) id ≈ f.
   Proof.
@@ -503,6 +566,18 @@ Section PLT.
     apply (hom_order _ _ CURRY).
     apply (hom_directed _ _ CURRY).
     rewrite pair_map_eq in H. apply H.
+  Qed.
+
+  Theorem curry_compose_commute A B C D (f:(prod C A) → B) (h:D → C) :
+    curry f ∘ h ≈ curry (f ∘ pair_map h id).
+  Proof.
+    apply curry_universal.
+    unfold pair_map.
+    symmetry.
+    rewrite <- (curry_apply3).
+    apply cat_respects. auto.
+    apply pair_eq; auto.
+    apply cat_assoc.
   Qed.
 
   Definition initialized_mixin :=
@@ -825,6 +900,7 @@ Proof.
 Qed.
 
 Module PPLT.
+
   Theorem pair_bot1 (C A B:ob ∂PLT) (f:C → A) :
     PLT.pair f (⊥ : C → B) ≈ ⊥.
   Proof.
@@ -898,5 +974,37 @@ Module PPLT.
     apply ident_elem. auto.
     apply plt_const_rel_elem. auto.
   Qed.
+
+  Theorem antistrict_pair_commute1 (C A B:∂PLT) (f:C → A) (g:C → B) :
+    (forall c, exists b, (c,b) ∈ PLT.hom_rel g) ->
+    PLT.pi1 ∘ PLT.pair f g ≈ f.
+  Proof.
+    repeat intro.
+    split. apply pair_commute1.
+    hnf; intros.
+    apply compose_hom_rel. simpl.
+    destruct a as [c a].
+    destruct (H c) as [b ?].
+    exists (a,b).    
+    split.
+    apply pair_rel_elem. split; auto.
+    apply pi1_rel_elem. auto.
+  Qed.
+
+  Theorem antistrict_pair_commute2 (C A B:∂PLT) (f:C → A) (g:C → B) :
+    (forall c, exists a, (c,a) ∈ PLT.hom_rel f) ->
+    PLT.pi2 ∘ PLT.pair f g ≈ g.
+  Proof.
+    repeat intro.
+    split. apply pair_commute2.
+    hnf; intros.
+    apply compose_hom_rel. simpl.
+    destruct a as [c b].
+    destruct (H c) as [a ?].
+    exists (a,b).    
+    split.
+    apply pair_rel_elem. split; auto.
+    apply pi2_rel_elem. auto.
+  Qed.    
 
 End PPLT.
