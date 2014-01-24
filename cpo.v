@@ -370,6 +370,8 @@ Notation cppo := (CPO.type (directed_hf_cl true)).
 
 Notation CPO := CPO.CPO.
 
+Notation dirset := (cl_eset (directed_hf_cl _)).
+
 Canonical Structure CPO.
 Canonical Structure CPO.concrete.
 Canonical Structure CPO.ord.
@@ -412,8 +414,7 @@ Section bottom.
     apply empty_elem in H0. elim H0.
   Qed.
 
-  Definition empty_dir : cl_eset (directed_hf_cl true) X := 
-    exist _ ∅ empty_semidirected.
+  Definition empty_dir : dirset X := exist _ ∅ empty_semidirected.
 
   Definition bot : X := ∐ empty_dir.
 
@@ -500,14 +501,13 @@ Section lfp.
     exists n1. auto.
   Qed.
 
-  Definition iter_dirset : cl_eset (directed_hf_cl true) X := 
+  Definition iter_dirset : dirset X := 
     exist _ iter_set iter_set_directed.
 
   Definition lfp : X := ∐iter_dirset.
 
   Lemma scott_induction (P:X -> Prop) :
-    (forall XS:cl_eset (directed_hf_cl true) X,
-      (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
+    (forall XS:dirset X, (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
     (forall x y, x ≈ y -> P x -> P y) ->
     (forall x, P x -> P (f x)) ->
     P lfp.
