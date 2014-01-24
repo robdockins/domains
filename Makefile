@@ -80,7 +80,9 @@ endif
 #                    #
 ######################
 
-VFILES:=discrete.v\
+VFILES:=ski.v\
+  lam_models.v\
+  discrete.v\
   nominal.v\
   permutations.v\
   atoms.v\

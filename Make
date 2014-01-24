@@ -25,3 +25,5 @@ atoms.v
 permutations.v
 nominal.v
 discrete.v
+lam_models.v
+ski.v
