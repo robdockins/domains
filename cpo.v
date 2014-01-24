@@ -365,6 +365,7 @@ Module CPO.
 
 End CPO.
 
+Notation dcpo hf := (CPO.type (directed_hf_cl hf)).
 Notation cpo  := (CPO.type (directed_hf_cl false)).
 Notation cppo := (CPO.type (directed_hf_cl true)).
 
@@ -458,29 +459,45 @@ Proof.
   auto.
 Qed.
 
-Section lfp.
-  Variable X:cppo.
-  Variable f:X → X.
+Section iter_chain.
+  Variable hf:bool.
+  Variable X:dcpo hf.
   
-  Definition iter_set : eset X :=
-    fun q => Some (N.iter q f ⊥).
+  Variable base : X.
+  Variable step : X -> X.
+
+  Hypothesis step_mono : forall x y, x ≤ y -> step x ≤ step y.
+  Hypothesis step_base : base ≤ step base. 
+
+  Definition iter_chain_set : eset X :=
+    fun n => Some (N.iter n step base).
 
   Lemma iter_le : forall n1 n2,
-    (n1 <= n2)%N -> N.iter n1 f ⊥ ≤ N.iter n2 f ⊥.
+    (n1 <= n2)%N -> N.iter n1 step base ≤ N.iter n2 step base.
   Proof.
     induction n1 using N.peano_ind; simpl; intros.
-    apply bot_least.
+    clear H.
+    induction n2 using N.peano_ind; simpl; intros.
+    auto.    
+    transitivity (step base); auto.
+    repeat rewrite Niter_succ.
+    apply step_mono. auto.
+    
     induction n2 using N.peano_ind; simpl.
     elim H. destruct n1; simpl; auto.
     repeat rewrite Niter_succ.
-    apply CPO.mono.
+    apply step_mono.
     apply IHn1.
     apply N.succ_le_mono; auto.
   Qed.    
 
-  Lemma iter_set_directed : color_prop (directed_hf_cl true) iter_set.
+  Lemma iter_set_directed : color_prop (directed_hf_cl hf) iter_chain_set.
   Proof.
     red. simpl. apply prove_directed; auto.
+    pattern hf at 1. case hf. auto.
+    exists base. exists 0%N.
+    simpl. auto.
+    
     simpl; intros.
     destruct H as [n1 ?].
     destruct H0 as [n2 ?].
@@ -501,10 +518,34 @@ Section lfp.
     exists n1. auto.
   Qed.
 
-  Definition iter_dirset : dirset X := 
-    exist _ iter_set iter_set_directed.
+  Definition iter_chain : dirset X := 
+    exist _ iter_chain_set iter_set_directed.
 
-  Definition lfp : X := ∐iter_dirset.
+  Definition chain_sup : X := ∐ iter_chain.
+
+  Lemma chain_induction (P:X -> Prop) :
+    (forall (XS:dirset X) q, q ∈ XS -> (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
+    (forall x y, x ≈ y -> P x -> P y) ->
+    (P base) ->
+    (forall x, P x -> P (step x)) ->
+    P chain_sup.
+  Proof.
+    intros. unfold chain_sup.
+    apply (H iter_chain base); intros.
+    exists 0%N. simpl. auto.
+    destruct H3 as [n ?]. simpl in *.
+    symmetry in H3. apply (H0 _ _ H3). clear x H3.
+    induction n using N.peano_ind; simpl; auto.
+    rewrite Niter_succ.
+    apply H2. auto.
+  Qed.
+End iter_chain.
+
+Section lfp.
+  Variable X:cppo.
+  Variable f:X → X.
+  
+  Definition lfp := chain_sup true X ⊥ f (CPO.mono f) (bot_least _ _).
 
   Lemma scott_induction (P:X -> Prop) :
     (forall XS:dirset X, (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
@@ -513,15 +554,10 @@ Section lfp.
     P lfp.
   Proof.
     intros. unfold lfp.
-    apply H. intros.
-    destruct H2 as [n ?]. simpl in *.
-    symmetry in H2. apply (H0 _ _ H2). clear x H2.
-    induction n using N.peano_ind; simpl; auto.
+    apply chain_induction; auto.
     unfold bot.
     apply H. intros. red in H2; simpl in H2.
     apply empty_elem in H2. elim H2.
-    rewrite Niter_succ.
-    apply H1. auto.
   Qed.
 
   Lemma lfp_fixpoint : f lfp ≈ lfp.
@@ -550,7 +586,6 @@ Section lfp.
     rewrite <- H0.
     apply CPO.mono. apply H; auto.
   Qed.
-
 End lfp.
 
 Arguments lfp [X] f.
