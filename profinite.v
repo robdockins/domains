@@ -975,11 +975,38 @@ Module PPLT.
     apply plt_const_rel_elem. auto.
   Qed.
 
-  Theorem antistrict_pair_commute1 (C A B:∂PLT) (f:C → A) (g:C → B) :
-    (forall c, exists b, (c,b) ∈ PLT.hom_rel g) ->
-    PLT.pi1 ∘ PLT.pair f g ≈ f.
+  Definition antistrict (A B:∂PLT) (f:A → B) :=
+    forall a, exists b, (a,b) ∈ PLT.hom_rel f.
+
+  Arguments antistrict [A B] f.
+    
+  Definition nonbottom (A B:∂PLT) (f:A → B) :=
+    exists x, x ∈ PLT.hom_rel f.
+
+  Arguments nonbottom [A B] f.
+
+  Lemma antistrict_nonbottom (A B C:∂PLT) (f:A → B) :
+    antistrict f <-> (forall C (g:C → A), nonbottom g -> nonbottom (f ∘ g)).
   Proof.
-    repeat intro.
+    split; intros.
+    destruct H0 as [[??] ?].
+    destruct (H c0) as [q ?].
+    exists (c,q). apply compose_hom_rel. eauto.
+    red; intros.
+    destruct (H (PLT.unit true) (plt_const true _ _ a)).
+    exists (tt,a). simpl. apply plt_const_rel_elem. auto.
+    destruct x as [??].
+    apply compose_hom_rel in H0.
+    destruct H0 as [q [??]].
+    simpl in *. apply plt_const_rel_elem in H0.
+    exists c0. eapply PLT.hom_order; eauto.
+  Qed.
+
+  Theorem antistrict_pair_commute1 (C B:∂PLT) (g:C → B) :
+    antistrict g <-> forall A (f:C → A), PLT.pi1 ∘ PLT.pair f g ≈ f.
+  Proof.
+    intros.
+    split; repeat intro.
     split. apply pair_commute1.
     hnf; intros.
     apply compose_hom_rel. simpl.
@@ -989,13 +1016,24 @@ Module PPLT.
     split.
     apply pair_rel_elem. split; auto.
     apply pi1_rel_elem. auto.
+
+    rename a into c.
+    destruct (H C id).
+    assert ((c,c) ∈ PLT.hom_rel (PLT.pi1 ∘ PLT.pair id g)).
+    apply H1. simpl. apply ident_elem. auto.
+    apply compose_hom_rel in H2.
+    destruct H2 as [q [??]].
+    destruct q.
+    simpl in H2.
+    rewrite (pair_rel_elem _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
+    apply ident_elem in H2.
+    exists c1; auto.
   Qed.
 
-  Theorem antistrict_pair_commute2 (C A B:∂PLT) (f:C → A) (g:C → B) :
-    (forall c, exists a, (c,a) ∈ PLT.hom_rel f) ->
-    PLT.pi2 ∘ PLT.pair f g ≈ g.
+  Theorem antistrict_pair_commute2 (C A:∂PLT) (f:C → A) :
+    antistrict f <-> forall B (g:C → B), PLT.pi2 ∘ PLT.pair f g ≈ g.
   Proof.
-    repeat intro.
+    split; intros.
     split. apply pair_commute2.
     hnf; intros.
     apply compose_hom_rel. simpl.
@@ -1005,6 +1043,17 @@ Module PPLT.
     split.
     apply pair_rel_elem. split; auto.
     apply pi2_rel_elem. auto.
-  Qed.    
+
+    intro c. destruct (H C id).
+    assert ((c,c) ∈ PLT.hom_rel (PLT.pi2 ∘ PLT.pair f id)).
+    apply H1. simpl. apply ident_elem. auto.
+    apply compose_hom_rel in H2.
+    destruct H2 as [q [??]].
+    destruct q.
+    simpl in H2.
+    rewrite (pair_rel_elem _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
+    apply ident_elem in H4.
+    exists c0; auto.
+  Qed.
 
 End PPLT.
