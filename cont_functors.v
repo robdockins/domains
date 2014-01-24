@@ -229,7 +229,7 @@ Section fixpoint.
       simpl. symmetry. apply initiate_univ.
       destruct j. inversion Hij.
       simpl.
-      rewrite <- (cat_assoc (Alg.iota AG)).
+      rewrite <- (cat_assoc _ _ _ _ _ (Alg.iota AG)).
       apply cat_respects; auto.
       rewrite <- (Functor.compose F).
       2: reflexivity.
@@ -263,7 +263,7 @@ Section fixpoint.
       symmetry. apply H.
 
       intros. simpl.
-      rewrite <- (cat_assoc (Alg.iota AG)).
+      rewrite <- (cat_assoc _ _ _ _ _ (Alg.iota AG)).
       rewrite <- (Functor.compose F). 2: reflexivity.
       apply cat_respects; auto.
       apply Functor.respects.
@@ -271,7 +271,7 @@ Section fixpoint.
       apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone).
 
       intros.
-      rewrite <- (cat_assoc cata_hom).
+      rewrite <- (cat_assoc _ _ _ _ _ cata_hom).
       rewrite <- (colim_commute BL cocone_plus1).
       unfold cata_hom.
       apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone (S i)).
@@ -293,7 +293,7 @@ Section fixpoint.
     simpl.
     rewrite IHi.
     rewrite Functor.compose. 2: reflexivity.
-    rewrite (cat_assoc (Alg.iota M)).
+    rewrite (cat_assoc _ _ _ _ _ (Alg.iota M)).
     rewrite <- (Alg.hom_axiom h). simpl.
     repeat rewrite <- (@cat_assoc C).
     apply cat_respects; auto.
@@ -349,8 +349,8 @@ Proof.
   destruct (choose_ub I i j) as [k [??]].
   rewrite (cocone_commute YC i k H). simpl.
   rewrite (cocone_commute YC j k H0). simpl.
-  rewrite (cat_ident1 (cocone_spoke YC k)).
-  rewrite (cat_ident1 (cocone_spoke YC k)). auto.
+  rewrite (cat_ident1 _ _ _ (cocone_spoke YC k)).
+  rewrite (cat_ident1 _ _ _ (cocone_spoke YC k)). auto.
   rewrite (H j). symmetry. apply cat_ident1.
 Qed.
 

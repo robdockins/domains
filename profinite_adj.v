@@ -795,13 +795,13 @@ Section strictify.
 
   Lemma f_explode : liftPPLT@(adj_counit Y ∘ forgetPLT@f) ∘ adj_unit (liftPPLT X) ≈ f.
     rewrite Functor.compose. 2: reflexivity.
-    rewrite <- (cat_assoc (liftPPLT@adj_counit Y)).
+    rewrite <- (cat_assoc _ _ _ _ _ (liftPPLT@adj_counit Y)).
     rewrite <- (NT.axiom adj_unit f).
-    rewrite (cat_assoc (liftPPLT@adj_counit Y)).
+    rewrite (cat_assoc _ _ _ _ _ (liftPPLT@adj_counit Y)).
     generalize (Adjunction.adjoint_axiom2 PLT_adjoint Y).
     intros. simpl in H.
     rewrite H.
-    rewrite (cat_ident2 (id@f)).
+    rewrite (cat_ident2 _ _ _ (id@f)).
     auto.
   Qed.
 
@@ -818,10 +818,10 @@ Section strictify.
     intros.
     transitivity
       (liftPPLT@adj_counit_inv_hom X ∘ id (liftPPLT X)).
-    rewrite (cat_ident1 (liftPPLT@adj_counit_inv_hom X)). auto.
+    rewrite (cat_ident1 _ _ _ (liftPPLT@adj_counit_inv_hom X)). auto.
     rewrite <- H0.
     simpl.
-    rewrite (cat_assoc (liftPPLT@adj_counit_inv_hom X)).
+    rewrite (cat_assoc _ _ _ _ _ (liftPPLT@adj_counit_inv_hom X)).
     rewrite <- (Functor.compose liftPPLT). 2: reflexivity.
     transitivity (id ∘ adj_unit_hom (liftPPLT_ob X)).
     apply PLT.compose_mono. auto.
@@ -829,7 +829,7 @@ Section strictify.
     apply liftPPLT_mono.
     apply adj_counit_inv_le.
     rewrite Functor.ident; auto.
-    rewrite (cat_ident2 (adj_unit_hom _)). auto.
+    rewrite (cat_ident2 _ _ _ (adj_unit_hom _)). auto.
     auto.        
   Qed.    
 
@@ -840,14 +840,14 @@ Section strictify.
     transitivity (adj_counit Y ∘ forgetPLT@(liftPPLT@q) ∘ adj_counit_inv_hom X).
     transitivity (adj_counit Y ∘ adj_counit_inv_hom Y ∘ q).
     rewrite (adj_counit_inv_eq Y).
-    rewrite (cat_ident2 q). auto.
-    rewrite <- (cat_assoc (adj_counit Y)).
-    rewrite <- (cat_assoc (adj_counit Y)).
+    rewrite (cat_ident2 _ _ _ q). auto.
+    rewrite <- (cat_assoc _ _ _ _ _ (adj_counit Y)).
+    rewrite <- (cat_assoc _ _ _ _ _ (adj_counit Y)).
     apply PLT.compose_mono; auto.
     apply adj_counit_inv_ntish. 
-    rewrite <- (cat_assoc (adj_counit Y)).
-    rewrite <- (cat_assoc (adj_counit Y)).
+    rewrite <- (cat_assoc _ _ _ _ _ (adj_counit Y)).
+    rewrite <- (cat_assoc _ _ _ _ _ (adj_counit Y)).
     apply PLT.compose_mono; auto.
     apply PLT.compose_mono; auto.
-  Qed.    
+  Qed.
 End strictify.

@@ -235,8 +235,8 @@ Section ep_pairs.
     EpPair X X id id _.
   Next Obligation.
     intros. constructor.
-    rewrite (cat_ident1 id(X)); auto.
-    rewrite (cat_ident1 id(X)); auto.
+    rewrite (cat_ident1 _ _ _ id(X)); auto.
+    rewrite (cat_ident1 _ _ _ id(X)); auto.
   Qed.
 
   Program Definition ep_compose (X Y Z:ob PLT) (g:ep_pair Y Z) (f:ep_pair X Y) :=
@@ -246,18 +246,18 @@ Section ep_pairs.
     destruct g as [e' p' [??]].
     destruct f as [e p [??]]. simpl in *.
     constructor.
-    rewrite <- (cat_assoc p).
-    rewrite (cat_assoc p').
+    rewrite <- (cat_assoc _ _ _ _ _ p).
+    rewrite (cat_assoc _ _ _ _ _ p').
     rewrite pe_ident0.
-    rewrite (cat_ident2 e). auto.
+    rewrite (cat_ident2 _ _ _ e). auto.
     
-    rewrite <- (cat_assoc e').
-    rewrite (cat_assoc e).
+    rewrite <- (cat_assoc _ _ _ _ _ e').
+    rewrite (cat_assoc _ _ _ _ _ e).
     transitivity (e' ∘ p'); auto.
     apply PLT.compose_mono; auto.
     transitivity (id ∘ p').
     apply PLT.compose_mono; auto.
-    rewrite (cat_ident2 p').
+    rewrite (cat_ident2 _ _ _ p').
     auto.
   Qed.    
 
@@ -269,29 +269,29 @@ Section ep_pairs.
     intros.
     split.
     transitivity (id ∘ p).
-    rewrite (cat_ident2 p). auto.
+    rewrite (cat_ident2 _ _ _ p). auto.
     destruct H0.
     transitivity ((p' ∘ e') ∘ p).
     apply PLT.compose_mono; auto.
     rewrite <- H1.
-    rewrite <- (cat_assoc p').
+    rewrite <- (cat_assoc _ _ _ _ _ p').
     transitivity (p' ∘ id).
     apply PLT.compose_mono.
     destruct H. auto.
     auto.
-    rewrite (cat_ident1 p'). auto.
+    rewrite (cat_ident1 _ _ _ p'). auto.
     transitivity (id ∘ p').
-    rewrite (cat_ident2 p'). auto.
+    rewrite (cat_ident2 _ _ _ p'). auto.
     destruct H.
     transitivity ((p ∘ e) ∘ p').
     apply PLT.compose_mono; auto.
     rewrite H1.
-    rewrite <- (cat_assoc p).
+    rewrite <- (cat_assoc _ _ _ _ _ p).
     transitivity (p ∘ id).
     apply PLT.compose_mono.
     destruct H0. auto.
     auto.
-    rewrite (cat_ident1 p). auto.
+    rewrite (cat_ident1 _ _ _ p). auto.
   Qed.
 
   Program Definition ep_pair_eq_mixin X Y : Eq.mixin_of (ep_pair X Y) :=
@@ -316,10 +316,10 @@ Section ep_pairs.
     Category.axioms _ ep_pair ep_pair_eq_mixin ep_pair_comp_mixin.
   Proof.  
     constructor; simpl; intros.
-    red. simpl. apply (cat_ident1 (embed f)).
-    red. simpl. apply (cat_ident2 (embed f)).
-    red. simpl. apply (cat_assoc (embed f)).
-    red. simpl. apply (cat_respects H H0).
+    red. simpl. apply (cat_ident1 _ _ _ (embed f)).
+    red. simpl. apply (cat_ident2 _ _ _ (embed f)).
+    red. simpl. apply (cat_assoc _ _ _ _ _ (embed f)).
+    red. simpl. apply (cat_respects _ _ _ _ _ _ _ _ H H0).
   Qed.
 
   Canonical Structure PLT_EP :=
