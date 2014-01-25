@@ -27,3 +27,4 @@ nominal.v
 discrete.v
 lam_models.v
 ski.v
+powerdom.v

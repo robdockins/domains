@@ -16,6 +16,38 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import profinite.
 
+Lemma nil_subset X (Q:finset X) :
+  (nil : finset X) ⊆ Q.
+Proof.
+  repeat intro. apply nil_elem in H. elim H.
+Qed.
+
+Lemma ub_nil : forall (X:preord) (a:X),
+  upper_bound a (nil : finset X).
+Proof.
+  repeat intro. apply nil_elem in H. elim H.
+Qed.
+
+Lemma dec_conj (P Q : Prop) :
+  {P}+{~P} -> {Q}+{~Q} -> {P/\Q}+{~(P/\Q)}.
+Proof.
+  intros. destruct H. destruct H0.
+  left; auto.
+  right; intros [??]; contradiction.
+  right; intros [??]; contradiction.
+Qed.
+
+Lemma ub_cons (X:preord) (x:X) (xs:finset X) (a:X) :
+  x ≤ a ->
+  upper_bound a xs ->
+  upper_bound a (x::xs : finset X).
+Proof.
+  repeat intro.
+  apply cons_elem in H1. destruct H1.
+  rewrite H1. auto. apply H0; auto.
+Qed.
+
+
 Module powerdom.
 
 Inductive pdom :=
@@ -358,7 +390,54 @@ Section powerdom.
 
       intro z.
       apply prove_directed.
-admit.
+
+      case_eq hf; intros. auto.
+
+      assert (exists z0:finset X,
+        (forall x, x ∈ z0 -> exists x', x' ∈ elem z /\ x ≤ x') /\
+        (forall x', x' ∈ elem z -> exists x, x ∈ z0 /\ x ≤ x') /\
+        (forall x, x ∈ z0 -> x ∈ all_tokens sort M)).
+      generalize (elem z).
+      induction c.
+      exists nil. split; intros.
+      apply nil_elem in H1; elim H1.
+      split; intros.
+      apply nil_elem in H1; elim H1.
+      apply nil_elem in H1; elim H1.
+      destruct IHc as [z0 [?[??]]].
+      destruct (mub_complete Xplt nil a) as [a' [??]].
+      rewrite H0. hnf. auto.
+      apply ub_nil.
+      exists (a'::z0).
+      split; intros.
+      apply cons_elem in H6. destruct H6.
+      exists a. split.
+      apply cons_elem; auto. rewrite H6; auto.
+      destruct (H1 x) as [x' [??]]; auto.
+      exists x'; split; auto. apply cons_elem; auto.
+      split; intros.
+      apply cons_elem in H6. destruct H6.
+      exists a'. split; auto.
+      apply cons_elem; auto. rewrite H6; auto.
+      destruct (H2 x') as [x [??]]; auto.
+      exists x; split; auto. apply cons_elem; auto.
+      apply cons_elem in H6. destruct H6.
+      rewrite H6.
+      unfold all_tokens.
+      apply (mub_clos_mub Xplt _ nil); auto.
+      rewrite H0; hnf; auto.
+      apply nil_subset.
+      apply H3; auto.
+
+      destruct H1 as [z0 [?[??]]].
+      assert (inh hf z0).
+      rewrite H0; hnf; auto.
+      exists (PdomElem X z0 H4). apply finsubset_elem.
+      intros. rewrite <- H5; auto.
+      split; auto.
+      apply normal_pdoms_in. simpl. auto.
+      destruct sort; hnf; auto.
+
       intros.      
       apply finsubset_elem in H0.
       apply finsubset_elem in H1.
@@ -372,16 +451,84 @@ admit.
         (exists n, n ∈ elem x' /\ n ≤ m) /\
         (exists n, n ∈ elem y' /\ n ≤ m) /\
         (exists n, n ∈ elem z /\ m ≤ n)).
-      assert (exists q:pdom_elem X,
-        forall m, m ∈ elem q <-> Q m /\ m ∈ all_tokens sort M).
-   admit.
-      destruct H6 as [q Hq].
-      assert (inh hf (elem q)).
-   admit.
+      assert (exists qelems:finset X,
+        forall m, m ∈ qelems <-> Q m /\ m ∈ all_tokens sort M).
+
+      assert (Qdec : forall m, {Q m}+{~Q m}).
+      intro m. unfold Q. apply dec_conj.
+      destruct (finset_find_dec _ (fun n => n ≤ m)) with (elem x').
+      intros. rewrite <- H6; auto.
+      intro. apply (eff_ord_dec X Xeff).
+      left. destruct s; eauto.
+      right. intros [??]. apply (n x0); auto.
+      destruct H6; auto. destruct H6; auto.
+      apply dec_conj.
+      destruct (finset_find_dec _ (fun n => n ≤ m)) with (elem y').
+      intros. rewrite <- H6; auto.
+      intro. apply (eff_ord_dec X Xeff).
+      left. destruct s; eauto.
+      right. intros [??]. apply (n x0); auto.
+      destruct H6; auto. destruct H6; auto.
+      destruct (finset_find_dec _ (fun n => m ≤ n)) with (elem z).
+      intros. rewrite <- H6; auto.
+      intro. apply (eff_ord_dec X Xeff).
+      left. destruct s; eauto.
+      right. intros [??]. apply (n x0); auto.
+      destruct H6; auto. destruct H6; auto.
+
+      exists (finsubset X Q Qdec (all_tokens sort M)).
+      intro. rewrite finsubset_elem. intuition.
+      intros. destruct H7 as [?[??]].
+      split.
+      destruct H7 as [n [??]]. exists n. rewrite <- H6; auto.
+      split.
+      destruct H8 as [n [??]]. exists n. rewrite <- H6; auto.
+      destruct H9 as [n [??]]. exists n. rewrite <- H6; auto.
+
+      destruct H6 as [qelems Hq].
+      assert (sort <> Lower -> inh hf qelems).
+      case_eq hf; intros; hnf; auto.
+
+      assert (upper_ord x' z /\ upper_ord y' z).
+      rewrite H0 in H2. rewrite H1 in H3.
+      destruct sort. elim H7; auto.
+      split; auto.
+      destruct H2; destruct H3; split; auto.
+      generalize (elem_inh z).
+      rewrite H6. intros [m ?].
+      destruct H8.
+      destruct (H8 m) as [mx [??]]; auto.
+      destruct (H10 m) as [my [??]]; auto.
+      destruct (mub_complete Xplt (mx::my::nil) m) as [q0 [??]].
+      apply directed.elem_inh with mx. apply cons_elem; auto.
+      apply ub_cons; auto. apply ub_cons; auto. apply ub_nil.
+      exists q0. apply Hq.
+      split. split.
+      exists mx. split. auto. apply H15. apply cons_elem; auto.
+      split.
+      exists my. split. auto. apply H15.
+      apply cons_elem; right. apply cons_elem; auto.
+      exists m. split; auto.
+      unfold all_tokens.
+      apply (mub_clos_mub Xplt _ (mx::my::nil)); auto.
+      eapply directed.elem_inh. apply cons_elem; auto.
+Lemma cons_subset (x:X) (xs ys:finset X) :
+  x ∈ ys -> xs ⊆ ys -> (x::xs : finset X) ⊆ ys.
+Proof.
+  repeat intro.
+  apply cons_elem in H1. destruct H1.
+  rewrite H1; auto. apply H0; auto.
+Qed.
+      apply cons_subset; auto.
+      apply cons_subset; auto.
+      apply nil_subset.
+
+
       destruct sort. 
-      
       assert (inh hf (elem x' ++ elem y')).      
-   admit.      
+      generalize (elem_inh x').
+      case hf; auto.
+      intros [n ?]. exists n. apply app_elem; auto.
       exists (PdomElem X (elem x'++elem y') H7).
       split.
       rewrite H0.
@@ -402,7 +549,10 @@ admit.
       rewrite H1 in H3.      
       apply H3; auto.
       
-      exists q.
+      assert (Hq' : inh hf qelems).
+      apply H6. discriminate.
+      exists (PdomElem X qelems Hq').
+      simpl.
       rewrite H0. rewrite H1.
       split.
       hnf; simpl; intros.
@@ -425,7 +575,8 @@ admit.
       destruct (H3 y0) as [q2 [??]]; auto.
       destruct (mub_complete Xplt (q1::q2::nil) y0).
       eapply directed.elem_inh. apply cons_elem. left; eauto.
-    admit.
+      apply ub_cons; auto. apply ub_cons; auto. apply ub_nil.
+
       destruct H12.
       exists x0. split; auto.
       apply Hq.
@@ -445,7 +596,9 @@ admit.
       apply nil_elem in H14. elim H14.
       auto.
 
-      exists q.
+      assert (Hq' : inh hf qelems).
+      apply H6. discriminate.
+      exists (PdomElem X qelems Hq').
       rewrite H0. rewrite H1.
       rewrite H0 in H2.
       rewrite H1 in H3.
@@ -458,7 +611,8 @@ admit.
       destruct (H11 q1) as [q2 [??]]; auto.
       destruct (mub_complete Xplt (x0::q2::nil) q1).
       eapply directed.elem_inh. apply cons_elem. left; eauto.
-    admit.
+      apply ub_cons. auto. apply ub_cons; auto. apply ub_nil.
+
       destruct H14.
       exists x1. split.
       apply Hq. split.
@@ -488,7 +642,8 @@ admit.
       destruct (H11 q1) as [q2 [??]]; auto.
       destruct (mub_complete Xplt (x0::q2::nil) q1).
       eapply directed.elem_inh. apply cons_elem. left; eauto.
-    admit.
+      apply ub_cons; auto. apply ub_cons; auto. apply ub_nil.
+
       destruct H14.
       exists x1. split.
       apply Hq. split.
@@ -530,7 +685,7 @@ admit.
       destruct (H9 y0) as [q2 [??]]; auto.
       destruct (mub_complete Xplt (q1::q2::nil) y0).
       eapply directed.elem_inh. apply cons_elem. left; eauto.
-    admit.
+      apply ub_cons; auto. apply ub_cons; auto. apply ub_nil.
       destruct H14.
       exists x0. split; auto.
       apply Hq.
@@ -569,6 +724,184 @@ admit.
         end)
         (pdom_effective (PLT.ord X) (PLT.effective X) sort)
         (pdom_plt (PLT.ord X) (PLT.effective X) (PLT.plotkin X) sort)).
+
+  Program Definition single_elem (X:preord) (x:X) : pdom_elem X :=
+    PdomElem X (x::nil) _.
+  Next Obligation.
+    repeat intro.    
+    apply directed.elem_inh with x. apply cons_elem; auto.
+  Qed.
+
+  Program Definition union_elem (X:preord) (p q:pdom_elem X) :=
+    PdomElem X (elem p ++ elem q) _.
+  Next Obligation.  
+    intros. generalize (elem_inh q).
+    case hf; auto.
+    intros [n ?]. exists n. apply app_elem; auto.
+  Qed.
+
+  Definition single_rel sort (X:PLT.PLT hf) : erel X (powerdomain sort X) :=
+    esubset_dec _
+      (fun xp => (single_elem X (fst xp) : pdom_ord X sort) ≥ snd xp)
+      (fun x => pdom_ord_dec X (PLT.effective X) sort (snd x) (single_elem X (fst x)))
+      (eprod (eff_enum _ (PLT.effective X)) (enum_elems X (PLT.effective X) sort)).
+
+  Lemma single_rel_elem sort (X:PLT.PLT hf) x (p:pdom_ord X sort) :
+    (x,p) ∈ single_rel sort X <-> p ≤ single_elem X x.
+  Proof.
+    unfold single_rel. rewrite esubset_dec_elem. simpl.
+    rewrite eprod_elem. intuition.
+    apply eff_complete. apply enum_elems_complete.
+    intros. destruct H as [[??][??]]; auto.
+    rewrite H3; auto.
+    rewrite H0.
+    apply pdom_elem_eq_le. simpl.
+    assert (fst x0 ≈ fst y).
+    split; auto.
+    split; hnf; simpl; intros.
+    apply cons_elem in H5. apply cons_elem.
+    rewrite <- H4; auto.
+    apply cons_elem in H5. apply cons_elem.
+    rewrite H4; auto.
+  Qed.
+
+  Lemma single_elem_mono sort (X:preord) (x x':X) :
+    x ≤ x' -> (single_elem X x:pdom_ord X sort) ≤ single_elem X x'.
+  Proof.
+    intro.
+    destruct sort; hnf; simpl; intros.
+    apply cons_elem in H0. destruct H0.
+    exists x'. split; auto. apply cons_elem; auto. rewrite H0; auto.
+    apply nil_elem in H0. elim H0.
+    apply cons_elem in H0. destruct H0.
+    exists x. split; auto. apply cons_elem. auto.
+    rewrite H0; auto. apply nil_elem in H0; elim H0.
+    split; hnf; simpl; intros.
+    apply cons_elem in H0. destruct H0.
+    exists x'. split; auto. apply cons_elem; auto. rewrite H0; auto.
+    apply nil_elem in H0. elim H0.
+    apply cons_elem in H0. destruct H0.
+    exists x. split; auto. apply cons_elem. auto.
+    rewrite H0; auto. apply nil_elem in H0; elim H0.
+  Qed.    
+
+  Program Definition single sort X : X → powerdomain sort X :=
+    PLT.Hom hf X (powerdomain sort X) (single_rel sort X) _ _.
+  Next Obligation.
+    intros.
+    apply (single_rel_elem sort X) in H1.
+    apply (single_rel_elem sort X).
+    rewrite H0. rewrite H1.
+    apply single_elem_mono. auto.
+  Qed.
+  Next Obligation.
+    repeat intro.
+    exists (single_elem X x).
+    split. repeat intro.
+    apply H in H0.
+    apply erel_image_elem in H0.
+    apply (single_rel_elem sort X) in H0.
+    auto.
+    apply erel_image_elem.
+    apply (single_rel_elem sort X). auto.
+  Qed.
+
+  Definition union_rel sort (X:PLT.PLT hf)
+    : erel (PLT.prod (powerdomain sort X) (powerdomain sort X)) (powerdomain sort X)
+    := esubset_dec 
+         (PLT.prod (PLT.prod (powerdomain sort X) (powerdomain sort X)) (powerdomain sort X))
+         (fun xyz => snd xyz ≤ union_elem X (fst (fst xyz)) (snd (fst xyz)))
+         (fun xyz => pdom_ord_dec X (PLT.effective X) sort _ _)
+         (eprod (eprod (enum_elems _ (PLT.effective X) sort)
+                       (enum_elems _ (PLT.effective X) sort))
+                (enum_elems _ (PLT.effective X) sort)).
+
+  Lemma union_elem_lower_ord X (x x' y y':pdom_elem X) :
+    lower_ord X x x' -> lower_ord X y y' ->
+    lower_ord X (union_elem X x y) (union_elem X x' y').
+  Proof.
+    unfold lower_ord; simpl; intros.
+    apply app_elem in H1. destruct H1.
+    destruct (H x0) as [q [??]];auto.
+    exists q. split; auto. apply app_elem; auto.
+    destruct (H0 x0) as [q [??]];auto.
+    exists q. split; auto. apply app_elem; auto.
+  Qed.
+
+  Lemma union_elem_upper_ord X (x x' y y':pdom_elem X) :
+    upper_ord X x x' -> upper_ord X y y' ->
+    upper_ord X (union_elem X x y) (union_elem X x' y').
+  Proof.
+    unfold upper_ord; simpl; intros.
+    apply app_elem in H1. destruct H1.
+    destruct (H y0) as [q [??]]; auto.
+    exists q; split; auto. apply app_elem; auto.
+    destruct (H0 y0) as [q [??]]; auto.
+    exists q; split; auto. apply app_elem; auto.
+  Qed.    
+
+  Lemma union_elem_convex_ord X (x x' y y':pdom_elem X) :
+    convex_ord X x x' -> convex_ord X y y' ->
+    convex_ord X (union_elem X x y) (union_elem X x' y').
+  Proof.
+    unfold convex_ord; intuition.
+    apply union_elem_lower_ord; auto.
+    apply union_elem_upper_ord; auto.
+  Qed.
+
+  Lemma union_elem_pdom_ord sort X (x x' y y':pdom_ord X sort) :
+    x ≤ x' -> y ≤ y' -> 
+    (union_elem X x y : pdom_ord X sort) ≤  union_elem X x' y'.
+  Proof.
+    destruct sort; simpl.
+    apply union_elem_lower_ord; auto.
+    apply union_elem_upper_ord; auto.
+    apply union_elem_convex_ord; auto.
+  Qed.
+
+  Lemma union_rel_elem sort X x y z :
+    ((x,y),z) ∈ union_rel sort X <-> union_elem X x y ≥ z.
+  Proof.
+    unfold union_rel. rewrite esubset_dec_elem. simpl. intuition.
+    apply (eprod_elem _ _ _ _ (x,y) z). split.
+    apply eprod_elem. split.
+    apply enum_elems_complete.    
+    apply enum_elems_complete.
+    apply enum_elems_complete.
+    simpl; intros.
+    etransitivity.
+    etransitivity. 2: apply H0.
+    destruct H as [[??][??]]; auto.
+    destruct H as [[??][??]].
+    destruct H. destruct H2.
+    apply (union_elem_pdom_ord sort X); auto.
+  Qed.
+
+  Program Definition union sort X :
+    (PLT.prod (powerdomain sort X) (powerdomain sort X)) → powerdomain sort X :=
+    PLT.Hom _ _ _ (union_rel sort X) _ _.
+  Next Obligation.
+    intros. 
+    destruct x. destruct x'.
+    apply (union_rel_elem sort X c c0 y) in H1.
+    apply union_rel_elem.
+    rewrite H0. rewrite H1.
+    destruct H.
+    apply (union_elem_pdom_ord sort X); auto.
+  Qed.
+  Next Obligation.
+    repeat intro.
+    destruct x as [a b].
+    exists (union_elem X a b).
+    split.
+    repeat intro.
+    apply H in H0.
+    apply erel_image_elem in H0.
+    apply (union_rel_elem _ _ a b x) in H0.
+    auto.
+    apply erel_image_elem.
+    apply (union_rel_elem sort X). auto.
+  Qed.
 
 End powerdom.
 End powerdom.
