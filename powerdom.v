@@ -15,6 +15,7 @@ Require Import plotkin.
 Require Import joinable.
 Require Import approx_rels.
 Require Import profinite.
+Require Import embed.
 
 Lemma nil_subset X (Q:finset X) :
   (nil : finset X) ⊆ Q.
@@ -47,14 +48,34 @@ Proof.
   rewrite H1. auto. apply H0; auto.
 Qed.
 
+Lemma cons_subset (X:preord) (x:X) (xs ys:finset X) :
+  x ∈ ys -> xs ⊆ ys -> (x::xs : finset X) ⊆ ys.
+Proof.
+  repeat intro.
+  apply cons_elem in H1. destruct H1.
+  rewrite H1; auto. apply H0; auto.
+Qed.
 
-Module powerdom.
+Lemma cons_morphism (X:preord) (x x':X) (xs xs':finset X) :
+  x ≈ x' -> xs ≈ xs' -> (x :: xs:finset X) ≈ x' :: xs'.
+Proof.
+  intros.
+  split.
+  apply cons_subset. apply cons_elem. auto.
+  red; intros. apply cons_elem; auto.
+  right. rewrite <- H0; auto.
+  apply cons_subset. apply cons_elem. auto.
+  red; intros. apply cons_elem; auto.
+  right. rewrite H0; auto.
+Qed.
 
-Inductive pdom :=
+
+Inductive pdom_sort :=
   | Lower
   | Upper
   | Convex.
 
+Module powerdom.
 Section powerdom.
   Variable hf:bool.
 
@@ -199,7 +220,7 @@ Section powerdom.
       apply (H y0); auto. apply cons_elem; auto.
     Qed.
 
-    Definition pdom_ord (sort:pdom) := 
+    Definition pdom_ord (sort:pdom_sort) := 
       Preord.Pack
         (pdom_elem X) 
         match sort with
@@ -512,13 +533,6 @@ Section powerdom.
       unfold all_tokens.
       apply (mub_clos_mub Xplt _ (mx::my::nil)); auto.
       eapply directed.elem_inh. apply cons_elem; auto.
-Lemma cons_subset (x:X) (xs ys:finset X) :
-  x ∈ ys -> xs ⊆ ys -> (x::xs : finset X) ⊆ ys.
-Proof.
-  repeat intro.
-  apply cons_elem in H1. destruct H1.
-  rewrite H1; auto. apply H0; auto.
-Qed.
       apply cons_subset; auto.
       apply cons_subset; auto.
       apply nil_subset.
@@ -905,3 +919,589 @@ Qed.
 
 End powerdom.
 End powerdom.
+
+Notation powerdomain := powerdom.powerdomain.
+
+Section powerdom_functor.
+  Variable hf:bool.
+  Variable sort:pdom_sort.
+  Variables X Y:PLT.PLT hf.
+
+  Program Definition pdom_map (f:X ⇀ Y) 
+    (x:powerdomain hf sort X) : powerdomain hf sort Y
+    := powerdom.PdomElem hf Y (map f (powerdom.elem _ _ x)) _.
+  Next Obligation.
+    intros. generalize (powerdom.elem_inh _ _ x).
+    destruct hf; simpl; auto.
+    intros [q ?]. destruct H as [q' [??]].
+    exists (f q'). exists (f q'). split; auto.
+    apply in_map. auto.
+  Qed.
+
+  Lemma pdom_map_lower_ord  (f:X⇀Y) :
+    forall a b, 
+      powerdom.lower_ord hf X a b <-> 
+      powerdom.lower_ord hf Y (pdom_map f a) (pdom_map f b).
+  Proof.
+    unfold powerdom.lower_ord; simpl; intuition.
+    destruct H0 as [x' [??]].
+    apply in_map_iff in H0.
+    destruct H0 as [q [??]].
+    subst x'.
+    destruct (H q) as [q' [??]].
+    exists q; split; auto.
+    destruct H0 as [q'' [??]].
+    exists (f q''). split; auto.
+    exists (f q''). split; auto.
+    apply in_map. auto.
+    rewrite H1.
+    apply embed_mono.
+    rewrite <- H4; auto.
+    destruct H0 as [x' [??]].
+    destruct (H (f x')) as [y [??]].
+    exists (f x'). split; auto. apply in_map; auto.
+    destruct H2 as [y' [??]].    
+    apply in_map_iff in H2.
+    destruct H2 as [x'' [??]]. subst y'.
+    exists x''. split; auto.
+    exists x''; split; auto.
+    rewrite H1; auto.
+    apply (embed_reflects f).
+    rewrite H3; auto.
+  Qed.
+  
+  Lemma pdom_map_upper_ord  (f:X⇀Y) :
+    forall a b, 
+      powerdom.upper_ord hf X a b <-> 
+      powerdom.upper_ord hf Y (pdom_map f a) (pdom_map f b).
+  Proof.
+    unfold powerdom.upper_ord. intuition.
+    destruct H0 as [y' [??]].
+    simpl in H0.
+    apply in_map_iff in H0.
+    destruct H0 as [x [??]]. subst y'.
+    destruct (H x) as [q [??]].   
+    exists x; split; auto.
+    destruct H0 as [q' [??]].
+    exists (f q'). split.
+    exists (f q'). split; auto.
+    apply in_map. auto.
+    rewrite H1.
+    apply embed_mono. rewrite <- H4; auto.
+
+    destruct H0 as [y' [??]].
+    destruct (H (f y')) as [q [??]].
+    exists (f y'). simpl. split; auto.
+    apply in_map. auto.
+    destruct H2 as [q' [??]].
+    simpl in H2.
+    apply in_map_iff in H2.
+    destruct H2 as [q'' [??]]. subst q'.
+    exists q''. split.
+    exists q''. split; auto.
+    rewrite H4 in H3.
+    apply embed_reflects in H3. rewrite H1. auto.
+  Qed.
+
+  Program Definition pdom_fmap (f:X ⇀ Y) :
+    powerdomain hf sort X ⇀ powerdomain hf sort Y
+    := Embedding hf _ _ (pdom_map f) _ _ _ _.
+  Next Obligation.
+    intros. destruct sort.
+    apply pdom_map_lower_ord. auto.
+    apply pdom_map_upper_ord. auto.
+    destruct H; split.
+    apply pdom_map_lower_ord. auto.
+    apply pdom_map_upper_ord. auto.
+  Qed.
+  Next Obligation.
+    intros. destruct sort.
+    red in H. simpl in H.
+    rewrite <- (pdom_map_lower_ord f a) in H. auto.
+    red in H. simpl in H.
+    rewrite <- (pdom_map_upper_ord f a) in H. auto.
+    destruct H. split.
+    rewrite <- (pdom_map_lower_ord f a) in H. auto.
+    rewrite <- (pdom_map_upper_ord f a) in H0. auto.
+  Qed.
+  Next Obligation.
+    intros. generalize (refl_equal hf).
+    pattern hf at 1 3. case hf; intros. auto.
+    destruct y. simpl.
+    assert (exists (xs:finset X),
+      (forall x, In x xs -> exists y, In y elem /\ f x ≤ y) /\
+      (forall y, In y elem -> exists x, In x xs /\ f x ≤ y)).
+    generalize (embed_directed0 f).
+    pattern hf at 2. rewrite <- H. intros.
+    clear elem_inh. induction elem.
+    exists nil. simpl; intuition.
+    destruct IHelem as [xs [??]].
+    destruct (H0 a) as [q ?].
+    exists (q::xs). simpl; intuition; subst; eauto.
+    destruct (H1 x) as [y [??]]; auto.
+    exists y; split; auto.
+    destruct (H2 y) as [x [??]]; auto.
+    exists x; split; auto.
+    destruct H0 as [xs [??]].
+    assert (inh hf xs).
+    rewrite <- H at 2. red. auto.
+    exists (powerdom.PdomElem hf X xs H2).
+    destruct sort; hnf; simpl; intros.
+    destruct H3 as [x' [??]].
+    apply in_map_iff in H3. destruct H3 as [q [??]].
+    subst x'.
+    destruct (H0 q) as [q' [??]]; auto.
+    exists q'. split. exists q'; split; auto. rewrite H4. auto.
+    destruct H3 as [y' [??]].
+    destruct (H1 y') as [q' [??]]. auto.
+    exists (f q'). split; auto.
+    exists (f q'); split; auto.
+    apply in_map; auto.
+    rewrite H4; auto.
+
+    split. hnf; simpl; intros.
+    destruct H3 as [x' [??]].
+    apply in_map_iff in H3. destruct H3 as [q [??]]. subst x'.
+    destruct (H0 q) as [q' [??]]; auto.
+    exists q'; split; auto.
+    exists q'; split; auto. rewrite H4. auto.
+    hnf; simpl; intros.
+    destruct H3 as [x' [??]].
+    destruct (H1 x') as [q [??]]. auto.
+    exists (f q). split; auto.
+    exists (f q). split; auto.
+    apply in_map. auto.
+    rewrite H4; auto.    
+  Qed.
+  Next Obligation.
+    intros.
+
+    set (M := a :: b :: nil).
+    set (Q m := 
+      (exists n, n ∈ powerdom.elem _ _ a /\ n ≤ m) /\
+      (exists n, n ∈ powerdom.elem _ _ b /\ n ≤ m) /\
+      (exists n, n ∈ powerdom.elem _ _ y /\ f m ≤ n)).
+
+    assert (Hqelems : exists qelems:finset X,
+      forall m, m ∈ qelems <-> Q m /\ 
+        m ∈ powerdom.all_tokens hf X (PLT.plotkin X) sort M).
+  
+      assert (Qdec : forall m, {Q m}+{~Q m}).
+      intro m. unfold Q. apply dec_conj.
+      destruct (finset_find_dec _ (fun n => n ≤ m)) with (powerdom.elem _ _ a).
+      intros. rewrite <- H1; auto.
+      intro. apply (eff_ord_dec X (PLT.effective X)).
+      left. destruct s; eauto.
+      right. intros [??]. apply (n x); auto.
+      destruct H1; auto. destruct H1; auto.
+      apply dec_conj.
+      destruct (finset_find_dec _ (fun n => n ≤ m)) with (powerdom.elem _ _ b).
+      intros. rewrite <- H1; auto.
+      intro. apply (eff_ord_dec X (PLT.effective X)).
+      left. destruct s; eauto.
+      right. intros [??]. apply (n x); auto.
+      destruct H1; auto. destruct H1; auto.
+      destruct (finset_find_dec _ (fun n => f m ≤ n)) with (powerdom.elem _ _ y).
+      intros. rewrite <- H1; auto.
+      intro. apply (eff_ord_dec Y (PLT.effective Y)).
+      left. destruct s; eauto.
+      right. intros [??]. apply (n x); auto.
+      destruct H1; auto. destruct H1; auto.
+
+      exists (finsubset X Q Qdec (powerdom.all_tokens hf X (PLT.plotkin X) sort M)).
+      intro. rewrite finsubset_elem. intuition.
+      intros. destruct H2 as [?[??]].
+      split.
+      destruct H2 as [n [??]]. exists n. rewrite <- H1; auto.
+      split.
+      destruct H3 as [n [??]]. exists n. rewrite <- H1; auto.
+      destruct H4 as [n [??]]. exists n. rewrite <- H1; auto.
+
+    destruct Hqelems as [qelems Hq].
+
+    assert (Hq' : forall qa qb qy,
+      qa ∈ powerdom.elem _ _ a ->
+      qb ∈ powerdom.elem _ _ b ->
+      qy ∈ powerdom.elem _ _ y ->
+      f qa ≤ qy -> f qb ≤ qy ->
+      exists q, q ∈ qelems /\ qa ≤ q /\ qb ≤ q /\ f q ≤ qy).
+      
+      intros.
+      destruct (embed_directed2 f qy qa qb) as [q [?[??]]]; auto.
+      destruct (mub_complete (PLT.plotkin X) (qa::qb::nil) q) as [q0 [??]].
+      apply elem_inh with qa. apply cons_elem; auto.
+      apply ub_cons; auto. apply ub_cons; auto. apply ub_nil.
+      exists q0. split.
+      apply Hq.
+      split. split.
+      exists qa. split. auto.
+      apply H9. apply cons_elem; auto.
+      split.
+      exists qb. split. auto.
+      apply H9. apply cons_elem; right. apply cons_elem; auto.
+      exists qy. split; auto.
+      transitivity (f q); auto.
+      apply embed_mono. auto.
+      unfold powerdom.all_tokens.
+      apply (mub_clos_mub (PLT.plotkin X)  _ (qa::qb::nil)); auto.
+      eapply elem_inh. apply cons_elem; auto.
+      apply cons_subset; auto.
+      apply mub_clos_incl.
+      simpl.
+      apply app_elem.
+      left. auto.
+      apply cons_subset; auto.
+      apply mub_clos_incl.
+      simpl.
+      apply app_elem. right.
+      apply app_elem. left.
+      auto.
+      apply nil_subset.
+      split; auto.
+      apply H9. apply cons_elem; auto.
+      split.
+      apply H9. 
+      apply cons_elem; right.
+      apply cons_elem; auto.
+      transitivity (f q); auto.
+      apply embed_mono; auto.
+
+    assert (Hq'':sort <> Lower -> inh hf qelems).
+      generalize (refl_equal hf).
+      pattern hf at 1 4. case hf; intros; hnf; auto.
+      destruct sort. elim H2; auto.
+
+      generalize (powerdom.elem_inh _ _ y).
+      pattern hf at 2. rewrite <- H1.
+      intros [q ?].
+      destruct (H q) as [q1 [??]]; auto.
+      destruct (H0 q) as [q2 [??]]; auto.
+      simpl in H4. simpl in H6.
+      destruct H4 as [q1' [??]].
+      destruct H6 as [q2' [??]].
+      apply in_map_iff in H4.
+      destruct H4 as [qa [??]]. subst q1'.
+      apply in_map_iff in H6.
+      destruct H6 as [qb [??]]. subst q2'.
+
+      destruct (Hq' qa qb q) as [q0 [?[?[??]]]]; auto.
+      exists qa; split; auto.
+      exists qb; split; auto.
+      rewrite <- H8; auto.
+      rewrite <- H9; auto.
+      exists q0; auto.
+
+      generalize (powerdom.elem_inh _ _ a).
+      pattern hf at 2. rewrite <- H1.
+      intros [qa ?].
+      destruct H as [H H'].
+      destruct H0 as [H0 H0'].
+      destruct H3 as [qa' [??]].
+      destruct (H (f qa')) as [q [??]]; auto.
+      simpl. exists (f qa'). split; auto.
+      apply in_map. auto.
+      destruct (H0' q) as [zb [??]]; auto.
+      simpl in H7.
+      destruct H7 as [zb' [??]].
+      apply in_map_iff in H7.
+      destruct H7 as [qb [??]]. subst zb'.
+      rewrite H9 in H8. clear zb H9.
+      destruct (Hq' qa' qb q) as [q0 [?[?[??]]]]; auto.
+      exists qa'; split; auto.
+      exists qb; split; auto.
+      exists q0; auto.
+
+    destruct sort.
+
+    exists (powerdom.union_elem _ _ a b).
+    split.
+    hnf; simpl; intros.
+    destruct H1 as [x' [??]].
+    rewrite map_app in H1.
+    apply in_app_or in H1. destruct H1.
+    destruct (H x') as [q [??]]; auto.
+    exists x'. split; auto.
+    exists q; split; auto.
+    rewrite H2; auto.
+    destruct (H0 x') as [q [??]]; auto.
+    exists x'; split; auto.
+    exists q; split; auto. rewrite H2; auto.
+    split; hnf; simpl; intros.
+    exists x. split; auto.
+    apply app_elem; auto.
+    exists x. split; auto.
+    apply app_elem; auto.
+
+    assert (inh hf qelems).
+    apply Hq''; auto. discriminate.
+    exists (powerdom.PdomElem _ _ qelems H1).
+    split; hnf; simpl; intros.
+    destruct (H y0) as [qa [??]]; auto.
+    destruct (H0 y0) as [qb [??]]; auto.
+    destruct H3 as [qa' [??]].
+    destruct H5 as [qb' [??]].
+    simpl in H3.
+    apply in_map_iff in H3.
+    destruct H3 as [za [??]]. subst qa'.
+    simpl in H5.
+    apply in_map_iff in H5.
+    destruct H5 as [zb [??]]. subst qb'.
+    destruct (Hq' za zb y0) as [q0 [?[?[??]]]].
+    exists za; split; auto.
+    exists zb; split; auto.
+    auto.
+    rewrite <- H7; auto.
+    rewrite <- H8; auto.
+    destruct H3 as [q0' [??]].
+    exists (f q0'); split; auto.
+    exists (f q0'); split; auto.
+    apply in_map. auto.
+    transitivity (f q0); auto.
+    apply embed_mono; auto.
+    split; hnf; simpl; intros.
+    apply Hq in H2.
+    destruct H2 as [[?[??]] ?].
+    auto.
+    apply Hq in H2.
+    destruct H2 as [[?[??]] ?].
+    auto.
+
+    assert (inh hf qelems).
+    apply Hq''; auto. discriminate.
+    exists (powerdom.PdomElem _ _ qelems H1).
+    destruct H. destruct H0.
+
+    split; hnf; simpl; intros.
+    split; hnf; simpl; intros.
+    destruct H4 as [x' [??]].        
+    apply in_map_iff in H4. destruct H4 as [q [??]]. subst x'.
+    assert (q ∈ qelems). exists q; split; auto.
+    apply Hq in H4.
+    destruct H4 as [[?[??]] ?].
+    destruct H8 as [qy [??]].
+    exists qy. split; auto.
+    rewrite H5. auto.
+    destruct (H2 y0) as [qa [??]]; auto.
+    destruct (H3 y0) as [qb [??]]; auto.
+    destruct H5 as [qa' [??]].
+    destruct H7 as [qb' [??]].
+    simpl in H5.
+    apply in_map_iff in H5.
+    destruct H5 as [za [??]]. subst qa'.
+    simpl in H7.
+    apply in_map_iff in H7.
+    destruct H7 as [zb [??]]. subst qb'.
+    destruct (Hq' za zb y0) as [q0 [?[?[??]]]]; auto.
+    exists za; split; auto.
+    exists zb; split; auto.
+    rewrite <- H9; auto.
+    rewrite <- H10; auto.
+    destruct H5 as [q0' [??]].
+    exists (f q0'). split.
+    exists (f q0'). split; auto.
+    apply in_map. auto.
+    transitivity (f q0); auto.
+    apply embed_mono; auto.
+    split.
+    split; hnf; simpl; intros.
+    destruct H4 as [x' [??]].
+    destruct (H (f x')) as [qy [??]]; auto.
+    exists (f x'). split; auto. apply in_map; auto.
+    destruct (H3 qy) as [qb [??]]; auto.
+    destruct H8 as [qb' [??]].
+    simpl in H8.
+    apply in_map_iff in H8.
+    destruct H8 as [zb [??]]. subst qb'.
+    destruct (Hq' x' zb qy) as [q0 [?[?[??]]]]; auto.
+    exists x'; split; auto.
+    exists zb; split; auto.    
+    rewrite <- H10; auto.
+    exists q0. split; auto.
+    rewrite H5; auto.
+    apply Hq in H4.   
+    destruct H4 as [[?[??]] ?]. auto.
+    split; hnf; simpl; intros.
+    destruct H4 as [x' [??]].
+    destruct (H0 (f x')) as [qy [??]]; auto.
+    exists (f x'). split; auto. apply in_map; auto.
+    destruct (H2 qy) as [qa [??]]; auto.
+    destruct H8 as [qa' [??]].
+    simpl in H8. apply in_map_iff in H8. destruct H8 as [za [??]]. subst qa'.
+    rewrite H10 in H9.
+    destruct (Hq' za x' qy) as [q0 [?[?[??]]]]; auto.
+    exists za; split; auto. 
+    exists x'; split; auto.
+    exists q0; split; auto.
+    rewrite H5; auto.
+    apply Hq in H4.
+    destruct H4 as [[?[??]] ?]; auto.
+  Qed.
+End powerdom_functor.
+
+
+Program Definition powerdomainF (hf:bool) (sort:pdom_sort) :
+  functor (EMBED hf) (EMBED hf) :=
+  Functor (EMBED hf) (EMBED hf) 
+    (powerdomain hf sort)
+    (pdom_fmap hf sort)
+    _ _ _.
+Next Obligation.
+  intros.
+  split; hnf; simpl; intros.
+  apply (powerdom.pdom_elem_eq_le hf A sort).
+  simpl.
+  generalize (powerdom.elem hf A x).
+  induction c; simpl; auto.
+  split; hnf; simpl; intros.
+  apply cons_elem in H0.
+  apply cons_elem. intuition; auto.
+  rewrite H in H1. simpl in H1. auto.
+  rewrite IHc in H1. auto.
+  apply cons_elem in H0.
+  apply cons_elem. intuition.
+  left. rewrite H. auto.
+  right. rewrite IHc; auto.
+  apply (powerdom.pdom_elem_eq_le hf A sort).
+
+  simpl.
+  generalize (powerdom.elem hf A x).
+  induction c; simpl; auto.
+  split; hnf; simpl; intros.
+  apply cons_elem in H0.
+  apply cons_elem. intuition; auto.
+  left. rewrite H. auto.
+  right. rewrite <- IHc; auto.
+  apply cons_elem in H0.
+  apply cons_elem. intuition.
+  left. rewrite H in H1. auto.
+  right. rewrite IHc. auto.
+Qed.
+Next Obligation.
+  intros.
+  split; hnf; simpl; intros.
+  apply (powerdom.pdom_elem_eq_le hf C sort).
+  simpl.
+  generalize (powerdom.elem hf A x).
+  intros.
+  induction c; simpl; auto.
+  split; hnf; simpl; intros.
+  apply cons_elem in H0.
+  apply cons_elem. intuition; auto.
+  rewrite H in H1. simpl in H1. auto.
+  rewrite IHc in H1. auto.
+  apply cons_elem in H0.
+  apply cons_elem. intuition.
+  left. rewrite H. auto.
+  right. rewrite IHc; auto.
+
+  apply (powerdom.pdom_elem_eq_le hf C sort).
+  simpl.
+  generalize (powerdom.elem hf A x).
+  induction c; simpl; auto.
+  split; hnf; simpl; intros.
+  apply cons_elem in H0.
+  apply cons_elem. intuition; auto.
+  left. rewrite H. auto.
+  right. rewrite <- IHc; auto.
+  apply cons_elem in H0.
+  apply cons_elem. intuition.
+  left. rewrite H in H1. auto.
+  right. rewrite IHc. auto.
+Qed.
+Next Obligation.
+  intros.
+  split; hnf; simpl; intros.
+  apply (powerdom.pdom_elem_eq_le hf B sort).
+  simpl.
+  generalize (powerdom.elem hf A x).
+  intros.
+  induction c; simpl; auto.
+  split; hnf; simpl; intros.
+  apply cons_elem in H0.
+  apply cons_elem. intuition; auto.
+  rewrite H in H1. simpl in H1. auto.
+  rewrite IHc in H1. auto.
+  apply cons_elem in H0.
+  apply cons_elem. intuition.
+  left. rewrite H. auto.
+  right. rewrite IHc; auto.
+
+  apply (powerdom.pdom_elem_eq_le hf B sort).
+  simpl.
+  generalize (powerdom.elem hf A x).
+  induction c; simpl; auto.
+  split; hnf; simpl; intros.
+  apply cons_elem in H0.
+  apply cons_elem. intuition; auto.
+  left. rewrite H. auto.
+  right. rewrite <- IHc; auto.
+  apply cons_elem in H0.
+  apply cons_elem. intuition.
+  left. rewrite H in H1. auto.
+  right. rewrite IHc. auto.
+Qed.
+
+Require Import cont_functors.
+Require Import bilimit.
+
+Section powerdom_decompose.
+  Variable hf:bool.
+  Variable I:directed_preord.
+  Variables DS : directed_system I (EMBED hf).
+  Variable CC : cocone DS.
+
+  Hypothesis decompose : forall x:cocone_point CC,
+    { i:I & { a:ds_F DS i | cocone_spoke CC i a ≈ x }}.
+
+  Lemma finset_decompose
+    (X:finset (PLT.ord (cocone_point CC))) :
+    { k:I & { Y:finset (PLT.ord (ds_F DS k)) |
+       X ≈ map (cocone_spoke CC k) Y }}.
+  Proof.
+    induction X.
+    destruct (choose_ub_set I nil). exists x.
+    exists nil. simpl. auto.
+    destruct IHX as [k [Y ?]].
+    destruct (decompose a) as [k' [??]].
+    destruct (choose_ub I k k') as [k'' [??]].
+    exists k''.
+    exists (ds_hom DS k' k'' H0 x :: map (ds_hom DS k k'' H) Y).
+    simpl.
+    apply cons_morphism.
+    rewrite <- e0.
+    destruct (cocone_commute CC k' k'' H0).
+    split. apply H1. apply H2.
+    rewrite e.
+    rewrite map_map.
+    generalize (cocone_commute CC k k'' H).
+    clear. induction Y; simpl; intros; auto.
+    apply cons_morphism; auto.
+    destruct H0. split.
+    apply H0. apply H1.
+  Qed.
+End powerdom_decompose.
+
+Lemma powerdomain_continuous hf sort : continuous_functor (powerdomainF hf sort).
+Proof.
+  repeat intro.
+  apply decompose_is_colimit. intros.
+  simpl in x.
+  destruct (finset_decompose hf I DS CC) with (powerdom.elem _ _ x)
+    as [k [Y ?]].
+  apply colimit_decompose. auto.
+  assert (inh hf Y).
+  generalize (powerdom.elem_inh _ _ x).
+  clear -e.
+  destruct hf; intros; auto.
+  destruct Y.
+  destruct x. simpl in *.
+  destruct H.
+  rewrite e in H. apply nil_elem in H. elim H.
+  exists c. apply cons_elem; auto.
+  simpl. exists k.
+  exists (powerdom.PdomElem _ _ Y H).
+  simpl in *.
+  apply (powerdom.pdom_elem_eq_eq hf (cocone_point CC) sort).
+  simpl. auto.
+Qed.
+
