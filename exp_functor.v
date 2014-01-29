@@ -17,6 +17,11 @@ Require Import directed.
 Require Import cont_functors.
 Require Import bilimit.
 
+(**  * Embedding functor for exponentials.
+
+     Here we define the function space functor in the category of embeddings
+     and prove that is is continuous.
+  *)
 
 Section map_rel.
   Context {A B C D : preord}.

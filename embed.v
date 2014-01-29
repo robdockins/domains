@@ -14,6 +14,20 @@ Require Import plotkin.
 Require Import approx_rels.
 Require Import profinite.
 
+(**  * Basis embeddings and EP-pairs
+
+     Here we define the category of embeddings over PLT.  These are used
+     to construct the solutions to recursive domain equations.  Here
+     we show that the category of basis embeddings is equivalant to
+     the more usual category of embedding-projection pairs.  Basis
+     embeddings are considerably more convenient to work with than EP-pairs, so
+     we prefer them for building bilimits and proving functors continuous.
+
+     Basis embeddings form a category with the effective Plotkin orders
+     as objects.  To avoid notational confusion, we use the symbol ⇀
+     to refer to embeddings, reserving → for the homs of PLT.
+  *)
+
 Record embedding (hf:bool) (A B:PLT.ob hf) :=
   Embedding
   { embed_map :> A -> B

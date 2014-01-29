@@ -11,6 +11,18 @@ Require Import directed.
 Require Import plotkin.
 Require Import joinable.
 
+(**  * Constructions of approximable relations for the category PLT.
+
+     In this module we construct approxmiable relations to be used in
+     the construction of the category PLT in profinite.v.
+
+     These include : identity, composition, pairing, pair projection,
+     sum injection, sum case analysis, and the curry and apply operations.
+  
+     All these relations work uniformly in both the category of pointed
+     and unpointed effective Plotkin orders.
+  *)
+
 Definition ident_rel {A:preord} (HAeff:effective_order A) : erel A A :=
   esubset_dec _ (fun x => snd x ≤ fst x) (fun x => eff_ord_dec _ HAeff (snd x) (fst x))
     (eprod (eff_enum _ HAeff) (eff_enum _ HAeff)).

@@ -21,6 +21,16 @@ Require Import cpo.
 Require Import profinite.
 Require Import discrete.
 
+(** * Soundness, adequacy and strong normalization for simply-typed SKI with booleans.
+
+    As a demonstration of the system in action, here is a proof
+    of soundness and adequacy for a simply-typed SKI calculus.
+    The adequacy proof goes via a standard logical-relations argument.
+    As a corollary of the main logical-relations lemma, we achieve
+    strong normalization for the calculus.
+  *)
+
+(**  We have arrow types and a single base type of booleans. *)
 Inductive ty :=
   | ty_bool
   | ty_arrow : ty -> ty -> ty.
@@ -30,13 +40,19 @@ Delimit Scope ty_scope with ty.
 Notation "x ⇒ y" := (ty_arrow x y) : ty_scope.
 Local Open Scope ty.
 
+(**  Terms are boolean constants, the standard combinators S, K and I,
+     and and IF/THEN/ELSE combinator; and applications.
+  *)
 Inductive term : ty -> Type :=
+
   | tbool : forall b:bool,
                 term ty_bool
+
   | tapp : forall σ₁ σ₂,
                 term (σ₁ ⇒ σ₂) ->
                 term σ₁ ->
                 term σ₂
+
   | tI : forall σ,
                 term (σ ⇒ σ)
 
@@ -48,6 +64,11 @@ Inductive term : ty -> Type :=
 
   | tIF : forall σ,
                 term (ty_bool ⇒ σ ⇒ σ ⇒ σ).
+
+
+(**  The operational semantics is given in a big-step style, with the specification
+     of redexes split out into a separate relation.
+  *)
 
 Inductive redex : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> term σ₁ -> term σ₂ -> Prop :=
   | redex_I : forall σ x,
@@ -81,29 +102,42 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
              ~(exists r, redex σ₁ σ₂ n₁ n₂ r) ->
              eval σ₂ (tapp σ₁ σ₂ m₁ m₂) (tapp σ₁ σ₂ n₁ n₂).
 
+(**  Types are interpreted as unpointed domains, using the discrete domain
+     of booleans and the exponential in PLT.
+  *)
 Fixpoint tydom (τ:ty) : PLT :=
   match τ with
   | ty_bool => disc finbool
   | ty_arrow τ₁ τ₂ => PLT.exp (tydom τ₁) (tydom τ₂)
   end.
 
+(**  The denotation of terms is given by a simple fixpoint on term structure.
+     The denotation of each combinator is a straightforward interpretation of the
+     usual lambda term into the operations of a cartesian closed category.
+  *)
 Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → tydom τ :=
   match m with
   | tbool b => disc_elem b
+
   | tapp σ₁ σ₂ m₁ m₂ => PLT.app ∘ PLT.pair (denote (σ₁ ⇒ σ₂) m₁) (denote σ₁ m₂)
+
   | tI σ => PLT.curry PLT.pi2
+
   | tK σ₁ σ₂ => PLT.curry (PLT.curry (PLT.pi2 ∘ PLT.pi1))
+
   | tS σ₁ σ₂ σ₃ => PLT.curry (PLT.curry (PLT.curry (
                      PLT.app ∘ PLT.pair
                        (PLT.app ∘ PLT.pair (PLT.pi2 ∘ PLT.pi1 ∘ PLT.pi1) (PLT.pi2))
                        (PLT.app ∘ PLT.pair (PLT.pi2 ∘ PLT.pi1) (PLT.pi2))
                       )))
+
   | tIF σ => PLT.curry (disc_cases (fun b:bool =>
                  if b then PLT.curry (PLT.curry (PLT.pi2 ∘ PLT.pi1)) 
                       else PLT.curry (PLT.curry (PLT.pi2))
              ))
   end.
 
+(**  Every redex preserves the meaning of terms. *)
 Lemma redex_soundness : forall σ₁ σ₂ x y z,
   redex σ₁ σ₂ x y z ->
   PLT.app ∘ PLT.pair (denote _ x) (denote _ y) ≈ denote _ z.
@@ -164,7 +198,8 @@ Proof.
   auto.
 Qed.
 
-Lemma soundness : forall τ (m z:term τ),
+(**  Evaluation preserves the denotation of terms. *)
+Theorem soundness : forall τ (m z:term τ),
   eval τ m z -> denote τ m ≈ denote τ z.
 Proof.
   intros. induction H; simpl; auto.
@@ -176,6 +211,12 @@ Proof.
   rewrite IHeval2.
   auto.
 Qed.
+
+
+(**  Now we move on to the more difficult adequacy proof.
+     For this we will first need a variety of technical results
+     about the operational semantics.
+  *)
 
 Lemma eval_value τ x y :
   eval τ x y -> eval τ y y.
@@ -190,6 +231,10 @@ Proof.
   apply eapp2; auto.
 Qed.
 
+(**  Syntactic types have decicable equality, which
+     implies injectivity for dependent pairs with
+     (syntactic) types as the type being depended upon.
+  *)
 Lemma inj_pair2_ty : forall (F:ty -> Type) τ x y,
   existT F τ x = existT F τ y -> x = y.
 Proof.
@@ -340,15 +385,19 @@ Proof.
 Qed.
 
 
+(**  Now we define the logical relation.  It is defined by induction
+     on the structure of types, in a standard way.
+  *)
 Fixpoint LR (τ:ty) : term τ -> (PLT.unit false → tydom τ) -> Prop :=
   match τ as τ' return term τ' -> (PLT.unit false → tydom τ') -> Prop
   with
   | ty_bool => fun m h => exists b:bool, m = tbool b /\ h ≈ disc_elem b
   | ty_arrow σ₁ σ₂ => fun m h =>
-        forall n h', LR σ₁ n h' -> eval σ₁ n n ->
-                     exists z, eval _ (tapp σ₁ σ₂ m n) z /\
-                      LR σ₂ z (PLT.app ∘ PLT.pair h h')
-
+        forall n h', 
+          LR σ₁ n h' -> eval σ₁ n n ->
+          exists z, 
+            eval _ (tapp σ₁ σ₂ m n) z /\
+            LR σ₂ z (PLT.app ∘ PLT.pair h h')
   end.
 
 
@@ -366,6 +415,11 @@ Proof.
   apply PLT.pair_eq; auto.
 Qed.
 
+(**  Now we need a host of auxilary definitions to state
+     the main lemmas regarding the logical relation.  These
+     definitions allow us to apply an arbitrary number of
+     arguments to a syntactic term and to the denotation of terms.
+  *)
 Fixpoint lrtys (ts:list ty) (z:ty) :=
   match ts with
   | nil => z
@@ -388,8 +442,9 @@ Fixpoint lrhyps (ls:list ty) : lrsyn ls -> lrsem ls -> Prop :=
   match ls with
   | nil => fun _ _ => True
   | t::ts => fun xs ys =>
-    eval _ (snd xs) (snd xs) /\
-    LR t (snd xs) (snd ys) /\ lrhyps ts (fst xs) (fst ys)
+      eval _ (snd xs) (snd xs) /\
+      LR t (snd xs) (snd ys) /\
+      lrhyps ts (fst xs) (fst ys)
   end.
 
 Fixpoint lrapp (ls:list ty) z : lrsyn ls -> term (lrtys ls z) -> term z :=
@@ -438,6 +493,14 @@ Qed.
 
 Arguments tapp [_ _] _ _.
 
+
+(**  It turns out that a major part of the adequacy proof for the S combintor
+     involves showing that there exists a syntactic term that embodies the operation
+     of applying an argument under one and two other arguments.  Because of the
+     nature of SKI calculi, writing these down and reasoning about them are
+     a major headache --- this turns out to be the most difficult part of the
+     adequacy proof.
+  *)
 Section push_under2.
   Variables a b c d:ty.
   Variable f:term (a ⇒ b ⇒ c ⇒ d).
@@ -483,6 +546,8 @@ Proof.
   intros [r ?]. apply (H1 r); auto.
 Qed.
 
+(**  Show that the push_under1 combinator evaluates as expected.
+  *)
 Lemma push_under1_plus1 : forall b c d w x p z,
   eval _ (tapp (tapp w p) x) z ->
   eval _ (tapp (push_under1 b c d x w) p) z.
@@ -549,6 +614,10 @@ Proof.
   auto.
 Qed.
 
+(**  Show that, when applied to exactly one argument, the push_under2
+     combinator evaluates exactly to an instance of the push_under1
+     combinator.
+  *)
 Lemma push_under2_plus1 : forall a b c d f x p z,
   eval _ f f ->
   eval _ x x ->
@@ -730,6 +799,9 @@ Proof.
 Qed.
 
 
+(**  The meaning of the push_under2 combinator, given directly as the interpretation
+     of the equivalant lambda-term.
+  *)
 Section push_under2_denote.
   Variables a b c d:ty.
   Variable f:PLT.unit false → tydom (a ⇒ b ⇒ c ⇒ d).
@@ -749,6 +821,23 @@ End push_under2_denote.
 Arguments push_under2 [a b c d] f x.
 Arguments push_under2_denote [a b c d] f x.
 Arguments push_under1 [b c d] x z.
+
+(**  Next we prove a series of lemmas about each of the base
+     combinators.  These lemmas show that the combinators stand in the
+     expected logical relation in the context of an arbitrary number
+     of additional related arguments.
+
+     Each of these lemmas goes by induction on the list ls.  The base case
+     essentially just requires reasoing about the relation beween the redexes
+     and the denotational semantics.
+
+     The main techincal content here occurs in the induction cases, and
+     amounts to showing that the combinators satisfy certain kinds of
+     commuting diagrams that allow you to push super-saturated
+     arguments inside the main arguments of the combinator.
+
+     The lemma for 'S' is by far the most difficult.
+  *)
 
 Lemma LR_S ls : forall σ t τ
   (xs : lrsyn (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls))
@@ -1304,6 +1393,12 @@ Proof.
 Qed.
 
 
+(**  The main logical relations lemma.  In order to make the induction
+     function properly, we have to play some games with equality coercions :-(
+
+     We work through the issues that arise via liberal application of the
+     Eqdep_dec.UIP_dec lemma, which applies to types with decidable equality.
+  *)
 Lemma LRok : forall σ (n:term σ) ls τ m xs ys
   (Hσ : σ = lrtys ls τ),
   eq_rect σ term n (lrtys ls τ) Hσ = m ->
@@ -1520,6 +1615,11 @@ Proof.
 Qed.
 
 
+(**  Now we define contextual equivalance.  Contexts here are
+     given in "inside-out" form, which makes the induction in the
+     adequacy proof significantly easier.
+  *)
+
 Inductive context τ : ty -> Type :=
   | cxt_top : context τ τ
   | cxt_appl : forall σ₁ σ₂,
@@ -1542,7 +1642,10 @@ Definition cxt_eq τ σ (m n:term σ):=
   forall (C:context τ σ) (z:term τ),
     eval τ (plug τ σ C m) z <-> eval τ (plug τ σ C n) z.
 
-Lemma adequacy : forall τ (m n:term τ),
+(**  Adequacy means that terms with equivalant denotations
+     are contextually equivalant in any boolean context.
+  *)
+Theorem adequacy : forall τ (m n:term τ),
   denote τ m ≈ denote τ n -> cxt_eq ty_bool τ m n.
 Proof.
   intros. intro.
@@ -1581,12 +1684,18 @@ Proof.
   apply PLT.pair_eq; auto.
 Qed.
 
-Lemma normalizing : forall τ (m:term τ), exists z, eval τ m z.
+(**  As a corollary of the logical relations lemma, we learn that
+     the calculus is strongly normalizing.
+  *)
+Corollary normalizing : forall τ (m:term τ), exists z, eval τ m z.
 Proof.
   intros.
   generalize (LRok τ m nil τ m tt tt (Logic.refl_equal _) (Logic.refl_equal _) I).
   simpl. intros [z [??]]. exists z; auto.
 Qed.
 
+(** These should print "Closed under the global context", meaning these
+    theorems hold without the use of any axioms.
+  *)
 Print Assumptions adequacy.
 Print Assumptions normalizing.

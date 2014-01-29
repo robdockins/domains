@@ -14,6 +14,19 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import profinite.
 
+(**  * Adjoint relation between the pointed and unpointed domains.
+
+     Here we define the lifing and forgetful functors between pointed
+     and unpointed domains, and show that they are adjoint.
+
+     In addition, I show the counit of this adjunction has a partial inverse,
+     which is a useful operation for "strictifying" a nonstrict hom.
+
+     NOTE!! The naming convention here is opposite that of the companion
+     paper.  Here the forgetful functor goes from unpointed domains to pointed
+     domains, and the lifing functor goes from pointed domains to unpointed
+     domains.
+  *)
 
 Program Definition plotkin_forget (A:preord)
   (Heff:effective_order A)

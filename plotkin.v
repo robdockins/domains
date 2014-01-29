@@ -11,15 +11,51 @@ Require Import esets.
 Require Import effective.
 Require Import directed.
 
+(**  * Plotkin orders and normal sets.
 
+     A plotkin order is a preorder where every conditionally-inhabited,
+     bounded finite set has a minimal upper bound; and where every
+     finite set has a finite MUB closure.
+ 
+     The Plotkin orders are alternately characterized has having
+     finite normal sets.  A set X is normal if, for every z,
+     the set { x | x ∈ X ∧ x ≤ z } is h-directed.  A preorder is
+     Plotkin iff every conditionally-inhabted finite set has an
+     enclosing finite normal set.
+
+     Demonstrating the existence of normal sets is generally easier
+     than producing finite MUB closures, so that is our preferred
+     method for demonstrating that an order is Plotkin.
+
+     It might be better (following Gunter) to simply take the normal
+     set definition as primary and drop the MUB closure definition
+     altogether.  That might make other things more complicated,
+     I'm not sure.  Anyway, it would mean major changes to difficult
+     proofs, like those in joinable.v.
+  *)
+
+
+(**  A preorder is MUB complete if every bounded, h-inhabited finite
+     set has a least upper bound below the given bound.
+  *)
 Definition is_mub_complete hf (A:preord) :=
   forall (M:finset A) (x:A), inh hf M -> upper_bound x M ->
     exists mub:A, minimal_upper_bound mub M /\ mub ≤ x.
 
+(**  A set is MUB closed if it contains every MUB of every
+     h-inhabited finite subset.
+  *)
 Definition mub_closed hf (A:preord) (X:finset A) :=
   forall M:finset A, inh hf M -> M ⊆ X ->
     forall x:A, minimal_upper_bound x M -> x ∈ X.
 
+(**  A Plotkin order is MUB complete and has a finite MUB closure
+     operation.  Note, we explicitly require mub_closure to be
+     the smallest MUB closure operation.  It is thus uniquely
+     determined.  In fact, this requirement is not strictly necessary;
+     given an arbitrary MUB closure operation, we can compute the
+     minimal one.
+  *)
 Record plotkin_order (hf:bool) (A:preord) :=
   PlotkinOrder
   { mub_complete : is_mub_complete hf A
@@ -37,6 +73,10 @@ Arguments mub_clos_incl [hf] [A] p _ _ _.
 Arguments mub_clos_mub [hf] [A] p _ _ _ _ _ _.
 Arguments mub_clos_smallest [hf] [A] p _ _ _ _ _ _.
 
+
+(**  MUB-closure is actually a closure operation: it is
+     monotone, inclusive and idempotent.
+  *)
 Lemma mub_clos_mono : forall hf A (H:plotkin_order hf A),
   forall (M N:finset A),
     M ⊆ N -> mub_closure H M ⊆ mub_closure H N.
@@ -59,10 +99,15 @@ Proof.
   apply mub_clos_mub; auto.
 Qed.
 
+
+(**  The empty preorder is Plotkin.
+  *)
 Program Definition empty_plotkin hf : plotkin_order hf emptypo :=
   PlotkinOrder hf emptypo _ (fun _ => nil) _ _ _.
 Solve Obligations of empty_plotkin using (repeat intro; simpl in *; intuition).
 
+(**  The unit preorder is Plotkin.
+  *)
 Program Definition unit_plotkin hf : plotkin_order hf unitpo :=
   PlotkinOrder hf _ _ (fun M => if hf then M else (tt::nil)) _ _ _.
 Solve Obligations of unit_plotkin using (repeat intro; hnf; auto).
@@ -91,6 +136,9 @@ Next Obligation.
   repeat intro. hnf. auto.
 Qed.
  
+(**  When a preorder is effective Plotkin, it is decidable if an
+     element is an upper bound or a minimal upper bound of a finite set.
+  *)
 Section dec_lemmas.
   Variable hf:bool.
   Variable A:preord.
@@ -192,19 +240,37 @@ Proof.
   rewrite H; auto.
 Qed.
 
+(**  We introduce the alternate characterization of Plotkin orders
+     and preorders posessing enough normal sets.  The Plotkin->normal
+     direction of equivalance is easy, but the other direction is rather
+     involved.
+  *)
 Section normal_sets.
   Variable A:preord.
   Variable Heff: effective_order A.
   Variable hf:bool.
 
+  (**  A set X is normal if it is h-inhabited and, for abitrary z,
+       the intersection of X with { x | x ≤ z } is directed.
+    *)
   Definition normal_set (X:finset A) :=
     (inh hf X) /\
-    forall z, directed hf (finsubset A (fun x => x ≤ z) (fun x => eff_ord_dec A Heff x z) X).
+    forall z, directed hf 
+      (finsubset A 
+        (fun x => x ≤ z) 
+        (fun x => eff_ord_dec A Heff x z)
+        X).
 
+  (**  A preorder "has" normal sets if every h-inhabited set is inclosed in
+       some finite normal set.
+    *)
   Definition has_normals :=
     forall (X:finset A) (Hinh:inh hf X),
       { Z:finset A | X ⊆ Z /\ normal_set Z }.
     
+
+  (**  Plotkin orders have normal sets.
+    *)
   Section plt_normal.
     Hypothesis Hplt : plotkin_order hf A.
 
@@ -239,6 +305,10 @@ Section normal_sets.
     Qed.
   End plt_normal.
 
+  (**  Given a finite subset X of a normal set Q, we can compute the (finite) set of
+       all upper bounds of X that lie in Q.  Furthermore, for each upper bound of X,
+       there is some upper bound of X below it in Q.
+    *)
   Lemma normal_has_ubs Q :
     normal_set Q ->
     forall (X:finset A) (Hinh:inh hf X), X ⊆ Q ->
@@ -279,6 +349,9 @@ Section normal_sets.
     intros. rewrite <- H3. auto.
   Qed.
 
+  (**  Moreover, under the same conditions, we can calculate the set
+       of minimal upper bounds of X.
+    *)
   Section normal_mubs.
     Variable Q:finset A.
     Hypothesis H : normal_set Q.
@@ -450,6 +523,8 @@ Section normal_sets.
     Qed.    
   End normal_mubs.
 
+  (**  We can decide if a finite subset of a normal set is MUB closed.
+    *)
   Lemma normal_sub_mub_closed_dec Q : normal_set Q ->
     forall (M:finset A), M ⊆ Q -> { mub_closed hf A M }+{ ~mub_closed hf A M }.
   Proof.
@@ -511,6 +586,9 @@ Section normal_sets.
     apply H0 with X; auto.
   Qed.    
  
+  (** We can caluclate the (finite) set of all MUB closed finite subsets
+      of a normal set.
+    *)
   Lemma normal_set_mub_closed_sets Q : normal_set Q ->
     { CLS : finset (finset A) | 
       forall X, X ∈ CLS <-> (inh hf X /\ X ⊆ Q /\ mub_closed hf A X) }.
@@ -628,6 +706,8 @@ Section normal_sets.
 
   Let OD := (OrdDec A (eff_ord_dec A Heff)).
 
+  (**  The intersection of any two MUB closed sets is itself MUB closed.
+    *)
   Lemma mub_closed_intersect : forall (X Y:finset A),
     mub_closed hf A X -> mub_closed hf A Y ->
     mub_closed hf A (fin_intersect A OD X Y).
@@ -647,6 +727,8 @@ Section normal_sets.
     destruct H4; auto.
   Qed.
 
+  (**  Any normal set is mub closed.
+    *)
   Lemma normal_set_mub_closed Q : normal_set Q -> mub_closed hf A Q.
   Proof.
     repeat intro.
@@ -660,6 +742,10 @@ Section normal_sets.
     destruct H8; auto.
   Qed.
 
+  (**  Given an h-inhabited finite subset of a normal set, we can compute
+       the smallest MUB-closed superset.  This is done by taking the
+       intersection of all the MUB-closed subsetsets of X that lie in Q.
+    *)
   Lemma normal_set_mub_closure Q : normal_set Q ->
     forall (M:finset A) (Minh : inh hf M), M ⊆ Q ->
       { CL:finset A | M ⊆ CL /\ mub_closed hf A CL /\
@@ -741,6 +827,8 @@ Section normal_sets.
     destruct H5; auto.
   Qed.
 
+  (**  In a MUB complete preorder, every MUB closed set is normal.
+    *)
   Lemma mub_closed_normal_set : forall Q (HQ:inh hf Q),
     is_mub_complete hf A ->
     mub_closed hf A Q ->
@@ -791,6 +879,12 @@ Section normal_sets.
     right. red. auto.
   Qed.
 
+  (**  Define the MUB closure operation in a preorder with normal sets.
+       Some slightly funny games are played here to ensure that the MUB
+       closure operation is a total function even when hf = true.  In this
+       case, the MUB closure of nil is nil; this works because nil is
+       (vacuously) MUB closed when h = true.
+    *)
   Definition norm_closure X :=
     match check_inh X with
     | left _ => nil
@@ -800,6 +894,8 @@ Section normal_sets.
       end
     end.
 
+  (**  A preorder is Plotkin whenever it has normal sets.
+    *)
   Program Definition norm_plt : plotkin_order hf A :=
     PlotkinOrder hf A _ norm_closure _ _ _.
   Next Obligation.
@@ -847,6 +943,7 @@ Section normal_sets.
   Qed.    
 End normal_sets.
 
+(**  The product of two effective Plotkin orders has normal sets. *)
 Lemma prod_has_normals hf (A B:preord)
   (HAeff:effective_order A)
   (HBeff:effective_order B)
@@ -985,6 +1082,7 @@ Proof.
   simpl in *. auto.
 Qed.
 
+(**  The product of two effective Plotkin orders is Plotkin. *)
 Definition plotkin_prod hf (A B:preord)
   (HAeff:effective_order A) (HBeff:effective_order B)
   (HA:plotkin_order hf A) (HB:plotkin_order hf B)
@@ -993,6 +1091,7 @@ Definition plotkin_prod hf (A B:preord)
          (prod_has_normals hf A B HAeff HBeff HA HB).
 
 
+(** The disjoint union of two effective Plotkin orders has normal sets. *)
 Lemma sum_has_normals hf (A B:preord)
   (HAeff:effective_order A)
   (HBeff:effective_order B)
@@ -1311,6 +1410,7 @@ Proof.
   intros. rewrite <- H7; auto.
 Qed.
 
+(** The disjoint union of two effective Plotkin orders is Plotkin. *)
 Definition plotkin_sum hf (A B:preord)
   (HAeff:effective_order A) (HBeff:effective_order B)
   (HA:plotkin_order hf A) (HB:plotkin_order hf B)
@@ -1319,6 +1419,10 @@ Definition plotkin_sum hf (A B:preord)
          (effective_sum HAeff HBeff) hf
          (sum_has_normals hf A B HAeff HBeff HA HB).
 
+
+(**  Next we show that adding a new bottom element to an effective
+     Plotkin order yields another Plotkin order.
+  *)
 Fixpoint unlift_list {A} (x:list (option A)) :=
   match x with
   | nil => nil
@@ -1366,6 +1470,7 @@ Definition lift_mub_closure hf (A:preord) (HA:plotkin_order hf A) (M:finset (lif
   | X => None :: image (liftup A) (mub_closure HA X)
   end.
 
+(** The lift preorder of had normal sets. *)
 Lemma lift_has_normals hf1 hf2 (A:preord)
   (Heff:effective_order A)
   (Hplt:plotkin_order hf1 A) :
@@ -1525,8 +1630,8 @@ Proof.
   intros. rewrite <- H3. auto.
 Qed.
 
-
-Program Definition lift_plotkin hf1 hf2 (A:preord)
+(** The lift preorder of an effective Plotkin order is Plotkin. *)
+Definition lift_plotkin hf1 hf2 (A:preord)
   (Hplt:plotkin_order hf1 A) 
   (Heff:effective_order A)
   : plotkin_order hf2 (lift A)

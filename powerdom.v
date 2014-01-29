@@ -17,6 +17,25 @@ Require Import approx_rels.
 Require Import profinite.
 Require Import embed.
 
+(** * Powerdomains
+
+    Here we construct the lower, upper and convex powerdomains, and show that they
+    form continuous functors in the category of embeddings.
+
+    Powerdomains over a domain X re defined as preorders consisting of
+    finite h-inhabited subsets of X with the upper, lower and convex ordering,
+    respectively.
+
+    Notibly, the convex powerdomain over unpointed domains has a representative
+    for the empty set, which the convex powerdomain over unpointed domains lacks.
+    This fact might be previously known (I am not actually sure), but it does not
+    seem to be widely appreciated.
+  *)
+
+
+
+(**  Some general lemmas that really ought to be moved somewhere else.
+  *)
 Lemma nil_subset X (Q:finset X) :
   (nil : finset X) ⊆ Q.
 Proof.
@@ -728,17 +747,6 @@ Section powerdom.
                (pdom_has_normals sort).
   End orders.
 
-  Definition powerdomain sort (X:PLT.PLT hf) :=
-    PLT.Ob hf (pdom_elem X)
-      (PLT.Class _ _
-        (match sort with
-          | Lower  => lower_preord_mixin (PLT.ord X)
-          | Upper  => upper_preord_mixin (PLT.ord X)
-          | Convex => convex_preord_mixin (PLT.ord X)
-        end)
-        (pdom_effective (PLT.ord X) (PLT.effective X) sort)
-        (pdom_plt (PLT.ord X) (PLT.effective X) (PLT.plotkin X) sort)).
-
   Program Definition single_elem (X:preord) (x:X) : pdom_elem X :=
     PdomElem X (x::nil) _.
   Next Obligation.
@@ -753,6 +761,136 @@ Section powerdom.
     case hf; auto.
     intros [n ?]. exists n. apply app_elem; auto.
   Qed.
+
+  Program Definition concat_elem sort (X:preord) 
+    (xs:finset (pdom_ord X sort)) (H:inh hf xs) :=
+    PdomElem X (concat _ (map (@elem _) xs)) _.
+  Next Obligation.
+    intros.
+    revert H.
+    case_eq hf; intros; auto.
+    destruct H0 as [x [??]]. destruct H0. clear H1 x.
+    induction xs; simpl; intros. elim H0.
+    destruct H0. subst x0.
+    generalize (elem_inh a).
+    rewrite H. intros [q ?].
+    exists q. apply app_elem. auto.
+    destruct IHxs as [q ?]; auto.
+    exists q. apply app_elem; auto.
+  Qed.    
+
+  Definition powerdomain sort (X:PLT.PLT hf) :=
+    PLT.Ob hf (pdom_elem X)
+      (PLT.Class _ _
+        (match sort with
+          | Lower  => lower_preord_mixin (PLT.ord X)
+          | Upper  => upper_preord_mixin (PLT.ord X)
+          | Convex => convex_preord_mixin (PLT.ord X)
+        end)
+        (pdom_effective (PLT.ord X) (PLT.effective X) sort)
+        (pdom_plt (PLT.ord X) (PLT.effective X) (PLT.plotkin X) sort)).
+
+
+(*
+  Section powerdomain_fmap.
+    Variables X Y:PLT.PLT hf.
+    Variable f: X → Y.
+
+    Parameter fmap_rel : 
+      forall sort, erel (powerdomain_ob sort X) (powerdomain_ob sort Y).
+
+    Definition fmap_lower (x:pdom_elem X) (y:pdom_elem Y) :=
+      forall a, a ∈ elem x -> exists b, b ∈ elem y /\ (a,b) ∈ PLT.hom_rel f.
+
+    Definition fmap_upper (x:pdom_elem X) (y:pdom_elem Y) :=
+      forall b, b ∈ elem y -> exists a, a ∈ elem x /\ (a,b) ∈ PLT.hom_rel f.
+
+    Definition fmap_convex x y :=
+      fmap_lower x y /\ fmap_upper x y.
+
+    Definition fmap_spec sort x y :=
+      match sort with
+      | Lower  => fmap_upper x y
+      | Upper  => fmap_lower x y
+      | Convex => fmap_convex x y
+      end.
+
+    Lemma fmap_rel_elem sort : forall x y,
+      (x,y) ∈ fmap_rel sort <-> fmap_spec sort x y.
+    Admitted.
+
+    Program Definition fmap sort
+      : (powerdomain_ob sort X) → (powerdomain_ob sort Y) 
+      := PLT.Hom hf (powerdomain_ob sort X) (powerdomain_ob sort Y) 
+           (fmap_rel sort) _ _.
+    Next Obligation.
+      intros. apply fmap_rel_elem in H1. apply fmap_rel_elem.
+      unfold fmap_spec in *.
+      destruct sort; hnf; simpl; intros.
+      hnf in H1.
+      destruct (H0 b) as [b' [??]]; auto.
+      destruct (H1 b') as [a [??]]; auto.
+      destruct (H a) as [a' [??]]; auto.
+      exists a'; split; auto.
+      revert H6. apply PLT.hom_order; auto.
+      destruct (H a) as [a' [??]]; auto.
+      destruct (H1 a') as [b [??]]; auto.
+      destruct (H0 b) as [b' [??]]; auto.
+      exists b'. split; auto.
+      revert H6. apply PLT.hom_order; auto.
+      destruct H1. split; hnf; simpl; intros.
+      destruct H.
+      destruct (H4 a) as [a' [??]]; auto.
+      destruct (H1 a') as [b [??]]; auto.       
+      destruct H0.
+      destruct (H9 b) as [b' [??]]; auto.
+      exists b'. split; auto.
+      revert H8. apply PLT.hom_order; auto.
+      destruct H. destruct H0.
+      destruct (H0 b) as [b' [??]]; auto.
+      destruct (H2 b') as [a [??]]; auto.      
+      destruct (H a) as [a' [??]]; auto.
+      exists a'. split; auto.
+      revert H9. apply PLT.hom_order; auto.
+    Qed.
+    Next Obligation.
+      repeat intro.
+    Admitted.
+
+(*
+      apply prove_directed.
+admit.
+      intros.
+      apply erel_image_elem in H.
+      apply erel_image_elem in H0.
+      apply fmap_rel_elem in H.
+      apply fmap_rel_elem in H0.
+      unfold fmap_spec in *.
+      destruct sort.
+      hnf in H. hnf in H0.
+      exists (union_elem _ x y).
+      split.
+admit.
+      split.
+admit.
+      apply erel_image_elem.    
+      apply fmap_rel_elem.
+      hnf; simpl; intros.
+      apply app_elem in H1. destruct H1.
+      destruct (H b) as [q [??]]; auto.
+      destruct (H0 b) as [q [??]]; auto.
+            
+      hnf in H. hnf in H0.
+
+
+    Qed.
+*)
+
+    
+
+  End powerdomain_fmap.
+*)
+
 
   Definition single_rel sort (X:PLT.PLT hf) : erel X (powerdomain sort X) :=
     esubset_dec _

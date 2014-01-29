@@ -18,6 +18,11 @@ Require Import directed.
 Require Import cont_functors.
 Require Import bilimit.
 
+(**  * Sum and product functors 
+
+     Here we define the functors for sum and produce in the category
+     of embeddings and show that they are continuous.
+  *)
 
 Section prod_functor.
   Variable hf:bool.

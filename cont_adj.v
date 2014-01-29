@@ -17,6 +17,12 @@ Require Import profinite.
 Require Import profinite_adj.
 Require Import cont_functors.
 
+(**  * Continuous adjoint functors
+
+     Here we lift the lifting and forgetful adjoint functors into the
+     category of embeddings and prove that they are continuous.
+  *)
+
 Definition forgetEMBED_map (A B:ob PLT) (f:A ⇀ B) : forgetPLT_ob A ⇀ forgetPLT_ob B :=
   Embedding true (forgetPLT_ob A) (forgetPLT_ob B) 
     (@embed_map false A B f)

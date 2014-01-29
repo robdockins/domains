@@ -11,6 +11,9 @@ Require Import atoms.
 
 Require Import List.
 
+(**  * Support and finite permutations
+  *)
+
 (**  The [supported] record equips types with an operation to get a
      finite set of atoms; this finite set is called the "support."
      This record contains no axioms about the support, but is inteded

@@ -10,6 +10,9 @@ Require Import finsets.
 Require Import atoms.
 Require Import permutations.
 
+(** * The category of nominal types
+  *)
+
 Obligation Tactic := intuition.
 
 Require Import List.

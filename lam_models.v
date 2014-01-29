@@ -20,6 +20,9 @@ Require Import exp_functor.
 Require Import profinite_adj.
 Require Import cont_adj.
 
+(**  * Models of untyped λ-calculi
+  *)
+
 Definition cbvLamF : functor (EMBED true) (EMBED true)
   := expF true ∘ pairF id id.
 

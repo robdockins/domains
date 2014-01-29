@@ -15,6 +15,22 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import cpo.
 
+(**  * Categories of profinite domains, expressed as Plotkin orders
+
+     Here we define the category PLT of effective Plotkin orders,
+     which is equivalant to the category of profinite domains via
+     ideal completion.
+
+     The objects of PLT are the effective Plotkin orders, and the
+     arrows are approximable relations.  The objects and characteristic
+     operations are provided for the unit, empty, product, sum and
+     function space.
+
+     PLT is DCPO-enriched, which means that each homset is equipped
+     with a DCPO.  In addition the composition operation is
+     continuous in both arguments. (FIXME, prove this)
+  *)
+
 Module PLT.
 Section PLT.
   Variable hf:bool.

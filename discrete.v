@@ -17,6 +17,11 @@ Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
 
+(**  * Discrete unpointed domains
+
+     Every finite type can be turned into a discrete profinite domain.
+     These are useful for representing base types.
+  *)
 
 Module fintype.
   Record fintype :=

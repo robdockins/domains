@@ -17,6 +17,12 @@ Require Import sets.
 Require Import finsets.
 Require Import esets.
 
+(**  * Atoms for nominal types
+
+     Atoms are concretely represented by ASCII strings.
+     Here we provide some operations on atoms, including an
+     operation for choosing fresh atoms.
+  *)
 
 (**  ASCII characters are ordered by inheriting their numerical order.
   *)

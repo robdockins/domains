@@ -7,6 +7,17 @@ Require Import sets.
 Require Import finsets.
 Require Import effective.
 
+(**  * Conditionally-inhabited sets and h-directed sets.
+  *)
+
+(**  A finite set is conditionally-inhabited for hf
+     whenever hf is false; or when hf is true, the set
+     is inhabited.
+
+     This very odd little definition is the key to
+     providing a uniform presentation of pointed and
+     unpointed domains.
+  *)
 Definition inh {A:preord} (hf:bool) (X:finset A) := 
   if hf then exists x, x ∈ X else True.
 
@@ -52,6 +63,9 @@ Qed.
 
 Hint Resolve inh_sub elem_inh.
 
+(**  A subset of the image of a function is equal to the image
+     of some subset of the set X.
+  *)
 Lemma finset_sub_image (A B:preord) (T:set.theory) 
   (f:A → B) (X:set T A) (M:finset B) :
   M ⊆ image f X ->
@@ -87,6 +101,9 @@ Proof.
 Qed.
 
 
+(**  A directed preorder is an effective preorder where every finite set
+     has an upper bound (that may be found constructively).
+  *)
 Record directed_preord :=
   DirPreord
   { dir_preord :> preord
@@ -108,10 +125,17 @@ Proof.
 Qed.
 
 
+(** A set X is h-directed when every h-inhabited finite
+    subset has an upper bound in X.
+  *)
 Definition directed {T:set.theory} {A:preord} (hf:bool) (X:set T A) :=
   forall (M:finset A) (Hinh:inh hf M),
     M ⊆ X -> exists x, upper_bound x M /\ x ∈ X.
 
+(**  To prove a set X is directed, it suffices (and is necessary)
+     that every pair of elements in X has an upper bound in X; and that
+     X is inhabited when b = false.
+  *)
 Lemma prove_directed (T:set.theory) (A:preord) (b:bool) (X:set T A) :
   (if b then True else exists x, x ∈ X) ->
   (forall x y, x ∈ X -> y ∈ X -> exists z, x ≤ z /\ y ≤ z /\ z ∈ X) ->
@@ -146,6 +170,8 @@ Proof.
   transitivity q; auto.
 Qed.
 
+(**  Directeness forms a set color.
+  *)
 Program Definition directed_hf_cl (hf:bool) : color :=
   Color (fun SL A X => @directed SL A hf X) _ _ _ _.
 Next Obligation.    

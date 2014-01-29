@@ -8,6 +8,15 @@ Require Import finsets.
 Require Import esets.
 Require Import directed.
 
+(**  Here we define the category of colored CPOs.  We will mostly
+     be interested in the case where the color is one of the two
+     instances of h-directedness; however much of the the theory goes
+     through in the more general setting of arbitrary colors.
+
+     A CPO is a preorder where there is a supremum operation for every
+     colored set.  CPOs form a category together with the Scott-continuous
+     functions, which are monotone and preserve colored suprema.
+  *)
 Module CPO.
   Record mixin_of (CL:color) (A:preord) 
     := Mixin
@@ -365,8 +374,19 @@ Module CPO.
 
 End CPO.
 
+(** A "dcpo" is a directed-complete partial order; that is a CPO
+    with one of the the directedness color variants.
+  *)
 Notation dcpo hf := (CPO.type (directed_hf_cl hf)).
+
+(** A "cpo" is a directed-complete cpo not necessarily containing
+    a least element.
+  *)
 Notation cpo  := (CPO.type (directed_hf_cl false)).
+
+(** A "cppo" is a directed-complete pointed partial order; that is
+    certainly has a least element.
+  *)
 Notation cppo := (CPO.type (directed_hf_cl true)).
 
 Notation CPO := CPO.CPO.
@@ -392,6 +412,7 @@ Hint Resolve CPO.sup_is_lub.
 Arguments CPO.axiom [CL A B] f X.
 Arguments CPO.mono [CL A B] h a b _.
 
+(**  Supremum is a monotone operation. *)
 Lemma sup_monotone : forall CL (A:CPO.type CL) (X X':cl_eset CL A),
   X ⊆ X' -> ∐X ≤ ∐X'.
 Proof.
@@ -399,12 +420,16 @@ Proof.
   apply CPO.sup_is_ub. auto.
 Qed.  
 
+(**  Supremum respects equality of sets. *)
 Lemma sup_equiv : forall CL (A:CPO.type CL) (X X':cl_eset CL A),
   X ≈ X' -> ∐X ≈ ∐X'.
 Proof.
   intros. destruct H; split; apply sup_monotone; auto.
 Qed.
 
+(**  Every cppo has a least element, which arises as the supremum
+     of the empty set.
+  *)
 Section bottom.
   Variables X Y:cppo.
   
@@ -431,6 +456,9 @@ End bottom.
 
 Notation "⊥" := (bot _).
 
+(**  Every Scott-continuous map between cppos preserves
+     the bottom element, i.e., is strict.
+  *)
 Lemma strict_map (X Y:cppo) (f:X → Y) : f ⊥ ≈ ⊥.
 Proof.
   unfold bot.
@@ -446,6 +474,14 @@ Proof.
 Qed.    
 Arguments strict_map [X Y] f.
 
+(**  * Chain suprema and least fixed points
+
+     A chain is specified by a base case a monotone operation to iterate,
+     where base ≤ step base.
+     
+     Every chain gives rise to a directed set and thus has a suprema.
+     Suprema of chains have a nice induction principle.
+  *)
 Require Import NArith.
 
 Lemma Niter_succ A f (a:A) : forall n,
@@ -541,6 +577,18 @@ Section iter_chain.
   Qed.
 End iter_chain.
 
+(**  The least-fixed point of a continous function in a cppo arises as
+     a particular instance of a chain suprema, and the Scott induction
+     principle is an instance of chain induction.
+
+     Note: the Scott induction princple as stated here lacks the usual
+     hypothesis (P ⊥).  This hypothesis is subsumed by the one requiring
+     that P is closed under directed suprema because ⊥ arises as the
+     supremum of the empty set (which is directed for cppos).
+
+     That lfp lfp is actually the least fixpoint follows via easy
+     uses of the Scott induction principle.
+  *)
 Section lfp.
   Variable X:cppo.
   Variable f:X → X.
@@ -591,6 +639,10 @@ End lfp.
 Arguments lfp [X] f.
 Arguments scott_induction [X] f P _ _ _.
 
+(**  The least-fixed point in cppos is uniform.  This fact is somtimes
+     called Plotkin's axiom.  Note: we do not need to separately require
+     f to be strict because every hom between cppos is strict.
+  *)
 Lemma lfp_uniform (D E:cppo) (f:D → E) (d:D → D) (e:E → E) :
   e ∘ f ≈ f ∘ d ->
   lfp e ≈ f (lfp d).

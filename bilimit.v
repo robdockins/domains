@@ -1,3 +1,5 @@
+(* Copyright (c) 2014, Robert Dockins *)
+
 Require Import Setoid.
 Require Import List.
 
@@ -9,8 +11,6 @@ Require Import finsets.
 Require Import esets.
 Require Import effective.
 Require Import plotkin.
-(* Copyright (c) 2014, Robert Dockins *)
-
 Require Import profinite.
 Require Import embed.
 Require Import directed.
@@ -66,6 +66,7 @@ Section bilimit.
     rewrite <- (ds_compose DS (idx x) k' q Hxk' H1 Hxq).
     rewrite <- (ds_compose DS (idx y) k' q Hyk' H1 Hyq).
     simpl. apply embed_mono. auto.
+
     rewrite <- (ds_compose DS (idx x) k q Hxk H0 Hxq) in H2.
     rewrite <- (ds_compose DS (idx y) k q Hyk H0 Hyq) in H2.
     simpl in H2.

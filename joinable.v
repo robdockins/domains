@@ -10,6 +10,21 @@ Require Import effective.
 Require Import directed.
 Require Import plotkin.
 
+(**  * Joinable relations
+
+     Joinable relations represent the compact elements of the
+     continuous function space, and form the exponential object
+     for profinite domains. 
+
+     Here we carry out the techincal proofs required
+     to show the joinable relations form an effective Plotkin preorder.
+  *)
+
+
+(**  This definition of joinable relations is a minor modification
+     of a definition given by Samson Abramsky.  It is more obviously effective
+     than the definition given by Carl Gunter in his dissertation.
+  *)
 Definition is_joinable_relation {A B:preord} hf (R:finset (A × B)) :=
   inh hf R /\
   forall (G:finset (A × B)) (HGinh:inh hf G), G ⊆ R ->
@@ -40,6 +55,7 @@ Qed.
 Canonical Structure joinable_rel_order hf (A B:preord) : preord :=
   Preord.Pack (joinable_relation hf A B) (joinable_rel_ord_mixin hf A B).
 
+(** The ordering relation between joinable relations is decidable. *)
 Lemma joinable_ord_dec
   hf
   (A B:preord)
@@ -96,6 +112,10 @@ Proof.
   exists p. exists q. split; auto.
 Qed.
 
+(** Given a finite relation, we can decide if it is joinable or not.
+    If not, we can find evidence demonstrating where the relation
+    is insufficently complete.
+  *)
 Lemma is_joinable_rel_dec0 hf
   (A B:preord)
   (HAeff : effective_order A)
@@ -103,7 +123,7 @@ Lemma is_joinable_rel_dec0 hf
   (HAplt : plotkin_order hf A)
   (R:finset (A × B)) (Rinh : inh hf R) :
   { is_joinable_relation hf R } +
-  { exists (G:finset (A×B)), inh hf G /\ G ⊆ R /\exists z : A,
+  { exists (G:finset (A×B)), inh hf G /\ G ⊆ R /\ exists z : A,
      minimal_upper_bound z (image π₁ G) /\
      (forall q : B, (z, q) ∈ R -> ~ upper_bound q (image π₂ G)) }.
 Proof.
@@ -315,6 +335,10 @@ Proof.
   right; intros [??]. contradiction.
 Qed.
 
+(** Joinable relations form an effective preorder.  We can enumerate
+    the joinable relations by first enumerating all the finite
+    relations between A and B and selecting those that are joinable.
+  *)
 Program Definition joinable_rel_effective hf
   (A B:preord)
   (HAeff : effective_order A)
@@ -375,6 +399,24 @@ Next Obligation.
 Qed.
 
 
+(**  In this section, we show that, given an arbitrary finite relation M
+     and an approximable relation R above M, we can "swell up" M into
+     a joinable relation M' where M ⊆ M' ⊆ R.
+
+     This is done by a recursive procedure that, at each step, asks
+     if M is joinable.  If so, we are done.  If not, there is some
+     subset of M lacking the necessary upper bound.  We add a new
+     pair to M to fix the deficiency and recurse.  The termination
+     of this procedure relies critically on the fact that the
+     MUB closure of a finite set is finite in Plotkin orders.  Thus, at
+     some point we will run out of elements that could possibly be added
+     to M, and the procedure must terminate giving the desired joinable
+     relation.
+
+     Then we can then show that the set of joinable relations below some
+     approximable relation is directed; this will be important later
+     for the proof that currying is an approximable relation.
+  *)
 Section directed_joinables.
   Variable hf:bool.
   Variables A B:preord.
@@ -664,6 +706,9 @@ Section joinable_plt.
   Variable HBeff : effective_order B.
   Variable HBplt : plotkin_order hf B.
 
+  (**  The intersection of an approximable relation with the cartesian
+       product of MUB closed sets is a joinable relation.
+    *)
   Lemma intersect_approx
     (R:A×B -> Prop)
     (Hdec : forall x, {R x}+{~R x})
@@ -907,6 +952,10 @@ Section joinable_plt.
     exists a'. exists b'. split; auto.
   Qed.
 
+  (**  Joinable relations have normal sets.  In particular, the set of all
+       joinable relations that are subsets of the cartesian product of two
+       MUB-closed sets is a normal set.
+    *)
   Section join_rel_normal.
     Variable (P:finset A).
     Variable (Q:finset B).
@@ -1169,6 +1218,7 @@ Section joinable_plt.
     Qed.
   End join_rel_normal.
 
+  (** The joinable relations have normal sets *)
   Lemma joinable_rel_has_normals : 
     has_normals (joinable_rel_order hf A B) (joinable_rel_effective hf A B HAeff HBeff HAplt) hf.
   Proof.
@@ -1261,6 +1311,7 @@ Section joinable_plt.
     apply mub_clos_incl. auto.
   Qed.
 
+  (** The joinable relations form a Plotkin order *)
   Definition joinable_rel_plt : plotkin_order hf (joinable_rel_order hf A B)
     := norm_plt 
          (joinable_rel_order hf A B)
