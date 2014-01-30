@@ -8,7 +8,9 @@ Require Import finsets.
 Require Import esets.
 Require Import directed.
 
-(**  Here we define the category of colored CPOs.  We will mostly
+(**  * Complete partial orders
+
+     Here we define the category of colored CPOs.  We will mostly
      be interested in the case where the color is one of the two
      instances of h-directedness; however much of the the theory goes
      through in the more general setting of arbitrary colors.
