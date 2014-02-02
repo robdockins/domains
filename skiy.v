@@ -605,6 +605,15 @@ Section fixes.
   Admitted.
 
   Definition fixes : Γ → U A := lfp fixes_step'.
+
+  Lemma fixes_unroll :
+    fixes ≈ PLT.app ∘ PLT.pair f fixes.
+  Proof.
+    unfold fixes at 1.
+    rewrite <- lfp_fixpoint. simpl. unfold fixes_step.
+    auto.
+  Qed.
+
 End fixes.
 
 Parameter junk : forall T:Type, T.
@@ -619,13 +628,57 @@ Section Ydefn.
   Variables σ₁ σ₂:ty.
 
   Definition Ybody
-    := PLT.curry (@strict_app' (tydom (σ₁ ⇒ σ₂)) (tydom (σ₁ ⇒ σ₂))).
+    : U (colift (tydom (σ₁ ⇒ σ₂) ⊸ tydom (σ₁ ⇒ σ₂)))
+       → PLT.exp (U (tydom (σ₁ ⇒ σ₂))) (U (tydom (σ₁ ⇒ σ₂)))
+
+       (*w : U (colift (tydom (σ₁ ⇒ σ₂) ⊸ tydom (σ₁ ⇒ σ₂))) *)
+    := PLT.curry (*x:U (tydom (σ₁ ⇒ σ₂)))*) (strict_curry' (*y:U tydom σ₁ *)
+
+                                                          (* w *)    (* x *)    (*y*)
+        (strict_app' ∘ PLT.pair (strict_app' ∘ PLT.pair (pi1 ∘ pi1) (pi2 ∘ pi1)) pi2)
+       ).
+
+  Lemma Ybody_unroll : forall Γ 
+    (f:Γ → U (tydom ((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂))))
+    (x:Γ → U (tydom σ₁)),
+
+    semvalue x ->
+
+    let Yf := (fixes _ _ Ybody) ∘ f in
+
+    strict_app' ∘ PLT.pair Yf x ≈
+    strict_app' ∘ PLT.pair (strict_app' ∘ PLT.pair f Yf) x.
+  Proof.
+    intros. unfold Yf at 1.
+    rewrite fixes_unroll. unfold Ybody at 1.
+    rewrite PLT.curry_apply2.
+    rewrite <- (cat_assoc PLT).
+    rewrite strict_curry_app2'.
+    rewrite <- (cat_assoc PLT).
+    rewrite (PLT.pair_compose_commute false).
+    rewrite <- (cat_assoc PLT).
+    rewrite (PLT.pair_compose_commute false).
+    rewrite <- (cat_assoc PLT).
+    rewrite pair_commute1.        
+    rewrite pair_commute2.
+    rewrite <- (cat_assoc PLT).
+    rewrite pair_commute1.        
+    rewrite (cat_assoc PLT _ _ _ _ pi1).
+    rewrite pair_commute1.        
+    rewrite (cat_assoc PLT _ _ _ _ pi2).
+    rewrite pair_commute2.
+    apply cat_respects. auto.
+    apply PLT.pair_eq. 2: auto.
+    rewrite (cat_ident2 PLT).    
+    apply cat_respects. auto.
+    apply PLT.pair_eq. auto.
+    unfold Yf. auto.   
+    auto.
+  Qed.
 
   Definition Ysem Γ 
     : Γ → U (tydom (((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂)) ⇒ (σ₁ ⇒ σ₂)))
-    := strict_curry' (strict_curry' 
-           (strict_app' ∘ PLT.pair (fixes _ _ Ybody ∘ pi2 ∘ pi1) (pi2))).
-
+    := strict_curry' (fixes _ _ Ybody ∘ pi2).
 End Ydefn.
 
 Definition flat_cases' (X:Type) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
@@ -633,9 +686,12 @@ Definition flat_cases' (X:Type) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
   := U@(flat_cases (fun x => ε ∘ L@(f x)) ∘ PLT.pair_map id ε ∘ lift_prod' _ _) ∘ η.
 Arguments flat_cases' [X Γ B] f.
 
+Definition flat_elem' (X:Type) (Γ:PLT) (x:X) : Γ → U (flat X)
+  := U@(flat_elem x ∘ PLT.terminate _ _) ∘ η.
+
 Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → U (tydom τ) :=
   match m with
-  | tbool b => U@(flat_elem b ∘ lift_unit') ∘ η
+  | tbool b => flat_elem' bool _ b
   | tapp σ₁ σ₂ m₁ m₂ => strict_app' ∘ PLT.pair (denote (σ₁ ⇒ σ₂) m₁) (denote σ₁ m₂)
   | tI σ => strict_curry' pi2
   | tK σ₁ σ₂ => strict_curry' (strict_curry' (pi2 ∘ pi1))
@@ -650,7 +706,6 @@ Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → U (tydom τ) :=
                 ))
   | tY σ₁ σ₂ => Ysem σ₁ σ₂ (PLT.unit false)
   end.
-
 
 Lemma semvalue_le : forall Γ A (f f':Γ → U A),
   f ≤ f' -> semvalue f -> semvalue f'.
@@ -722,7 +777,7 @@ Proof.
   inv H0.
 Qed.
 
-Lemma value_inter_semvalue : forall n,
+Lemma value_inert_semvalue : forall n,
   (forall σ x,
     tmsize _ x = n ->
     eval σ x x -> semvalue (denote _ x)) /\
@@ -743,7 +798,7 @@ admit.
   apply strict_curry'_semvalue.  
   apply strict_curry'_semvalue.  
   apply strict_curry'_semvalue.  
-  unfold Ysem. apply strict_curry'_semvalue.  
+  unfold Ysem. apply strict_curry'_semvalue.
 
   elimtype False.
   eapply eval_no_redex.
@@ -783,6 +838,7 @@ admit.
   rewrite strict_curry_app'; auto.
 admit.
   rewrite strict_curry_app'; auto.
+  destruct (value_app_inv _ _ _ _ H1); auto.
 admit.
 
   destruct (value_app_inv _ _ _ _ H1); auto.
@@ -790,149 +846,129 @@ admit.
   assert (tmsize _ x0 < S (S (tmsize _ x0))). omega.
   destruct (H _ H5). apply (H6 _ x0); auto.
   
-  simpl.
-  unfold Ysem at 1.
+  unfold Ysem.
   rewrite strict_curry_app'; auto.
+  rewrite (fixes_unroll _ _ (Ybody σ₁0 σ₂0)).
+  unfold Ybody at 1.
+  rewrite PLT.curry_apply2.
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
   apply strict_curry'_semvalue2.
 Qed.
 
-(****)
-Definition curry (C A B:∂PLT) (f:PLT.prod C A → B)
-  := up (PLT.curry f).
-
-Definition app (C A B:∂PLT) (f:C → colift (PLT.exp A B)) (x:C → A)
-  := PLT.app ∘ PLT.pair (adj_counit_hom _ ∘ f) x.
-
-Arguments curry [C A B] f.
-Arguments app [C A B] f x.
-
-Require Import Setoid.
-
-Add Parametric Morphism (C A B:∂PLT) :
-  (@app C A B)
-    with signature (eq_op _) ==> (eq_op _) ==> (eq_op _)
-    as app_morphism.
+Lemma value_semvalue : forall σ x,
+  value x -> semvalue (denote σ x).
 Proof.
-  intros. unfold app.
-  rewrite H. rewrite H0. auto.
+  intros. destruct (value_inert_semvalue (tmsize _ x)); auto.
 Qed.
 
-Add Parametric Morphism (C A B:∂PLT) :
-  (@curry C A B)
-    with signature (eq_op _) ==> (eq_op _)
-    as curry_morphism.
-Proof.
-  unfold curry; intros.
-  rewrite H. auto.
-Qed.
+Hint Resolve value_semvalue.
 
-Lemma curry_app_commute (C A B:∂PLT) (f:PLT.prod C A → B) (x:C → A) :
-  app (curry f) x ≈ f ∘ PLT.pair id x.
+Lemma redex_soundness : forall σ₁ σ₂ x y z,
+  value x ->
+  value y ->
+  redex σ₁ σ₂ x y z ->
+  strict_app' ∘ PLT.pair (denote _ x) (denote _ y) ≈ denote _ z.
 Proof.
-  unfold app, curry.
-  rewrite (cat_assoc _ _ _ _ _ (adj_counit_hom (PLT.exp A B))).
-  rewrite (NT.axiom adj_counit (PLT.curry f)). simpl.
-  rewrite <- (cat_assoc _ _ _ _ _ (PLT.curry f)).
-  rewrite adj_counit_inv_eq.
-  rewrite PLT.curry_apply3. auto.
-Qed.
+  intros. inv H1.
 
-Lemma curry_app_commute2 (D C A B:∂PLT) (f:PLT.prod C A → B) (h:D → C) (x:D → A) :
-  app (curry f ∘ h) x ≈ f ∘ PLT.pair h x.
-Proof.
-  unfold app, curry.
-  rewrite (cat_assoc _ _ _ _ _ (adj_counit_hom (PLT.exp A B))).
-  rewrite (cat_assoc _ _ _ _ _ (adj_counit_hom (PLT.exp A B))).
-  rewrite (NT.axiom adj_counit (PLT.curry f)). simpl.
-  rewrite <- (cat_assoc _ _ _ _ _ (PLT.curry f)).
-  rewrite adj_counit_inv_eq. rewrite cat_ident1.
-  rewrite PLT.curry_apply3. auto.
-Qed.
-
-Lemma app_compose_commute (A B C D:∂PLT)
-    (f: C → colift (PLT.exp A B)) (g:C → A) (h:D → C) :
-    app f g ∘ h ≈ app (f ∘ h) (g ∘ h).
-Proof.
-  unfold app.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite (PLT.pair_compose_commute true).
-  rewrite <- (cat_assoc ∂PLT).
-  auto.  
-Qed.
-
-Lemma lfp_bot : forall (X:cppo) (f:X → X),
-  lfp f ≈ cpo.bot _.
-Proof.
-  intros. apply scott_induction.
-  intros.
-  split. apply CPO.sup_is_least.
-  hnf; simpl; intros.
-  rewrite (H x); auto.
-  apply cpo.bot_least.
-  intros. rewrite <- H; auto.
-  intros.
-  rewrite H. apply strict_map.
-Qed.
-
+  inv H1. simpl.
+  rewrite strict_curry_app'; auto.
+  rewrite pair_commute2. auto.
   
-Definition fixes_base (Γ:PLT) (A:∂PLT) :
-  Γ → liftPPLT A := 
-
-  liftPPLT@⊥ ∘ adj_unit _.
-  
-Lemma fixes_base_least Γ A h :
-  fixes_base Γ A ≤ h.
-Proof.
-  unfold fixes_base.
-  assert (⊥ ≤ adj_counit _ ∘ forgetPLT@h).
-  apply bot_least.
-  transitivity
-    (liftPPLT@(adj_counit A ∘ forgetPLT@h) ∘ adj_unit Γ).
-  apply PLT.compose_mono; auto.
-  apply liftPPLT_mono. auto.
-  rewrite Functor.compose. 2: reflexivity.
+  simpl.
+  rewrite strict_curry_app'; auto.
+  rewrite strict_curry_app2'; auto.
   rewrite <- (cat_assoc PLT).
-  rewrite <- (NT.axiom adj_unit h).
+  rewrite pair_commute1.
+  rewrite pair_commute2. auto.
+  destruct (value_app_inv _ _ _ _ H); auto.
+  
+  destruct (value_app_inv _ _ _ _ H).
+  destruct (value_app_inv _ _ _ _ H2). clear H4.
+  simpl.
+  rewrite strict_curry_app'; auto.
+  rewrite strict_curry_app2'; auto.
+  rewrite strict_curry_app2'; auto.
+  repeat rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  repeat rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  repeat rewrite <- (cat_assoc PLT).
+  repeat rewrite pair_commute1.
+  repeat rewrite pair_commute2.
+  rewrite (PLT.pair_compose_commute false).
+  repeat rewrite <- (cat_assoc PLT).
+  repeat rewrite pair_commute1.
+  repeat rewrite pair_commute2.
+  auto.
+  apply (value_semvalue _ g); auto.
+  apply (value_semvalue _ f); auto.
+  
+  destruct (value_app_inv _ _ _ _ H). clear H2.
+  simpl.
+  rewrite strict_curry_app'; auto.
+admit.
+admit.
+  
+  destruct (value_app_inv _ _ _ _ H). clear H2.
+  inv H1.
+  simpl.
+  rewrite strict_curry_app'; auto.
+admit.
+admit.
+
+  destruct (value_app_inv _ _ _ _ H). clear H1 H2.
+  simpl.    
+  unfold Ysem.
+  rewrite strict_curry_app'; auto.
+  rewrite fixes_unroll at 1. unfold Ybody at 1.
+  rewrite PLT.curry_apply2.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute2.
+  rewrite <- (cat_assoc PLT).
+  rewrite strict_curry_app2'; auto.
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects. auto.
+  rewrite (PLT.pair_compose_commute false).
+  rewrite pair_commute2.
+  apply PLT.pair_eq. 2: auto.
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects. auto.
+  rewrite (PLT.pair_compose_commute false).
+  apply PLT.pair_eq.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute1.
   rewrite (cat_assoc PLT).
-  rewrite (Adjunction.adjoint_axiom2 PLT_adjoint A).
-  simpl. rewrite (cat_ident2 PLT); auto.
+  rewrite pair_commute1.
+  apply cat_ident2.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute1.
+  rewrite (cat_assoc PLT).
+  rewrite pair_commute2.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute2.
+  auto.
+  apply (value_semvalue _ f). auto.
 Qed.
 
-Lemma fixes_step_mono Γ A f :
-  forall x y, x ≤ y -> fixes_step Γ A f x ≤ fixes_step Γ A f y.
+Lemma soundness : forall τ (m z:term τ),
+  eval τ m z -> denote τ m ≈ denote τ z.
 Proof.
-  intros. unfold fixes_step.
-  apply PLT.compose_mono.
-  apply PLT.pair_monotone; auto.
+  intros. induction H; simpl; auto.
+  rewrite IHeval1.
+  rewrite IHeval2.
+  rewrite <- IHeval3.
+  apply redex_soundness.
+  eapply eval_value; eauto.
+  eapply eval_value; eauto.
+  auto.
+  rewrite IHeval1.
+  rewrite IHeval2.
   auto.
 Qed.
 
-Lemma fixes_step_base Γ A f :
-  fixes_base Γ A ≤ fixes_step Γ A f (fixes_base Γ A).
-Proof.
-  apply fixes_base_least.
-Qed.
-  
-Check (chain_sup).
-
-Definition lfp' (Γ:PLT) (A:∂PLT) (f:Γ → PLT.exp (liftPPLT A) (liftPPLT A)) :=
-
-  chain_sup false (PLT.homset_cpo false Γ (liftPPLT A)) 
-    (fixes_base Γ A) (fixes_step Γ A f)
-    (fixes_step_mono Γ A f)
-    (fixes_step_base Γ A f).
-
-Lemma scott_induction' (Γ:PLT) (A:∂PLT) f 
-    (P: Γ → liftPPLT A -> Prop) :
-    (forall XS:dirset (PLT.homset_cpo _ Γ (liftPPLT A)),
-      (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
-    (forall x y, x ≈ y -> P x -> P y) ->
-    (P (fixes_base Γ A)) ->
-    (forall x, P x -> P (fixes_step Γ A f x)) ->
-    P (lfp' Γ A f).
-Proof.
-  intros. unfold lfp'. apply chain_induction; auto.
-Qed.
+(****************************************** OK to here *********)
 
 (*
 Lemma exp_le_extensional (Γ:PLT) τ₁ τ₂ (f f': Γ → (PLT.exp τ₁ τ₂)) :
@@ -978,230 +1014,6 @@ Lemma exp_le_extensional' (Γ:∂PLT) τ₁ τ₂ (f f': Γ → (PLT.exp τ₁ �
   f ≤ f'.
 Admitted.
 *)
-
-(*
-Lemma upapp_ext (Γ:PLT) A B C (f f':C → colift (PLT.exp A B)) :
-  (forall x, app f x ≤ app f' x) -> f ≤ f'.
-Proof.  
-  intros.
-  unfold colift in f, f'.
-  cut (adj_counit _ ∘ f ≤ adj_counit _ ∘ f').
-  repeat intro.
-  destruct a. destruct c0.
-  assert ((c,c0) ∈ PLT.hom_rel (adj_counit _ ∘ f)).
-  apply compose_hom_rel.
-  exists (Some c0). split; auto.
-  simpl. apply adj_counit_rel_elem. auto.
-  apply H0 in H2.
-  apply compose_hom_rel in H2.
-  destruct H2 as [q [??]].
-  simpl in H3.
-  apply adj_counit_rel_elem in H3.
-  revert H2. apply PLT.hom_order; auto.
-  
-  destruct (PLT.hom_directed _ _ _ f' c nil).
-  
-
-  apply exp_le_extensional'. intros.
-  apply H.
-Qed.
-
-Check (adj_counit _ ∘ f).
-
-Qed.
-*)
-
-Lemma currypi2_id : forall (A:PLT),
-  PLT.curry (PLT.app ∘ PLT.pair pi1 pi2) ≈ id(PLT.exp A A).
-Proof.
-  intros. symmetry.
-  apply PLT.curry_universal.
-  unfold PLT.pair_map. 
-  rewrite (cat_ident2 PLT).
-  rewrite (cat_ident2 PLT).
-  auto.
-Qed.  
-
-Lemma curry_asdf : forall (C A B:PLT) (f:C → PLT.exp A B),
-  PLT.curry (PLT.app ∘ PLT.pair (f ∘ pi1) pi2) ≈ f.
-Proof.
-  intros. symmetry.
-  apply PLT.curry_universal.
-  unfold PLT.pair_map. 
-  rewrite (cat_ident2 PLT).
-  auto.
-Qed.  
-
-(*
-Lemma curry_asdf' : forall (C A B:∂PLT) (f:C → PLT.exp A B),
-  PLT.curry (PLT.app ∘ PLT.pair (f ∘ pi1) pi2) ≈ f.
-Proof.
-  intros. symmetry.
-  apply PLT.curry_universal.
-  unfold PLT.pair_map. 
-  rewrite (cat_ident2 ∂PLT).
-  auto.
-Qed.  
-
-Lemma adj_counit_inv_push X Y (f:lift X → Y) : 
-  forgetPLT@f ∘ adj_counit_inv_hom (forgetPLT X) ≈ forgetPLT@(f ∘ adj_unit_hom X).
-Admitted.
-  idtac.
-  unfold colift.
-  rewrite adj_counit_inv_push.
-  rewrite (H X).
-  apply Functor.ident. auto.
-Qed.
-*)
-
-
-Definition fixes''' σ₁ σ₂ :
-  liftPPLT (PLT.exp (tydom (σ₁ ⇒ σ₂)) (tydom (σ₁ ⇒ σ₂)))
-  →
-  PLT.exp (liftPPLT (PLT.exp (tydom σ₁) (tydom σ₂)))
-          (liftPPLT (PLT.exp (tydom σ₁) (tydom σ₂)))
-
-  := PLT.curry (liftPPLT@(adj_counit _ ∘ PLT.app ∘ PLT.pair_map true (id) (adj_counit_inv_hom _)) 
-                ∘ push_prod _ _).
-
-Definition fixes' σ₁ σ₂ :
-  liftPPLT (PLT.exp (tydom (σ₁ ⇒ σ₂)) (tydom (σ₁ ⇒ σ₂)))
-  →
-  liftPPLT (PLT.exp (tydom σ₁) (tydom σ₂))
-
-  := lfp' (liftPPLT (PLT.exp (tydom (σ₁ ⇒ σ₂)) (tydom (σ₁ ⇒ σ₂))))
-          _
-          (fixes''' σ₁ σ₂).
-
-Definition fixes σ₁ σ₂
-  : tydom ((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂)) → tydom (σ₁ ⇒ σ₂)
-
-  := forgetPLT@(fixes' σ₁ σ₂).
-  
-Lemma up_antistrict (A B:∂PLT) (f:A → B) :
-  PPLT.antistrict (up f).
-Proof.
-  repeat intro.
-  exists None.
-  apply compose_hom_rel.
-  exists None.
-  split. simpl.
-  apply adj_unit_rel_elem. hnf. auto.
-  simpl.
-  apply liftPPLT_rel_elem. auto.
-Qed.
-
-Lemma curry_antistrict (C A B:∂PLT) (f:PLT.prod C A → B) :
-  PPLT.antistrict (curry f).
-Proof.
-  unfold curry. apply up_antistrict.
-Qed.
-  
-
-
-
-Theorem antistrict_pair_commute1' (C A B:∂PLT) (f:C → A) (g:C → B) :
-  PPLT.antistrict g -> PLT.pi1 ∘ PLT.pair f g ≈ f.
-Proof.
-  intros.
-  apply PPLT.antistrict_pair_commute1. auto.
-Qed.  
-
-Theorem antistrict_pair_commute2' (C A B:∂PLT) (f:C → A) (g:C → B) :
-  PPLT.antistrict f -> PLT.pi2 ∘ PLT.pair f g ≈ g.
-Proof.
-  intros. apply PPLT.antistrict_pair_commute2. auto.
-Qed.  
-
-Lemma antistrict_id (A:∂PLT) : PPLT.antistrict id(A).
-Proof.
-  repeat intro. exists a. simpl. apply ident_elem. auto.
-Qed.
-
-
-Lemma redex_soundness : forall σ₁ σ₂ x y z,
-  value x ->
-  value y ->
-  redex σ₁ σ₂ x y z ->
-  app (denote _ x) (denote _ y) ≈ denote _ z.
-Proof.
-  intros. inv H1.
-
-  inv H1. simpl.
-  rewrite curry_app_commute.
-  apply antistrict_pair_commute2'.
-  apply antistrict_id.
-
-  simpl.
-  rewrite curry_app_commute.
-  rewrite curry_app_commute2.
-  rewrite <- (cat_assoc (PLT.PLT true) _ _ _ _ PLT.pi2).
-  rewrite antistrict_pair_commute1'.
-  rewrite antistrict_pair_commute2'.
-  auto.
-  apply antistrict_id.
-admit.
-  simpl.
-  rewrite curry_app_commute.
-  rewrite curry_app_commute2.
-  rewrite curry_app_commute2.
-  rewrite app_compose_commute.
-  apply app_morphism.
-  rewrite app_compose_commute.
-  apply app_morphism.
-  repeat rewrite <- (cat_assoc (PLT.PLT true)).
-  rewrite antistrict_pair_commute1'.
-  rewrite antistrict_pair_commute1'.
-  rewrite antistrict_pair_commute2'. auto.
-  apply antistrict_id.
-
-  auto. simpl in *.
-
-  rewrite pair_commute1.
-  rewrite pair_commute2. auto.
-  rewrite pair_commute2. auto.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects. auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_eq.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  rewrite pair_commute1.
-  rewrite pair_commute2. auto.
-  rewrite pair_commute2. auto.
-
-  intros.
-  rewrite PLT.curry_apply2.
-  rewrite disc_cases_elem.
-  rewrite PLT.curry_apply3.
-  rewrite PLT.curry_apply3.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  rewrite pair_commute1.  
-  rewrite pair_commute2.
-  auto.
-
-  intros.
-  rewrite PLT.curry_apply2.
-  rewrite disc_cases_elem.
-  rewrite PLT.curry_apply3.
-  rewrite PLT.curry_apply3.
-  rewrite pair_commute2.
-  auto.
-Qed.
-
-Lemma soundness : forall τ (m z:term τ),
-  eval τ m z -> denote τ m ≈ denote τ z.
-Proof.
-  intros. induction H; simpl; auto.
-  rewrite IHeval1.
-  rewrite IHeval2.
-  rewrite <- IHeval3.
-  apply redex_soundness. auto.
-  rewrite IHeval1.
-  rewrite IHeval2.
-  auto.
-Qed.
-
-
 
 
 
