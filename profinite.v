@@ -820,6 +820,8 @@ Proof.
   intros. apply PLT.curry_eq; auto.
 Qed.
 
+
+(*
 Program Definition pplt_bot (A B:ob ∂PLT) : A → B :=
   PLT.Hom true A B ∅ _ _.
 Next Obligation.
@@ -832,13 +834,20 @@ Next Obligation.
   apply erel_image_elem in H0.
   apply empty_elem in H0. elim H0.
 Qed.
-Notation "⊥" := (pplt_bot _ _).
 
-Lemma bot_least (A B:∂PLT) (f:A → B) : ⊥ ≤ f.
+Lemma plt_bot_least (A B:∂PLT) (f:A → B) : ⊥ ≤ f.
 Proof.
+  apply bottom_least.
   repeat intro; simpl in *.
   apply empty_elem in H. elim H.
 Qed.
+
+Instance pplt_pointed (A B:∂PLT) : pointed (PLT.homset_cpo A B) :=
+  { bottom := pplt_bot A B
+  ; bottom_least := plt_bot_least A B
+  }.
+*)
+
 
 Theorem pair_commute1 (C A B:ob PLT) (f:C → A) (g:C → B) :
   PLT.pi1 ∘ PLT.pair f g ≈ f.
@@ -918,14 +927,18 @@ Qed.
 Module PPLT.
 
   Theorem pair_bot1 (C A B:ob ∂PLT) (f:C → A) :
-    PLT.pair f (⊥ : C → B) ≈ ⊥.
+    PLT.pair f (⊥ : C → B)  ≈ ⊥.
   Proof.
     split. hnf; simpl; intros.
     destruct a as [c [a b]].
-    apply (pair_rel_elem A B C (PLT.effective C) (PLT.hom_rel f) ∅) in H.
+    apply (pair_rel_elem A B C (PLT.effective C) (PLT.hom_rel f)) in H.
     destruct H.
+    apply union_axiom in H0.
+    destruct H0 as [q [??]].
+    apply image_axiom2 in H0.
+    destruct H0 as [?[??]].
     apply empty_elem in H0. elim H0.
-    apply bot_least.
+    apply bottom_least.
   Qed.
 
   Theorem pair_bot2 (C A B:ob ∂PLT) (g:C → B) :
@@ -933,10 +946,14 @@ Module PPLT.
   Proof.
     split. hnf; simpl; intros.
     destruct a as [c [a b]].
-    apply (pair_rel_elem A B C (PLT.effective C) ∅ (PLT.hom_rel g)) in H.
+    apply (pair_rel_elem A B C (PLT.effective C)) in H.
     destruct H.
+    apply union_axiom in H.
+    destruct H as [q [??]].
+    apply image_axiom2 in H.
+    destruct H as [?[??]].
     apply empty_elem in H. elim H.
-    apply bot_least.
+    apply bottom_least.
   Qed.
 
   Theorem pair_commute1 (C A B:ob ∂PLT) (f:C → A) (g:C → B) :

@@ -429,6 +429,17 @@ Proof.
   intros. destruct H; split; apply sup_monotone; auto.
 Qed.
 
+
+Class pointed (CL:color) (X:CPO.type CL) := 
+  { bottom : X 
+  ; bottom_least : forall x, bottom ≤ x
+  }.
+
+Notation "⊥" := (@bottom _ _ _).
+
+Arguments pointed [CL] X.
+Hint Resolve bottom_least.
+
 (**  Every cppo has a least element, which arises as the supremum
      of the empty set.
   *)
@@ -444,11 +455,11 @@ Section bottom.
 
   Definition empty_dir : dirset X := exist _ ∅ empty_semidirected.
 
-  Definition bot : X := ∐ empty_dir.
+  Definition cppo_bot : X := ∐ empty_dir.
 
-  Lemma bot_least : forall x, bot ≤ x.
+  Lemma cppo_bot_least : forall x, cppo_bot ≤ x.
   Proof.
-    intros. unfold bot.
+    intros. unfold cppo_bot.
     apply CPO.sup_is_least.
     repeat intro.
     red in H; simpl in H.
@@ -456,14 +467,15 @@ Section bottom.
   Qed.
 End bottom.
 
-Notation "⊥" := (bot _).
+Instance cppo_pointed (X:cppo) : pointed X :=
+  { bottom := cppo_bot X; bottom_least := cppo_bot_least X }.
 
 (**  Every Scott-continuous map between cppos preserves
      the bottom element, i.e., is strict.
   *)
 Lemma strict_map (X Y:cppo) (f:X → Y) : f ⊥ ≈ ⊥.
 Proof.
-  unfold bot.
+  simpl.
   rewrite (CPO.axiom f (empty_dir X)).
   apply sup_equiv.
   split; intros a H.
@@ -579,52 +591,26 @@ Section iter_chain.
   Qed.
 End iter_chain.
 
-(**  The least-fixed point of a continous function in a cppo arises as
+(**  The least-fixed point of a continous function in a cpo arises as
      a particular instance of a chain suprema, and the Scott induction
      principle is an instance of chain induction.
-
-     Note: the Scott induction princple as stated here lacks the usual
-     hypothesis (P ⊥).  This hypothesis is subsumed by the one requiring
-     that P is closed under directed suprema because ⊥ arises as the
-     supremum of the empty set (which is directed for cppos).
-
-     That lfp lfp is actually the least fixpoint follows via easy
-     uses of the Scott induction principle.
   *)
 Section lfp.
-  Variable X:cppo.
+  Variable X:cpo.
   Variable f:X → X.
+  Variable Hpointed : pointed X.
   
-  Definition lfp := chain_sup true X ⊥ f (CPO.mono f) (bot_least _ _).
+  Definition lfp := chain_sup false X ⊥ f (CPO.mono f) (bottom_least (f ⊥)).
 
   Lemma scott_induction (P:X -> Prop) :
     (forall XS:dirset X, (forall x, x ∈ XS -> P x) -> P (∐XS)) ->
     (forall x y, x ≈ y -> P x -> P y) ->
+    (P ⊥) ->
     (forall x, P x -> P (f x)) ->
     P lfp.
   Proof.
     intros. unfold lfp.
     apply chain_induction; auto.
-    unfold bot.
-    apply H. intros. red in H2; simpl in H2.
-    apply empty_elem in H2. elim H2.
-  Qed.
-
-  Lemma lfp_fixpoint : f lfp ≈ lfp.
-  Proof.
-    apply scott_induction.
-    intros. rewrite (CPO.axiom f XS).
-    apply sup_equiv.
-    split; intros ??.
-    apply image_axiom2 in H0.
-    destruct H0 as [y [??]].
-    rewrite H1.
-    rewrite H; auto.
-    rewrite <- H; auto.
-    apply image_axiom1; auto.
-    intros.
-    rewrite <- H; auto.
-    intros. rewrite H at 1. auto.
   Qed.
 
   Lemma lfp_least : forall x, f x ≈ x -> lfp ≤ x.
@@ -633,19 +619,56 @@ Section lfp.
     apply CPO.sup_is_least. repeat intro.
     apply H; auto.
     rewrite <- H. apply H0; auto.
+    apply bottom_least.
     rewrite <- H0.
     apply CPO.mono. apply H; auto.
   Qed.
+
+  Lemma lfp_fixpoint : f lfp ≈ lfp.
+  Proof.
+    unfold lfp at 1. unfold chain_sup.
+    intros. simpl.
+    generalize (CPO.axiom f (iter_chain false X ⊥ f (CPO.mono f) (bottom_least _ ))).
+    simpl. intros. rewrite H.
+    unfold lfp. unfold chain_sup.
+    split.
+    apply CPO.sup_is_least.
+    hnf; simpl; intros.
+    apply image_axiom2 in H0.
+    destruct H0 as [q [??]].
+    rewrite H1.
+    apply CPO.sup_is_ub.
+    destruct H0 as [n ?].
+    exists (N.succ n). simpl in *.
+    rewrite H0.
+    rewrite Niter_succ. auto.
+    apply CPO.sup_is_least.
+    hnf; simpl; intros.
+    destruct H0 as [n ?].
+    simpl in H0.
+    induction n using (N.peano_ind).
+    simpl in H0. rewrite H0.
+    auto.
+    rewrite Niter_succ in H0.
+    rewrite H0.
+    apply CPO.sup_is_ub.
+    apply image_axiom1.
+    exists n.
+    simpl. auto.
+  Qed.
 End lfp.
 
-Arguments lfp [X] f.
-Arguments scott_induction [X] f P _ _ _.
+Arguments lfp [X] f [Hpointed].
+Arguments scott_induction [X] f [Hpointed] P _ _ _ _. 
 
-(**  The least-fixed point in cppos is uniform.  This fact is somtimes
-     called Plotkin's axiom.  Note: we do not need to separately require
-     f to be strict because every hom between cppos is strict.
+(**  The least-fixed point in cpos is uniform.  This fact is somtimes
+     called Plotkin's axiom.
   *)
-Lemma lfp_uniform (D E:cppo) (f:D → E) (d:D → D) (e:E → E) :
+Lemma lfp_uniform (D E:cpo)
+  (HD:pointed D) (HE:pointed E) 
+  (f:D → E) (d:D → D) (e:E → E) :
+
+  f ⊥ ≈ ⊥ ->
   e ∘ f ≈ f ∘ d ->
   lfp e ≈ f (lfp d).
 Proof.
@@ -653,19 +676,21 @@ Proof.
 
   apply (scott_induction e); intros.
   apply CPO.sup_is_least. repeat intro; auto.
-  rewrite <- H0; auto.
-  rewrite H0.
+  rewrite <- H1; auto.
+  apply bottom_least.
+  rewrite H1.
   rewrite <- (lfp_fixpoint D d) at 2.
-  destruct H. apply H.
+  destruct H0. apply H0.
 
   apply (scott_induction d); intros.
   rewrite (CPO.axiom f XS).
   apply CPO.sup_is_least. repeat intro.
-  apply image_axiom2 in H1. destruct H1 as [y [??]].
-  apply H0 in H1.
-  rewrite H2. auto.
-  rewrite <- H0; auto.
+  apply image_axiom2 in H2. destruct H2 as [y [??]].
+  apply H1 in H2.
+  rewrite H3. auto.
+  rewrite <- H1; auto.
+  rewrite H. apply bottom_least.
   rewrite <- (lfp_fixpoint E e).
-  rewrite <- H0.
-  destruct H. apply H1.
+  rewrite <- H1.
+  destruct H0. apply H2.
 Qed.
