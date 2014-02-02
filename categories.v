@@ -33,8 +33,7 @@ Definition comp_op T := Comp.comp _ _ (Comp.mixin T).
 Definition ident_op T := Comp.identity _ _ (Comp.mixin T).
 Notation "x ∘ y" := (@comp_op _ _ _ _ x y) (at level 40, left associativity).
 Notation "'id'" := (@ident_op _ _).
-Notation "'id' ( A )" := (@ident_op _ A).
-
+Notation "'id' ( A )" := (@ident_op _ A) (only parsing).
 
 (**  Here we put together the pieces: the setoid structure
      on hom-sets, the composition strucutre, and the category axioms.
