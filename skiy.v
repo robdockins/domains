@@ -1060,12 +1060,11 @@ Fixpoint LR (τ:ty) :
   | ty_bool => fun m h => exists b:bool,
         m = tbool b /\ h ≈ flat_elem' _ _ b
   | ty_arrow σ₁ σ₂ => fun m h =>
-        forall n h',
-            LR σ₁ n h' -> eval σ₁ n n -> semvalue h' ->
-            exists z, 
-              eval _ (tapp σ₁ σ₂ m n) z /\
-              semvalue (strict_app' ∘ PLT.pair h h') /\
-              LR σ₂ z (strict_app' ∘ PLT.pair h h')
+        forall n h', LR σ₁ n h' -> value n -> semvalue h' ->
+          semvalue (strict_app' ∘ PLT.pair h h') ->
+          exists z,
+            eval _ (tapp σ₁ σ₂ m n) z /\
+            LR σ₂ z (strict_app' ∘ PLT.pair h h')
   end.
 
 Lemma LR_equiv τ : forall m h h',
@@ -1075,10 +1074,12 @@ Proof.
   destruct H0 as [b [??]]. exists b; split; auto.
   rewrite <- H; auto.
   simpl; intros.
-  destruct (H0 n h'0 H1 H2) as [z [?[??]]]; auto.
-  exists z; split; auto.
+  destruct (H0 n h'0 H1 H2 H3) as [z [??]]; auto.
+  revert H4. apply semvalue_equiv.
+  apply cat_respects; auto.
+  apply PLT.pair_eq; auto.
+  exists z.
   split; auto.
-  rewrite <- H; auto.
   revert H6. apply IHτ2.
   apply cat_respects; auto.
   apply PLT.pair_eq; auto.
@@ -1471,6 +1472,7 @@ Arguments push_under2_denote [a b c d] f x.
 Arguments push_under1 [b c d] x z.
 *)
 
+(*
 Lemma LR_S ls : forall σ t τ
   (xs : lrsyn (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls))
   (ys : lrsem (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls))
@@ -1489,6 +1491,7 @@ Lemma LR_S ls : forall σ t τ
           (denote (lrtys (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) τ)
              (tS t σ (lrtys ls τ)))).
 Admitted.
+*)
 (*
 Proof.
   induction ls; simpl; intros.
@@ -1794,6 +1797,7 @@ Proof.
 Qed.
 *)
 
+(*
 Lemma LR_I ls τ : forall
   (xs : lrsyn (lrtys ls τ :: ls))
   (ys : lrsem (lrtys ls τ :: ls))
@@ -1859,7 +1863,9 @@ Proof.
   rewrite strict_curry_app'; auto.
   rewrite pair_commute2. auto.
 Qed.
+*)
 
+(*
 Lemma LR_K ls τ σ : forall
   (xs : lrsyn (lrtys ls τ :: σ :: ls))
   (ys : lrsem (lrtys ls τ :: σ :: ls))
@@ -1874,6 +1880,7 @@ Lemma LR_K ls τ σ : forall
        (lrsemapp (lrtys ls τ :: σ :: ls) τ ys
           (denote (lrtys (lrtys ls τ :: σ :: ls) τ) (tK (lrtys ls τ) σ))).
 Admitted.
+*)
 (*
 Proof.
   induction ls; simpl; intuition trivial; simpl in *.
@@ -1932,6 +1939,7 @@ Proof.
 Qed.
 *)
 
+(*
 Lemma LR_IF ls : forall τ
   (xs : lrsyn (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls))
   (ys : lrsem (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls))
@@ -1949,6 +1957,7 @@ Lemma LR_IF ls : forall τ
           (denote (lrtys (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) τ)
              (tIF (lrtys ls τ)))).
 Admitted.
+*)
 (*
 Proof.
   induction ls; simpl; intros.
@@ -2058,14 +2067,64 @@ Proof.
 Qed.
 *)
 
+Lemma eval_lrapp_inv τ ls xs m z :
+  eval τ (lrapp ls τ xs m) z ->
+  exists m', eval _ m m' /\ eval τ (lrapp ls τ xs m') z.
+Admitted.
+
+Lemma inert_semvalue σ₁ σ₂ x y :    
+    value x -> inert σ₁ σ₂ x -> semvalue y ->
+    semvalue (strict_app' ∘ PLT.pair (denote _ x) y).
+Proof.
+  intros.
+  destruct (value_inert_semvalue (tmsize _ x)).
+  apply H3; auto.
+Qed.
+
+(*
+Lemma LR_Y ls : forall t τ
+  (xs : lrsyn ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls))
+  (ys : lrsem ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls))
+  (H  : lrhyps ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) xs ys)
+  (z  : term τ)
+  (Hz : eval τ
+         (lrapp ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ xs
+            (tY t (lrtys ls τ))) z),
+
+   semvalue
+     (lrsemapp ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ ys
+        (denote (lrtys ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ)
+           (tY t (lrtys ls τ)))) /\
+   LR τ z
+     (lrsemapp ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ ys
+        (denote (lrtys ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ)
+           (tY t (lrtys ls τ)))).
+Admitted.
+*)
+(*
+Proof.
+  induction ls; intros.
+  simpl lrtys. simpl in Hz.
+  simpl lrsemapp. 
+
+  destruct xs as [[xs x1] x2].
+  destruct ys as [[ys y1] y2].
+  
+  simpl. simpl in Hz.
+  unfold Ysem.
+
+  
+
+Qed.
+*)
+
 Lemma LRok : forall σ (n:term σ) ls τ m xs ys
   (Hσ : σ = lrtys ls τ),
   eq_rect σ term n (lrtys ls τ) Hσ = m ->
   lrhyps ls xs ys ->
-  semvalue (denote _ m) ->
+  semvalue (lrsemapp ls τ ys (denote _ m)) ->
   exists z,
     eval _ (lrapp ls τ xs m) z /\
-    semvalue (lrsemapp ls τ ys (denote _ m)) /\
     LR τ z (lrsemapp ls τ ys (denote _ m)).
 Proof.
   induction n; intros.
@@ -2073,47 +2132,47 @@ Proof.
   (* bool case *)
   destruct ls; simpl in *. subst τ.
   simpl in H. subst m.
-  exists (tbool b). split.
-  apply ebool.
-  split.
+  exists (tbool b).
+  split. apply ebool.
   simpl.
-  auto.
-  simpl. eauto.
-  inversion Hσ.
+  exists b. split; auto.
+  inv Hσ.
 
   (* application case *)
-  subst σ₂. simpl in H.
+  subst σ₂. simpl in H. subst m.
+
   destruct (IHn2 nil σ₁ n2 tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [q2 [?[??]]]; auto.
-  subst m. simpl in H1.
+    as [q2[??]]; auto.
+  simpl.
 admit.
-  destruct (IHn1 (σ₁::ls) _ n1 (xs, q2) (ys, denote σ₁ n2)
-    (Logic.refl_equal _) (Logic.refl_equal _)) as [q1 [?[??]]].
-  split; intuition.
-  simpl. simpl in H1.
-  eapply eval_value; eauto.
-simpl.
-  subst m. simpl in H1.
-admit.
-
-  simpl in *.
+  destruct (IHn1 (σ₁::ls) _ n1 (xs, q2) (ys, denote σ₁ q2)
+    (Logic.refl_equal _) (Logic.refl_equal _)) as [q1 [??]].
+  simpl; intuition. eapply eval_value; eauto.
+  apply value_semvalue; auto.  eapply eval_value; eauto.
+  revert H2. apply LR_equiv.
+  simpl. simpl in H. apply soundness; auto.
+  simpl. revert H1.
+  apply semvalue_equiv.
+  apply lrsemapp_equiv.
+  simpl. apply cat_respects; auto.
+  apply PLT.pair_eq; auto.
+  apply soundness; auto.
   exists q1. split.
-  subst m.
-  revert H5.
-  apply eval_lrapp_congruence.
-  intro.
-  apply eval_app_congruence; auto.
-  intros.
-  replace q0 with q2; auto.
-  apply eval_eq with q2; auto.
-  apply eval_value with n2; auto.
-  split.
+  revert H3.
+  simpl. apply eval_lrapp_congruence.
+  intro q. apply eval_app_congruence; intros; auto.
+  apply eval_trans with q2; auto.
+  revert H4.
+  apply LR_equiv. simpl.
+  apply lrsemapp_equiv.
+  simpl. apply cat_respects; auto.
+  apply PLT.pair_eq; auto.
+  symmetry.
+  apply soundness; auto.
   
-  subst m. apply H6.
-  revert H7. apply LR_equiv.
-  subst m. auto.
-
   (* I case *)
+admit.
+(*
   destruct ls.
   simpl in Hσ. subst τ.
   simpl in H. subst m.
@@ -2131,11 +2190,13 @@ admit.
   simpl in H. subst m.
   apply (LR_I ls τ xs ys). auto.
   apply Eqdep_dec.UIP_dec. decide equality.
+*)
 
-Admitted.
+
+  (* K case *)
+admit.
 
 (*
-  (* K case *)
   destruct ls; inversion Hσ.
   simpl in Hσ. subst τ.
   simpl in H. subst m.
@@ -2174,8 +2235,10 @@ Admitted.
   simpl in H. subst m.
   apply LR_K; auto.
   apply Eqdep_dec.UIP_dec. decide equality.
-
+*)
   (* S case *)
+admit.
+(*
   destruct ls; simpl in Hσ; inversion Hσ; subst.
   exists (tS _ _ _).
   split. simpl. apply eS.
@@ -2229,8 +2292,11 @@ Admitted.
   simpl.
   apply LR_S; auto.
   apply Eqdep_dec.UIP_dec. decide equality.
+*)
 
   (* IF case *)
+admit.
+(*
   destruct ls. simpl in Hσ.
   subst τ. simpl in H. subst m.
   exists (tIF σ). split. apply eIF.
@@ -2290,9 +2356,31 @@ Admitted.
   simpl in H. subst m.
   apply LR_IF. auto.
   apply Eqdep_dec.UIP_dec. decide equality.
-Qed.
 *)
 
+  (* Y case *)
+admit.
+(*
+  destruct ls. inv Hσ.
+  simpl in Hσ. subst τ. simpl eq_rect.
+  split.
+  apply value_semvalue. apply eY.
+  simpl LR. intros.
+  split.
+  apply (inert_semvalue _ _ (tY _ _) h'). apply eY. constructor. auto.
+  intros.
+admit.
+  simpl in Hσ. inv Hσ.
+  destruct ls.
+admit.
+  simpl in Hσ. inv Hσ.
+  replace Hσ with
+    (refl_equal (((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ)) in *.
+  simpl eq_rect in *. clear Hσ.
+  eapply LR_Y; eauto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+*)
+Qed.
 
 Inductive context τ : ty -> Type :=
   | cxt_top : context τ τ
@@ -2324,26 +2412,53 @@ Proof.
   induction C.
 
   simpl; intros.
+  split; intros.
   destruct (LRok _ m nil _ m tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [zm [?[??]]].
-simpl. admit.
+    as [zm [??]].
+  simpl.
+  apply semvalue_equiv with (denote _ z).
+  symmetry. apply soundness. auto.
+  apply value_semvalue. eapply eval_value; eauto.
   destruct (LRok _ n nil _ n tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [zn [?[??]]].
-simpl. admit.
+    as [zn [??]].
+  simpl.
+  apply semvalue_equiv with (denote _ z).
+  symmetry. rewrite <- H.
+  apply soundness. auto.
+  apply value_semvalue. eapply eval_value; eauto.
+  destruct H2 as [b [??]].
+  destruct H4 as [b' [??]].
   simpl in *.
-  destruct H2 as [bm [??]].
-  destruct H5 as [bn [??]].
-  subst zm zn.
-  rewrite H in H6.
-  rewrite H6 in H7.
-  assert (bm = bn).
+  rewrite H in H5. rewrite H5 in H6.
+  assert (b = b').
 admit.
-  subst bn.
-  split; intro.
-  assert (z = (tbool bm)).
+  subst b'.
+  subst zm zn.
+  assert (z = (tbool b)).
   eapply eval_eq; eauto.
   subst z. auto.
-  assert (z = (tbool bm)).
+
+  destruct (LRok _ m nil _ m tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
+    as [zm [??]].
+  simpl.
+  apply semvalue_equiv with (denote _ z).
+  symmetry. rewrite H. apply soundness. auto.
+  apply value_semvalue. eapply eval_value; eauto.
+  destruct (LRok _ n nil _ n tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
+    as [zn [??]].
+  simpl.
+  apply semvalue_equiv with (denote _ z).
+  symmetry. apply soundness. auto.
+  apply value_semvalue. eapply eval_value; eauto.
+  destruct H2 as [b [??]].
+  destruct H4 as [b' [??]].
+  simpl in *.
+  rewrite H in H5. rewrite H5 in H6.
+  assert (b = b').
+admit.
+  subst b'.
+  subst zm zn.
+  assert (z = (tbool b)).
   eapply eval_eq; eauto.
   subst z. auto.
 
@@ -2358,7 +2473,7 @@ admit.
   apply PLT.pair_eq; auto.
 Qed.
 
-Lemma denote_bottom : forall τ (m:term τ),
+Lemma denote_bottom_nonvalue : forall τ (m:term τ),
   (~exists z, eval τ m z) <-> denote τ m ≈ ⊥.
 Proof.
   intros. split; intro.
@@ -2402,4 +2517,4 @@ Transparent liftPPLT. simpl.
 Qed.   
 
 Print Assumptions adequacy.
-Print Assumptions denote_bottom.
+Print Assumptions denote_bottom_nonvalue.
