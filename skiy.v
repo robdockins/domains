@@ -356,24 +356,11 @@ Proof.
     simpl; auto.
 Qed.
 
-Parameter flat : Type -> ∂PLT.
-Parameter flat_elem : forall (X:Type), X -> PLT.unit true → flat X.
-Parameter flat_cases : forall (X:Type) (A B:∂PLT) (f:X -> A → B), PLT.prod A (flat X) → B.
-Arguments flat_elem [X] x.
-Arguments flat_cases [X A B] f.
-
-Definition flat_cases' (X:Type) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
-  : Γ × U (flat X) → U B
-  := U@(flat_cases (fun x => ε ∘ L@(f x)) ∘ PLT.pair_map id ε ∘ lift_prod' _ _) ∘ η.
-Arguments flat_cases' [X Γ B] f.
-
-Definition flat_elem' (X:Type) (Γ:PLT) (x:X) : Γ → U (flat X)
-  := U@(flat_elem x ∘ PLT.terminate _ _) ∘ η.
-
+Require Import flat.
 
 Fixpoint tydom (τ:ty) : ob ∂PLT :=
   match τ with
-  | ty_bool => flat bool
+  | ty_bool => flat enumbool
   | ty_arrow τ₁ τ₂ => colift (PLT.exp (tydom τ₁) (tydom τ₂))
   end.
 
@@ -438,7 +425,7 @@ End Ydefn.
 
 Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → U (tydom τ) :=
   match m with
-  | tbool b => flat_elem' bool _ b
+  | tbool b => flat_elem' b
   | tapp σ₁ σ₂ m₁ m₂ => strict_app' ∘ PLT.pair (denote (σ₁ ⇒ σ₂) m₁) (denote σ₁ m₂)
   | tI σ => strict_curry' pi2
   | tK σ₁ σ₂ => strict_curry' (strict_curry' (pi2 ∘ pi1))
@@ -455,7 +442,7 @@ Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → U (tydom τ) :=
   end.
 
 
-Lemma cannonical_bool : forall x,
+Lemma canonical_bool : forall x,
   eval ty_bool x x -> 
   x = tbool true \/ x = tbool false.
 Proof.
@@ -469,6 +456,87 @@ Proof.
   destruct (redex_or_inert _ _ m₁); auto.
   elim H5; apply H0.
   inv H0.
+Qed.
+
+Lemma flat_elem'_semvalue : forall (X:enumtype) Γ (x:X),
+  @semvalue Γ (flat X) (flat_elem' x).
+Proof.
+  intros. intro a. exists x.
+  unfold flat_elem'.
+  apply (compose_hom_rel _ _ _ _ η (U@(flat_elem x ∘ PLT.terminate true (L Γ)))
+    a (Some x)).
+  exists (Some a).   split.
+  simpl. apply adj_unit_rel_elem. auto.
+  apply hom_rel_U.
+  right. exists a. exists x. split; auto.
+  apply (compose_hom_rel _ _ _ _ ).
+  exists tt. split.
+  simpl. apply eprod_elem. split.
+  apply eff_complete. apply single_axiom; auto.
+  simpl. apply single_axiom. auto.
+Qed.
+
+Lemma flat_elem_canon : forall (X:enumtype) (g:PLT.unit _ → U (flat X)),
+  semvalue g -> exists x, g ≈ flat_elem' x.
+Proof.
+  intros. destruct (H tt).
+  exists x. split; hnf; intros.
+  unfold flat_elem'.
+  destruct a.
+  apply compose_hom_rel.
+  exists (Some c). split.
+  simpl. apply adj_unit_rel_elem. auto.
+  apply hom_rel_U.
+  destruct c0; auto.
+  destruct c.
+  right.
+  exists tt. exists c0.
+  split; auto.
+  apply compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem.
+  split. apply eff_complete. apply single_axiom; auto.
+  simpl. apply single_axiom.
+  assert (c0 = x).
+  destruct (PLT.hom_directed _ _ _ g tt (Some x::Some c0::nil)).
+  hnf. auto.
+  hnf; intros.
+  apply cons_elem in H2. destruct H2. rewrite H2.
+  apply erel_image_elem; auto.
+  apply cons_elem in H2. destruct H2. rewrite H2.
+  apply erel_image_elem; auto.
+  apply nil_elem in H2. elim H2.
+  destruct H2.  
+  apply erel_image_elem in H3.
+  assert (Some x ≤ x0). apply H2.
+  apply cons_elem; auto.
+  assert (Some c0 ≤ x0). apply H2.
+  apply cons_elem; auto. right.
+  apply cons_elem; auto.
+  destruct x0. hnf in H4. hnf in H5. subst c; auto.
+  elim H4.
+  subst c0. auto.
+  destruct a.
+
+  unfold flat_elem' in H1.
+  apply compose_hom_rel in H1.
+  destruct H1 as [y [??]].
+  simpl in H1. apply adj_unit_rel_elem in H1.
+  apply hom_rel_U in H2.
+  destruct c.
+  destruct H2.
+  subst c0.
+  revert H0. apply (PLT.hom_order _ _ _ g). auto.
+Transparent U. hnf. auto. Opaque U. 
+  destruct H2 as [p [q [?[??]]]].
+  subst y c0.
+  destruct p.
+  apply compose_hom_rel in H2.
+  destruct H2 as [?[??]].
+  simpl in H3.
+  apply single_axiom in H3.
+  destruct H3 as [[??][??]]. simpl in *.
+  hnf in H6. subst q. auto.
 Qed.
 
 Lemma value_inert_semvalue : forall n,
@@ -486,7 +554,7 @@ Proof.
 
   split; intros. 
   inv H1; simpl.
-admit.
+  apply flat_elem'_semvalue.
 
   apply strict_curry'_semvalue.  
   apply strict_curry'_semvalue.  
@@ -530,10 +598,21 @@ admit.
   destruct (H _ H5). apply (H6 _ x0); auto.
 
   rewrite strict_curry_app'; auto.
-admit.
+  destruct (flat_elem_canon enumbool y H3) as [b ?].
+  rewrite H0.
+  rewrite flat_cases_elem'. destruct b.
+  apply strict_curry'_semvalue2.
+  apply strict_curry'_semvalue2.
+
   rewrite strict_curry_app'; auto.
   destruct (value_app_inv _ _ _ _ H1); auto.
-admit.
+  destruct (canonical_bool x0); auto; subst x0; simpl.
+  rewrite flat_cases_elem'.
+  rewrite strict_curry_app2'; auto.
+  apply strict_curry'_semvalue2.
+  rewrite flat_cases_elem'.
+  rewrite strict_curry_app2'; auto.
+  apply strict_curry'_semvalue2.
 
   destruct (value_app_inv _ _ _ _ H1); auto.
   simpl in H.
@@ -564,7 +643,6 @@ Proof.
   destruct (value_inert_semvalue (tmsize _ x)).
   apply H3; auto.
 Qed.
-
 
 Hint Resolve value_semvalue.
 
@@ -612,15 +690,23 @@ Proof.
   destruct (value_app_inv _ _ _ _ H). clear H2.
   simpl.
   rewrite strict_curry_app'; auto.
-admit.
-admit.
+  rewrite flat_cases_elem'.
+  rewrite strict_curry_app2'; auto.
+  rewrite strict_curry_app2'; auto.
+  repeat rewrite <- (cat_assoc PLT).
+  repeat rewrite pair_commute1.
+  repeat rewrite pair_commute2. auto.
+  apply flat_elem'_semvalue.
   
   destruct (value_app_inv _ _ _ _ H). clear H2.
   inv H1.
   simpl.
   rewrite strict_curry_app'; auto.
-admit.
-admit.
+  rewrite flat_cases_elem'.
+  rewrite strict_curry_app2'; auto.
+  rewrite strict_curry_app2'; auto.
+  repeat rewrite pair_commute2. auto.
+  apply flat_elem'_semvalue.
 
   destruct (value_app_inv _ _ _ _ H). clear H1 H2.
   simpl.    
@@ -763,7 +849,7 @@ Fixpoint LR (τ:ty) :
     term τ' -> (PLT.unit false → U (tydom τ')) -> Prop
   with
   | ty_bool => fun m h => exists b:bool,
-        m = tbool b /\ h ≈ flat_elem' _ _ b
+        m = tbool b /\ h ≈ flat_elem' b
   | ty_arrow σ₁ σ₂ => fun m h =>
         forall n h', LR σ₁ n h' -> value n -> semvalue h' ->
           semvalue (strict_app' ∘ PLT.pair h h') ->
@@ -862,7 +948,6 @@ Qed.
 
 
 Arguments tapp [_ _] _ _.
-
 
 Lemma semvalue_lrsemapp_out ls : forall τ ys h,
    semvalue (lrsemapp ls τ ys h) -> semvalue h.
@@ -1025,12 +1110,56 @@ Proof.
 Qed.
 
 Lemma LR_IF σ : LR _ (tIF σ) (denote _ (tIF σ)).
-Admitted.
+Proof.
+  simpl. intros.
+  exists (tapp (tIF σ) n). split. apply eapp2.
+  apply eIF. auto.
+  intros [? Hr]. inv Hr.
+  intros.
+  exists (tapp (tapp (tIF σ) n) n0). split. apply eapp2. apply eapp2.
+  apply eIF. auto.
+  intros [? Hr]. inv Hr. auto.
+  intros [? Hr]. inv Hr.
+  intros.
+  destruct H as [b [??]]. subst n.
+  destruct b.
+  exists n0. split.
+  eapply eapp1. apply eapp2. apply eapp2.
+  apply eIF. apply ebool.
+  intros [? Hr]. inv Hr. eauto.
+  intros [? Hr]. inv Hr. eauto.
+  econstructor. auto.
+  revert H3. apply LR_equiv.
+  rewrite H11.
+  rewrite strict_curry_app'; auto.
+  rewrite flat_cases_elem'.
+  rewrite strict_curry_app2'; auto.
+  rewrite strict_curry_app2'; auto.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute1.
+  rewrite pair_commute2. auto.
+  apply flat_elem'_semvalue.  
+  exists n1.
+  split.
+  eapply eapp1. apply eapp2. apply eapp2.
+  apply eIF. apply ebool.
+  intros [? Hr]. inv Hr. eauto.
+  intros [? Hr]. inv Hr. eauto.
+  econstructor. auto.
+  revert H7. apply LR_equiv.
+  rewrite H11.
+  rewrite strict_curry_app'; auto.
+  rewrite flat_cases_elem'.
+  rewrite strict_curry_app2'; auto.
+  rewrite strict_curry_app2'; auto.
+  rewrite pair_commute2. auto.
+  apply flat_elem'_semvalue.  
+Qed.
 
 Lemma LR_Y σ₁ σ₂ : LR _ (tY σ₁ σ₂) (denote _ (tY σ₁ σ₂)).
 Admitted.
 
-Lemma LRok : forall σ (n:term σ) ls τ m xs ys
+Lemma fundamental_lemma : forall σ (n:term σ) ls τ m xs ys
   (Hσ : σ = lrtys ls τ),
   eq_rect σ term n (lrtys ls τ) Hσ = m ->
   lrhyps ls xs ys ->
@@ -1167,6 +1296,53 @@ Proof.
   apply LR_Y.
 Qed.
 
+Lemma fundamental_lemma' : forall τ m,
+  semvalue (denote τ m) ->
+  exists z, eval τ m z /\ LR τ z (denote τ m).
+Proof.
+  intros.
+  apply (fundamental_lemma τ m nil τ m tt tt (refl_equal _) (refl_equal _) I).
+  simpl. auto.
+Qed.
+
+Lemma flat_elem'_inj (X:enumtype) (x x':X) :
+  @flat_elem' X (PLT.unit _) x ≈ flat_elem' x' -> x = x'.
+Proof.
+  intros.
+  unfold flat_elem' in H.
+  assert ((tt, Some x) ∈ PLT.hom_rel (U@(flat_elem x ∘ PLT.terminate true (L (PLT.unit false))) ∘ η)).
+  rewrite (compose_hom_rel _ _ _ _ η 
+    (U@(flat_elem x ∘ PLT.terminate true (L (PLT.unit false))))).
+  exists (Some tt). split.
+  simpl. apply adj_unit_rel_elem. auto.
+  apply hom_rel_U.
+  right. exists tt. exists x. split; auto.
+  rewrite (compose_hom_rel _ _ _ _ (PLT.terminate true (L (PLT.unit false)))
+    (flat_elem x)).
+  exists tt. split.
+  simpl. apply eprod_elem. split. apply eff_complete.
+  apply single_axiom. auto.
+  simpl. apply single_axiom. auto.
+  destruct H.
+  apply H in H0.
+  rewrite (compose_hom_rel _ _ _ _ η 
+    (U@(flat_elem x' ∘ PLT.terminate true (L (PLT.unit false))))) in H0.
+  destruct H0 as [y[??]].
+  simpl in H0. apply adj_unit_rel_elem in H0.
+  apply (hom_rel_U _ _ 
+    (flat_elem x' ∘ PLT.terminate true (L (PLT.unit false)))) in H2.
+  destruct H2. discriminate.
+  destruct H2 as [p [q [?[??]]]]. subst y. inv H4.
+  rewrite (compose_hom_rel _ _ _ _ (PLT.terminate true (L (PLT.unit false)))
+    (flat_elem x')) in H2.
+  destruct H2 as [?[??]].
+  simpl in H3.
+  apply single_axiom in H3.
+  destruct H3 as [[??][??]]. simpl in *.
+  hnf in H5. auto.
+Qed.
+
+
 Inductive context τ : ty -> Type :=
   | cxt_top : context τ τ
   | cxt_appl : forall σ₁ σ₂,
@@ -1198,14 +1374,12 @@ Proof.
 
   simpl; intros.
   split; intros.
-  destruct (LRok _ m nil _ m tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [zm [??]].
+  destruct (fundamental_lemma' _ m) as [zm [??]].
   simpl.
   apply semvalue_equiv with (denote _ z).
   symmetry. apply soundness. auto.
   apply value_semvalue. eapply eval_value; eauto.
-  destruct (LRok _ n nil _ n tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [zn [??]].
+  destruct (fundamental_lemma' _ n) as [zn [??]].
   simpl.
   apply semvalue_equiv with (denote _ z).
   symmetry. rewrite <- H.
@@ -1216,21 +1390,19 @@ Proof.
   simpl in *.
   rewrite H in H5. rewrite H5 in H6.
   assert (b = b').
-admit.
+  apply flat_elem'_inj in H6. auto.
   subst b'.
   subst zm zn.
   assert (z = (tbool b)).
   eapply eval_eq; eauto.
   subst z. auto.
 
-  destruct (LRok _ m nil _ m tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [zm [??]].
+  destruct (fundamental_lemma' _ m) as [zm [??]].
   simpl.
   apply semvalue_equiv with (denote _ z).
   symmetry. rewrite H. apply soundness. auto.
   apply value_semvalue. eapply eval_value; eauto.
-  destruct (LRok _ n nil _ n tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [zn [??]].
+  destruct (fundamental_lemma' _ n) as [zn [??]].
   simpl.
   apply semvalue_equiv with (denote _ z).
   symmetry. apply soundness. auto.
@@ -1240,7 +1412,7 @@ admit.
   simpl in *.
   rewrite H in H5. rewrite H5 in H6.
   assert (b = b').
-admit.
+  apply flat_elem'_inj in H6. auto.
   subst b'.
   subst zm zn.
   assert (z = (tbool b)).
@@ -1266,8 +1438,7 @@ Proof.
   split. 2: apply bottom_least.
   hnf. intros [u x] Hx. destruct x.
   elimtype False.
-  destruct (LRok τ m nil τ m tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
-    as [z [??]].
+  destruct (fundamental_lemma' τ m) as [z [??]].
   red; intros. destruct g. simpl.
   exists c. auto.
   elim H. eauto.
@@ -1275,8 +1446,7 @@ Proof.
   simpl. exists None.
   split.
   apply adj_unit_rel_elem. hnf; auto.
-Transparent liftPPLT. simpl.
-  apply liftPPLT_rel_elem. auto.
+  apply hom_rel_U. auto.
 
   intros [z ?].
   assert (denote τ z ≈ ⊥).
@@ -1290,18 +1460,16 @@ Transparent liftPPLT. simpl.
   simpl bottom in H3.
   apply (compose_hom_rel) in H3.
   destruct H3 as [q [??]].
-  simpl in H5.
-  rewrite (liftPPLT_rel_elem _ _ _ _ q (Some x)) in H5.
+  apply hom_rel_U in H5.
   destruct H5.
-  destruct H5. elim H5.
+  inversion H5.
   destruct H5 as [q' [?[??]]].
+  simpl in H5.
   apply union_axiom in H5.
   destruct H5 as [?[??]].
   apply image_axiom2 in H5. destruct H5 as [? [??]].
   apply empty_elem in H5. elim H5.
 Qed.   
-
-
 
 Print Assumptions adequacy.
 Print Assumptions denote_bottom_nonvalue.

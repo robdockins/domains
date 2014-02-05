@@ -84,6 +84,7 @@ VFILES:=strict_utils.v\
   powerdom.v\
   ski.v\
   lam_models.v\
+  flat.v\
   discrete.v\
   nominal.v\
   permutations.v\

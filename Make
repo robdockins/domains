@@ -25,6 +25,7 @@ atoms.v
 permutations.v
 nominal.v
 discrete.v
+flat.v
 lam_models.v
 ski.v
 powerdom.v

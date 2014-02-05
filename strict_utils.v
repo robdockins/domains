@@ -20,7 +20,7 @@ Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
 Require Import profinite_adj.
-
+Require Import flat.
 
 Notation up f := (L@(U@f) ∘ adj_counit_inv_hom _) (only parsing).
 Notation pi1 := PLT.pi1.
@@ -305,6 +305,127 @@ Arguments strict_app' [A B].
 Arguments strict_curry' [Γ A B] f.
 
 
+Lemma hom_rel_pair hf (A B C:PLT.PLT hf) (f:C → A) (g:C → B) c x y :
+  (c,(x,y)) ∈ PLT.hom_rel (PLT.pair f g) <->
+  ((c,x) ∈ PLT.hom_rel f /\ (c,y) ∈ PLT.hom_rel g).
+Proof.
+  simpl; split; intros.
+  apply pair_rel_elem in H. auto.
+  apply pair_rel_elem; auto.
+Qed.
+
+Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :
+  (x,y,(x',y')) ∈ PLT.hom_rel (PLT.pair_map f g) <->
+  ((x,x') ∈ PLT.hom_rel f /\ (y,y') ∈ PLT.hom_rel g).
+Proof.
+  unfold PLT.pair_map.
+  split; intros.
+  rewrite (hom_rel_pair _ _ _ _ (f∘pi1) (g∘pi2) (x,y) x' y') in H.
+  destruct H.
+  apply compose_hom_rel in H.
+  destruct H as [?[??]].
+  apply compose_hom_rel in H0.
+  destruct H0 as [?[??]].
+  simpl in H. 
+  rewrite (pi1_rel_elem _ _ _ _ x y x0)  in H.
+  simpl in H0.
+  rewrite (pi2_rel_elem _ _ _ _ x y x1) in H0.
+  split.
+  revert H1. apply PLT.hom_order; auto.
+  revert H2. apply PLT.hom_order; auto.
+  rewrite (hom_rel_pair _ _ _ _ (f∘pi1) (g∘pi2)).
+  destruct H.
+  split.
+  apply compose_hom_rel.
+  exists x. split; auto. simpl. apply pi1_rel_elem; auto.
+  apply compose_hom_rel.
+  exists y. split; auto. simpl. apply pi2_rel_elem; auto.
+Qed.
+
+Definition flat_cases' (X:enumtype) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
+  : Γ × U (flat X) → U B
+  := U@(flat_cases (fun x => ε ∘ L@(f x)) ∘ PLT.pair_map id ε ∘ lift_prod' _ _) ∘ η.
+Arguments flat_cases' [X Γ B] f.
+
+Definition flat_elem' (X:enumtype) (Γ:PLT) (x:X) : Γ → U (flat X)
+  := U@(flat_elem x ∘ PLT.terminate _ _) ∘ η.
+Arguments flat_elem' [X Γ] x.
+
+
+Lemma flat_cases_elem_term (X:enumtype) (Γ D B:∂PLT) 
+  (f:X -> Γ → B) (x:X) (h:D → Γ) :
+  flat_cases f ∘ PLT.pair h (flat_elem x ∘ PLT.terminate true D) ≈ f x ∘ h.
+Proof.
+  split; intros a H. destruct a.
+  apply compose_hom_rel in H.
+  apply compose_hom_rel.
+  destruct H as [q [??]].
+  destruct q.
+  simpl in H0.
+  rewrite <- (flat_cases_rel_elem _ _ _ f) in H0.
+  rewrite (hom_rel_pair _ _ _ _ _ _ c c1 c2) in H. destruct H.
+  rewrite compose_hom_rel in H1.
+  destruct H1 as [[] [??]].
+  exists c1. split; auto.
+  simpl in H2.
+  apply single_axiom in H2.
+  destruct H2 as [[??][??]]. simpl in *.
+  hnf in H3. subst c2. auto.
+  destruct a.
+  apply compose_hom_rel in H.
+  apply compose_hom_rel.
+  destruct H as [q [??]].
+  exists (q,x). split.
+  apply pair_rel_elem. split; auto.
+  apply compose_hom_rel. exists tt.
+  split; auto.
+  simpl. apply eprod_elem. split.
+  apply eff_complete.
+  apply single_axiom. auto.
+  simpl. apply single_axiom. auto.
+  apply (flat_cases_rel_elem).
+  auto.   
+Qed.
+
+
+Lemma flat_cases_elem' (X:enumtype) (Γ D:PLT) (B:∂PLT) 
+  (f:X -> Γ → U B) (x:X) (h:D → Γ) :
+  flat_cases' f ∘ PLT.pair h (flat_elem' x) ≈ f x ∘ h.
+Proof.
+  unfold flat_cases'.
+  rewrite <- (cat_assoc PLT).
+  rewrite (NT.axiom adj_unit (PLT.pair h (flat_elem' x))).
+  rewrite (cat_assoc PLT).
+  simpl. rewrite <- (Functor.compose U). 2: reflexivity.
+  rewrite <- (cat_assoc ∂PLT).
+  rewrite <- lift_prod_pair'.
+  rewrite <- (cat_assoc ∂PLT).
+  rewrite <- (PLT.pair_map_pair true).
+  unfold flat_elem'.
+  rewrite (Functor.compose L _ _ _ (U@(flat_elem x ∘ PLT.terminate true (L D)))).
+  2: reflexivity.
+  rewrite (cat_assoc ∂PLT).
+  generalize (NT.axiom adj_counit (flat_elem x ∘ PLT.terminate true (L D))).
+  simpl; intros. rewrite H. clear H.
+  rewrite <- (cat_assoc ∂PLT).
+  rewrite <- (cat_assoc ∂PLT).
+  generalize (Adjunction.adjoint_axiom1 PLT_adjoint D).
+  simpl; intros.
+  rewrite H.
+  rewrite (cat_ident2 ∂PLT).
+  rewrite (cat_ident1 ∂PLT).
+  rewrite flat_cases_elem_term.
+  rewrite <- (cat_assoc ∂PLT).
+  rewrite <- (Functor.compose L). 2: reflexivity.
+  rewrite (Functor.compose U). 2: reflexivity.
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (NT.axiom adj_unit (f x ∘ h)).
+  rewrite (cat_assoc PLT).
+  generalize (Adjunction.adjoint_axiom2 PLT_adjoint B).
+  simpl; intros. rewrite H0.
+  apply cat_ident2.
+Qed.
+
 
 Lemma semvalue_le : forall Γ A (f f':Γ → U A),
   f ≤ f' -> semvalue f -> semvalue f'.
@@ -361,42 +482,6 @@ Proof.
 Qed.
 
 
-Lemma hom_rel_pair hf (A B C:PLT.PLT hf) (f:C → A) (g:C → B) c x y :
-  (c,(x,y)) ∈ PLT.hom_rel (PLT.pair f g) <->
-  ((c,x) ∈ PLT.hom_rel f /\ (c,y) ∈ PLT.hom_rel g).
-Proof.
-  simpl; split; intros.
-  apply pair_rel_elem in H. auto.
-  apply pair_rel_elem; auto.
-Qed.
-
-Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :
-  (x,y,(x',y')) ∈ PLT.hom_rel (PLT.pair_map f g) <->
-  ((x,x') ∈ PLT.hom_rel f /\ (y,y') ∈ PLT.hom_rel g).
-Proof.
-  unfold PLT.pair_map.
-  split; intros.
-  rewrite (hom_rel_pair _ _ _ _ (f∘pi1) (g∘pi2) (x,y) x' y') in H.
-  destruct H.
-  apply compose_hom_rel in H.
-  destruct H as [?[??]].
-  apply compose_hom_rel in H0.
-  destruct H0 as [?[??]].
-  simpl in H. 
-  rewrite (pi1_rel_elem _ _ _ _ x y x0)  in H.
-  simpl in H0.
-  rewrite (pi2_rel_elem _ _ _ _ x y x1) in H0.
-  split.
-  revert H1. apply PLT.hom_order; auto.
-  revert H2. apply PLT.hom_order; auto.
-  rewrite (hom_rel_pair _ _ _ _ (f∘pi1) (g∘pi2)).
-  destruct H.
-  split.
-  apply compose_hom_rel.
-  exists x. split; auto. simpl. apply pi1_rel_elem; auto.
-  apply compose_hom_rel.
-  exists y. split; auto. simpl. apply pi2_rel_elem; auto.
-Qed.
 
 Lemma semvalue_strict_app_out1 A B C (f:C → U (A ⊸ B)) (x:C → U A) :
   semvalue (strict_app ∘ PLT.pair f x) ->
