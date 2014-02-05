@@ -3,9 +3,6 @@
 Require Import String.
 Require Import List.
 
-Require Import atoms.
-Require Import permutations.
-
 Require Import basics.
 Require Import preord.
 Require Import categories.
@@ -20,6 +17,7 @@ Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
 Require Import profinite_adj.
+Require Import strict_utils.
 
 Inductive ty :=
   | ty_bool
@@ -364,265 +362,20 @@ Parameter flat_cases : forall (X:Type) (A B:∂PLT) (f:X -> A → B), PLT.prod A
 Arguments flat_elem [X] x.
 Arguments flat_cases [X A B] f.
 
-Definition lift (X:PLT) : PLT := U (L X).
-Definition colift (X:∂PLT) : ∂PLT := L (U X).
+Definition flat_cases' (X:Type) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
+  : Γ × U (flat X) → U B
+  := U@(flat_cases (fun x => ε ∘ L@(f x)) ∘ PLT.pair_map id ε ∘ lift_prod' _ _) ∘ η.
+Arguments flat_cases' [X Γ B] f.
+
+Definition flat_elem' (X:Type) (Γ:PLT) (x:X) : Γ → U (flat X)
+  := U@(flat_elem x ∘ PLT.terminate _ _) ∘ η.
+
 
 Fixpoint tydom (τ:ty) : ob ∂PLT :=
   match τ with
   | ty_bool => flat bool
   | ty_arrow τ₁ τ₂ => colift (PLT.exp (tydom τ₁) (tydom τ₂))
   end.
-
-Notation up f := (L@(U@f) ∘ adj_counit_inv_hom _) (only parsing).
-Notation pi1 := PLT.pi1.
-Notation pi2 := PLT.pi2.
-Notation ε := (adj_counit _).
-Notation η := (adj_unit _).
-Notation γ := (adj_counit_inv_hom _).
-Arguments PLT.pair_map [hf] [A B C D] f g.
-Notation "A × B" := (@PLT.prod false A B).
-Notation "A ⊗ B" := (@PLT.prod true A B)
-   (at level 54, right associativity).
-Notation "A ⊸ B" := (@PLT.exp true A B)
-   (at level 50, left associativity).
-(*Notation "A ⇒ B" := (@PLT.exp false A B).*)
-
-Definition strict_app (A B:∂PLT) 
-  : U (A ⊸ B) × U A → U B
-
-  := U@( @PLT.app _ A B ∘ PLT.pair_map ε ε ∘ lift_prod' _ _) ∘ η.
-
-Definition strict_curry (Γ:PLT) (A B:∂PLT)
-  (f:Γ×U A → U B) : Γ → U (A ⊸ B) 
-
-  := U@( PLT.curry( ε ∘ L@f ∘ lift_prod _ _ ∘ PLT.pair_map id γ) ) ∘ η.
-  
-Definition strict_app' (A B:∂PLT) 
-  : U (colift (A ⊸ B)) × U A → U B 
-
-  := strict_app A B ∘ PLT.pair_map (U@ε) id.
-
-Definition strict_curry' (Γ:PLT) (A B:∂PLT)
-  (f:Γ × U A → U B) : Γ → U (colift (A ⊸ B))
-
-  := η ∘ strict_curry Γ A B f.
-
-Opaque liftPPLT.
-Opaque forgetPLT.
-
-Definition semvalue (Γ:PLT) (A:∂PLT) (f:Γ → U A) :=
-  forall g, exists a, (g,Some a) ∈ PLT.hom_rel f.
-Arguments semvalue [Γ A] f.
-
-Lemma strict_curry_app2 D (Γ:PLT) (A B:∂PLT) 
-  (f : Γ×U A → U B) (g : D → U A) (h:D → Γ) (Hg : semvalue g) :
-
-  strict_app A B ∘ PLT.pair (strict_curry Γ A B f ∘ h) g ≈ f ∘ PLT.pair h g.
-Proof.
-  unfold strict_app, strict_curry.
-  simpl.
-  rewrite <- (cat_assoc PLT).
-  rewrite (NT.axiom adj_unit
-    (PLT.pair
-          (U @
-           PLT.curry
-             (adj_counit_hom B ∘ L @ f ∘ lift_prod Γ (U A)
-              ∘ PLT.pair_map id γ) ∘ adj_unit_hom Γ ∘ h) g)).
-  simpl.
-  rewrite (cat_assoc PLT).
-  rewrite <- (Functor.compose U). 2: reflexivity.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- lift_prod_pair'.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (PLT.pair_map_pair true).
-  rewrite (Functor.compose L). 2: reflexivity.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (cat_assoc ∂PLT).
-  generalize (NT.axiom adj_counit
-    (PLT.curry (adj_counit_hom B
-                ∘ (L @ f ∘ (lift_prod Γ (U A) ∘ PLT.pair_map id γ))))).
-  simpl; intros.
-  etransitivity.
-  apply cat_respects. 2: reflexivity.
-  apply (Functor.respects U).
-  apply cat_respects. reflexivity.
-  apply PLT.pair_eq. 2: reflexivity.
-  rewrite (cat_assoc ∂PLT).
-  rewrite (Functor.compose L). 2: reflexivity.
-  rewrite (cat_assoc ∂PLT).
-  apply cat_respects. 2: reflexivity.
-  apply cat_respects. 2: reflexivity.
-  apply H. clear H.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (cat_assoc ∂PLT).
-  generalize (Adjunction.adjoint_axiom1 PLT_adjoint Γ).
-  simpl. intros. 
-  rewrite (cat_assoc ∂PLT _ _ _ _
-    (adj_counit_hom (L Γ))).
-  rewrite H. clear H.
-  rewrite (cat_ident2 ∂PLT).
-  rewrite (PLT.curry_apply3 true).
-  repeat rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (PLT.pair_map_pair true).
-  assert (PLT.pair (id ∘ L@h)
-             (adj_counit_inv_hom A ∘ (adj_counit_hom A ∘ forgetPLT @ g)) 
-             ≈
-          PLT.pair (L@h) (L@g)).
-  apply PLT.pair_eq.
-  apply cat_ident2.
-  rewrite (cat_assoc ∂PLT).
-  apply adj_inv_eq. auto.
-  etransitivity.
-  apply cat_respects. 2: reflexivity.
-  apply Functor.respects.
-  apply cat_respects. reflexivity.
-  apply cat_respects. reflexivity.
-  apply cat_respects. reflexivity. apply H.
-  rewrite lift_prod_pair.
-  rewrite <- (Functor.compose L). 2: reflexivity.
-  rewrite (Functor.compose U). 2: reflexivity.
-  rewrite <- (cat_assoc PLT).
-  rewrite <- (NT.axiom adj_unit (f ∘ PLT.pair h g)). simpl.
-  rewrite (cat_assoc PLT).
-  generalize (Adjunction.adjoint_axiom2 PLT_adjoint B).
-  simpl. intros. rewrite H0.
-  apply cat_ident2.
-Qed.  
-
-
-Lemma strict_curry_app (Γ:PLT) (A B:∂PLT) 
-  (f : Γ×U A → U B) (g : Γ → U A) (Hg: semvalue g) :
-  strict_app A B ∘ PLT.pair (strict_curry Γ A B f) g ≈ f ∘ PLT.pair id g.
-Proof.
-  generalize (strict_curry_app2 Γ Γ A B f g id Hg).
-  rewrite (cat_ident1 PLT). auto.
-Qed.
-
-Lemma strict_curry_app2' D (Γ:PLT) (A B:∂PLT) 
-  (f : Γ×U A → U B) (g : D → U A) (h:D → Γ) (Hg : semvalue g) :
-
-  strict_app' A B ∘ PLT.pair (strict_curry' Γ A B f ∘ h) g ≈ f ∘ PLT.pair h g.
-Proof.
-  unfold strict_curry'.
-  unfold strict_app'.
-  rewrite <- (cat_assoc PLT).
-  rewrite <- (PLT.pair_map_pair false).
-  rewrite (cat_assoc PLT).
-  rewrite (cat_assoc PLT).
-  rewrite (cat_ident2 PLT).
-  generalize (Adjunction.adjoint_axiom2 PLT_adjoint (A ⊸ B)).
-  intros. simpl in H. rewrite H.
-  rewrite (cat_ident2 PLT).
-  apply strict_curry_app2. auto.
-Qed.
-
-Lemma strict_curry_app' (Γ:PLT) (A B:∂PLT) 
-  (f : Γ×U A → U B) (g : Γ → U A) (Hg : semvalue g) :
-
-  strict_app' A B ∘ PLT.pair (strict_curry' Γ A B f) g ≈ f ∘ PLT.pair id g.
-Proof.
-  generalize (strict_curry_app2' Γ Γ A B f g id Hg).
-  rewrite (cat_ident1 PLT). auto.
-Qed.
-
-
-Lemma plt_strict_compose : forall (A B C:∂PLT) (f:B → C),
-  f ∘ (⊥: A → B) ≈ ⊥.
-Proof.
-  intros. split. 2: apply bottom_least.
-  hnf. intros.
-  destruct a. apply compose_hom_rel in H.
-  destruct H as [y [??]].
-  simpl in H.
-  apply union_axiom in H. destruct H as [X[??]].
-  apply image_axiom2 in H. destruct H as [q [??]].
-  apply empty_elem in H. elim H.
-Qed.
-
-
-Lemma strict_app_bot (Γ:PLT) (A B:∂PLT) (f:Γ → U (A ⊸ B)) :
-  strict_app A B ∘ PLT.pair f ⊥ ≈ ⊥.
-Proof.
-  unfold strict_app. simpl.
-  rewrite <- (cat_assoc PLT).
-
-  generalize (NT.axiom adj_unit). simpl; intros.
-  rewrite H.
-  rewrite (cat_assoc PLT).
-  rewrite <- (Functor.compose U). 2: reflexivity.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- lift_prod_pair'.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (PLT.pair_map_pair true).
-  etransitivity.
-  apply cat_respects. 2: reflexivity.
-  apply Functor.respects.
-  etransitivity.
-  apply cat_respects. reflexivity.
-  2: apply plt_strict_compose.
-  etransitivity.
-  apply PLT.pair_eq. reflexivity.
-  2: apply PPLT.pair_bot1.
-  generalize (NT.axiom adj_counit). simpl; intros.
-  rewrite (Functor.compose L). 2: reflexivity.
-  rewrite (cat_assoc ∂PLT).
-  rewrite H0. 
-  rewrite <- (cat_assoc ∂PLT).
-  generalize (Adjunction.adjoint_axiom1 PLT_adjoint Γ).
-  intros. simpl in H1. rewrite H1.
-  apply cat_ident1.
-  auto.
-Qed.
-
-Lemma strict_app_bot' (Γ:PLT) (A B:∂PLT) (f:Γ → U (colift (A ⊸ B))) :
-  strict_app' A B ∘ PLT.pair f ⊥ ≈ ⊥.
-Proof.
-  unfold strict_app'.
-  rewrite <- (cat_assoc PLT).
-  rewrite <- (PLT.pair_map_pair false).
-  rewrite (cat_ident2 PLT).
-  apply strict_app_bot.
-Qed.
-
-Section fixes.
-  Variable Γ:PLT.
-  Variable A:∂PLT.
-  Variable f:Γ → PLT.exp (U A) (U A).
-
-  Definition fixes_step
-    (x:Γ → U A) : Γ → U A :=
-
-    PLT.app ∘ PLT.pair f x.
-
-  Program Definition fixes_step' : PLT.homset_cpo _ Γ (U A) → PLT.homset_cpo _ Γ (U A) :=
-    CPO.Hom _ (PLT.homset_cpo _ Γ (U A)) (PLT.homset_cpo _ Γ (U A)) fixes_step _ _.
-  Next Obligation.
-    intros. unfold fixes_step.
-    apply PLT.compose_mono; auto.
-    apply PLT.pair_monotone; auto.
-  Qed.    
-  Next Obligation.
-  Admitted.
-
-  Definition fixes : Γ → U A := lfp fixes_step'.
-
-  Lemma fixes_unroll :
-    fixes ≈ PLT.app ∘ PLT.pair f fixes.
-  Proof.
-    unfold fixes at 1.
-    rewrite <- lfp_fixpoint. simpl. unfold fixes_step.
-    auto.
-  Qed.
-
-End fixes.
-
-Parameter junk : forall T:Type, T.
-
-Arguments strict_app [A B].
-Arguments strict_curry [Γ A B] f.
-
-Arguments strict_app' [A B].
-Arguments strict_curry' [Γ A B] f.
 
 Section Ydefn.
   Variables σ₁ σ₂:ty.
@@ -681,13 +434,7 @@ Section Ydefn.
     := strict_curry' (fixes _ _ Ybody ∘ pi2).
 End Ydefn.
 
-Definition flat_cases' (X:Type) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
-  : Γ × U (flat X) → U B
-  := U@(flat_cases (fun x => ε ∘ L@(f x)) ∘ PLT.pair_map id ε ∘ lift_prod' _ _) ∘ η.
-Arguments flat_cases' [X Γ B] f.
 
-Definition flat_elem' (X:Type) (Γ:PLT) (x:X) : Γ → U (flat X)
-  := U@(flat_elem x ∘ PLT.terminate _ _) ∘ η.
 
 Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → U (tydom τ) :=
   match m with
@@ -707,59 +454,6 @@ Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → U (tydom τ) :=
   | tY σ₁ σ₂ => Ysem σ₁ σ₂ (PLT.unit false)
   end.
 
-Lemma semvalue_le : forall Γ A (f f':Γ → U A),
-  f ≤ f' -> semvalue f -> semvalue f'.
-Proof.
-  repeat intro.
-  destruct (H0 g). exists x.
-  apply H. auto.
-Qed.
-
-Lemma semvalue_equiv : forall Γ A (f f':Γ → U A),
-  f ≈ f' -> semvalue f -> semvalue f'.
-Proof.
-  intros Γ A f f' H. apply semvalue_le; auto.
-Qed.
-
-Require Import Setoid.
-
-Add Parametric Morphism Γ A :
-  (@semvalue Γ A)
-  with signature (eq_op _) ==> iff
-    as semvalue_eq_morphism.
-Proof.
-  intros. split; apply semvalue_equiv; auto.
-Qed.
-
-Lemma eta_semvalue A B (f:A → B) :
-  semvalue (η ∘ f).
-Proof.
-  repeat intro.
-  destruct (PLT.hom_directed _ _ _ f g nil). hnf; auto.
-  hnf. intros. apply nil_elem in H. elim H.
-  destruct H. apply erel_image_elem in H0.
-  exists x. 
-  simpl NT.transform.
-  simpl. apply compose_elem.
-  apply PLT.hom_order.
-  exists x. split; auto.
-  apply adj_unit_rel_elem. auto.
-Qed.
-
-Lemma strict_curry'_semvalue Γ A B f :
-  semvalue (@strict_curry' Γ A B f).
-Proof.
-  unfold strict_curry'.
-  apply eta_semvalue.  
-Qed.
-
-Lemma strict_curry'_semvalue2 Γ A B C f (g:C → Γ) :
-  semvalue (@strict_curry' Γ A B f ∘ g).
-Proof.
-  unfold strict_curry'.
-  rewrite <- (cat_assoc PLT).
-  apply eta_semvalue.  
-Qed.
 
 Lemma cannonical_bool : forall x,
   eval ty_bool x x -> 
@@ -861,6 +555,16 @@ Lemma value_semvalue : forall σ x,
 Proof.
   intros. destruct (value_inert_semvalue (tmsize _ x)); auto.
 Qed.
+
+Lemma inert_semvalue σ₁ σ₂ x y :    
+  value x -> inert σ₁ σ₂ x -> semvalue y ->
+  semvalue (strict_app' ∘ PLT.pair (denote _ x) y).
+Proof.
+  intros.
+  destruct (value_inert_semvalue (tmsize _ x)).
+  apply H3; auto.
+Qed.
+
 
 Hint Resolve value_semvalue.
 
@@ -1031,6 +735,7 @@ Proof.
   apply eapp2; auto.
 Qed.
 
+(*
 Lemma eval_redex_walk : forall t1 t2 x y z q,
   redex t1 t2 x y z ->
   eval _ x x ->
@@ -1050,7 +755,7 @@ Proof.
   subst n₁ n₂.
   elim H10.   eauto.
 Qed.
-
+*)
 
 Fixpoint LR (τ:ty) : 
   term τ -> (PLT.unit false → U (tydom τ)) -> Prop :=
@@ -1158,965 +863,172 @@ Qed.
 
 Arguments tapp [_ _] _ _.
 
-(*
-Section push_under2.
-  Variables a b c d:ty.
-  Variable f:term (a ⇒ b ⇒ c ⇒ d).
-  Variable (x:term c).
 
-  Notation "p @ q" := (tapp p q).
-  Notation S := (tS _ _ _).
-  Notation K := (tK _ _).
-  Notation I := (tI _).
-
-  Definition push_under2 : term (a ⇒ b ⇒ d) :=
-    S@((S@(K@S))@(S@((S@(K@S))@((S@(K@K))@((S@(K@ f ))@I)))@(K@I)))@(K@(K@ x )).
-
-  Definition push_under1 (z:term (b ⇒ c ⇒ d)) : term (b ⇒ d) :=
-    (S@((S@(K@ z ))@I))@(K@ x ).
-End push_under2.
-
-Lemma push_under2_value : forall a b c d f x,
-  eval _ f f ->
-  eval _ x x ->
-  eval _ (push_under2 a b c d f x) (push_under2 a b c d f x).
+Lemma semvalue_lrsemapp_out ls : forall τ ys h,
+   semvalue (lrsemapp ls τ ys h) -> semvalue h.
 Proof.
-  intros.
-  unfold push_under2.
-  repeat (apply eapp2 || apply eS || apply eK || apply eI); auto;
-    try (intros [r Hr]; inversion Hr).
+  induction ls; simpl; intros; auto.
+  apply IHls in H.
+  apply semvalue_app_out1' in H. auto.
 Qed.
 
-Lemma eapp : forall σ₁ σ₂ m₁ m₂ n₁ n₂ z,
-   eval (σ₁ ⇒ σ₂) m₁ n₁ ->
-   eval σ₁ m₂ n₂ ->
-   (exists r, redex σ₁ σ₂ n₁ n₂ r /\ eval σ₂ r z)
-   \/
-   ((forall r, ~redex σ₁ σ₂ n₁ n₂ r) /\ z = tapp n₁ n₂) ->
-   eval σ₂ (tapp m₁ m₂) z.
-Proof.
-  intros. destruct H1.
-  destruct H1 as [r [??]].
-  eapply eapp1; eauto.
-  destruct H1.
-  subst z.
-  apply eapp2; auto.
-  intros [r ?]. apply (H1 r); auto.
-Qed.
-
-Lemma push_under1_plus1 : forall b c d w x p z,
-  eval _ (tapp (tapp w p) x) z ->
-  eval _ (tapp (push_under1 b c d x w) p) z.
-Proof.
-  intros.
-  apply eval_app_inv in H.
-  destruct H as [wp [x' [?[??]]]].
-  apply eval_app_inv in H.
-  destruct H as [w' [p' [?[??]]]].
-  unfold push_under1.
-  eapply eapp. 2: eauto.
-  eapply eapp.
-  apply eapp2. apply eS.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eI.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  right. split.
-  intros r Hr; inversion Hr.
-  reflexivity.
-  left. econstructor; split. apply redex_S.
-
-  revert H1.
-  apply eval_app_congruence. intros.
-  eapply eapp.
-  apply eapp2. apply eapp2.
-  apply eS.
-  apply eapp2. apply eK.
-  eapply eval_value; eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eI.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-  left. econstructor; split. apply redex_S.
-  apply eval_trans with wp; auto.
-  revert H3.
-  eapply eval_app_congruence.
-  intros.
-  eapply eapp1.
-  apply eapp2. apply eK.
-  apply H3.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-  apply redex_K.
-  eapply eval_value; eauto.
-  intros.
-  eapply eapp1. apply eI.
-  eapply eval_value; eauto.
-  apply redex_I. auto.
-
-  intros.
-  eapply eapp1.
-  apply eapp2. apply eK.
-  eapply eval_value; eauto.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-  apply redex_K.
-  auto.
-Qed.
-
-Lemma push_under2_plus1 : forall a b c d f x p z,
-  eval _ f f ->
-  eval _ x x ->
-  eval _ p p ->
-  eval _ (tapp f p) z ->
-  eval _ (tapp (push_under2 a b c d f x) p)
-         (push_under1 b c d x z).
-Proof.
-  intros. unfold push_under2.
-  eapply eapp1. 2: eauto.
-  apply push_under2_value; auto.
-  unfold push_under2.
-  apply redex_S.
-  eapply eapp.
-  eapply eapp. 2: eauto.
-  apply eapp2.
-  apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eS.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  apply eapp2. eapply eapp2. apply eS.
-  apply eapp2. eapply eapp2. apply eS.
-  apply eapp2. apply eK. apply eS.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eK.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  apply eI.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  apply eapp2. apply eK. apply eI.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  intros [? Hr]. inv Hr.
-  left. econstructor. split.
-  apply redex_S.
-  eapply eapp.
-  eapply eapp.
-  apply eapp2. apply eK. apply eS.
-  intros [? Hr]. inv Hr.
-  eauto.
-  left. econstructor. split.
-  apply redex_K.
-  apply eS.
-  eapply eapp.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eS.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eK.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eI.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eK. apply eI.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split.
-  apply redex_S.
-
-  eapply eapp.
-  eapply eapp.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eS.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eK.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eI.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split. apply redex_S.
-  eapply eapp.
-  eapply eapp.
-  apply eapp2. apply eK. apply eS.
-  intros [? Hr]; inv Hr. eauto.
-  left; econstructor; split. apply redex_K.
-  apply eS.
-  eapply eapp.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. apply eK.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eI.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split. apply redex_S.
-
-  eapply eapp.
-  eapply eapp.
-  apply eapp2. apply eK. apply eK.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split. apply redex_K.
-  apply eK.
-
-  eapply eapp.
-  eapply eapp2. apply eapp2. apply eS.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  apply eI.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split. apply redex_S.
-  apply (eval_app_congruence) with f p.
-  intros. replace q with f in *.
-  eapply eapp.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split. apply redex_K.
-  auto.
-  eapply eval_eq; eauto.
-  intros.
-  eapply eapp1. apply eI. eauto.
-  apply redex_I. eapply eval_value; eauto.
-  apply H2.
-  right. split.
-  intros r Hr; inversion Hr.
-  reflexivity.
-  right. split.
-  intros r Hr; inversion Hr.
-  reflexivity.
-  eapply eapp1.
-  apply eapp2. apply eK. apply eI.
-  intros [? Hr]; inv Hr.
-  eauto.
-  apply redex_K.
-  apply eI.
-  right. split.
-  intros r Hr; inversion Hr. reflexivity.
-  right. split.
-  intros r Hr; inversion Hr. reflexivity.
-  eapply eapp.
-  apply eapp2. apply eK.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-  intros [? Hr]; inv Hr.
-  eauto.
-  left; econstructor; split. apply redex_K.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inv Hr.
-
-  right. split.
-  intros r Hr. inversion Hr.
-  reflexivity.
-Qed.
-
-
-Section push_under2_denote.
-  Variables a b c d:ty.
-  Variable f:PLT.unit false → U (tydom (a ⇒ b ⇒ c ⇒ d)).
-  Variable x:PLT.unit false → U (tydom c).
-
-  Definition push_under2_denote : PLT.unit false → U (tydom (a ⇒ b ⇒ d)) :=
-    (strict_curry' (strict_curry'
-           (strict_app' ∘ PLT.pair
-               (strict_app' ∘ PLT.pair
-                    (strict_app' ∘ PLT.pair (f ∘ PLT.pi1 ∘ PLT.pi1) (PLT.pi2 ∘ PLT.pi1))
-                    (PLT.pi2))
-               (x ∘ PLT.pi1 ∘ PLT.pi1)
-           ))).
-
-End push_under2_denote.
-
-Arguments push_under2 [a b c d] f x.
-Arguments push_under2_denote [a b c d] f x.
-Arguments push_under1 [b c d] x z.
-*)
-
-(*
-Lemma LR_S ls : forall σ t τ
-  (xs : lrsyn (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls))
-  (ys : lrsem (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls))
-  (H : lrhyps (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) xs ys),
-
+Lemma LR_under_apply ls :
+   forall (τ : ty) (m z0 : term (lrtys ls τ)) (xs : lrsyn ls) 
+     (ys : lrsem ls) (h : PLT.unit false → U (tydom (lrtys ls τ))),
+   eval (lrtys ls τ) m z0 ->
+   lrhyps ls xs ys ->
+   semvalue (lrsemapp ls τ ys h) ->
+   LR (lrtys ls τ) z0 h ->
    exists z : term τ,
-     eval τ
-       (lrapp (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) τ xs
-          (tS t σ (lrtys ls τ))) z /\
-     semvalue 
-       (lrsemapp (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) τ ys
-          (denote (lrtys (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) τ)
-             (tS t σ (lrtys ls τ)))) /\
-     LR τ z
-       (lrsemapp (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) τ ys
-          (denote (lrtys (t ⇒ σ ⇒ lrtys ls τ :: t ⇒ σ :: t :: ls) τ)
-             (tS t σ (lrtys ls τ)))).
-Admitted.
-*)
-(*
+     eval τ (lrapp ls τ xs m) z /\ LR τ z (lrsemapp ls τ ys h).
 Proof.
   induction ls; simpl; intros.
-  destruct xs as [[[xs x3] x2] x1].
-  destruct ys as [[[ys y3] y2] y1].
-  simpl in *.
-  destruct H as [?[?[?[?[?[??]]]]]]. clear H5.
-  destruct (H2 x3 y3) as [z1 [??]]; auto; clear H2.
-  destruct (H0 x3 y3) as [z2 [??]]; auto; clear H0.
-  destruct (H7 z1 (strict_app' ∘ PLT.pair y2 y3)) as [z3 [??]]; auto; clear H7.
-  eapply eval_value; eauto.
-  exists z3.
-  split.
-  intros.
-  eapply eapp1.
-  apply eapp2.
-  apply eapp2.
-  apply eS.
-  eauto. intros [? Hr]; inv Hr.
-  eauto. intros [? Hr]; inv Hr.
-  eauto.
-  apply redex_S.
-  revert H0.
-  apply eval_app_congruence.
-  intros.
-  replace q with z2. auto.
-  apply eval_eq with z2; auto.
-  eapply eval_value; eauto.
-  intros.
-  replace q with z1. auto.
-  apply eval_eq with z1; auto.
-  eapply eval_value; eauto.
+  exists z0. split; auto.
+  destruct xs as [xs x].
+  destruct ys as [ys y]. simpl in *.
+  destruct H0 as [[??][??]].
+  destruct (H2 x y) as [z1 [??]]; auto.
+  apply semvalue_lrsemapp_out in H1. auto.
+
+  generalize (IHls τ (tapp z0 x) z1 xs ys (strict_app' ∘ PLT.pair h y)
+     H6 H5 H1 H7).
+  intros [q [??]].
+  exists q; split; auto.
   revert H8.
+  apply eval_lrapp_congruence. intro.
+  apply eval_app_congruence; auto.
+  fold lrtys. intros.
+  apply eval_trans with z0; auto.
+Qed.
+
+Lemma LR_I σ : LR _ (tI σ) (denote _ (tI σ)).
+Proof.
+  simpl. intros.
+  exists n. split.
+  eapply eapp1.
+  apply eI. apply H0.
+  apply redex_I. auto.
+  revert H. apply LR_equiv. rewrite strict_curry_app'.
+  rewrite pair_commute2; auto. auto.
+Qed.
+
+Lemma LR_K σ₁ σ₂ : LR _ (tK σ₁ σ₂) (denote _ (tK σ₁ σ₂)).
+Proof.
+  simpl. intros.
+
+  exists (tapp (tK _ _) n). split.
+  apply eapp2. apply eK. auto.
+  intros [? Hr]. inv Hr.
+  intros.
+  exists n. split.
+  eapply eapp1. 
+  apply eapp2. apply eK. eauto.
+  intros [? Hr]. inv Hr. eauto.
+  apply redex_K. auto.
+  revert H.
   apply LR_equiv.
   rewrite strict_curry_app'.
   rewrite strict_curry_app2'.
-  rewrite strict_curry_app2'.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_eq.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute1.
+  rewrite pair_commute2.
+  auto. auto. auto.
+Qed.
 
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.
-
-  destruct xs as [[[[xs x4] x3] x2] x1].
-  destruct ys as [[[[ys y4] y3] y2] y1].
-  simpl in *.
-  destruct H as [?[?[?[?[?[??]]]]]]. destruct H5 as [?[??]].
-  fold lrtys in *.
-
-  destruct (IHls σ t τ
-    (xs,x3,x2, push_under2 x1 x4)
-    (ys,y3,y2, push_under2_denote y1 y4)) as [q1 [??]]; clear IHls.
-
-  simpl. intuition.
-  apply push_under2_value; auto.
-  destruct (H0 n h') as [z1 [??]]; clear H0; auto.
-  exists (push_under1 x4 z1).
-  split.
-  apply push_under2_plus1; auto.
-
-  intros.
-  destruct (H11 n0 h'0) as [z2 [??]]; clear H11; auto.
-  destruct (H14 x4 y4) as [z3 [??]]; clear H14; auto.
-  exists z3. split.
-
-  eapply push_under1_plus1; eauto.
-  revert H11.
-  apply eval_app_congruence; auto. intros.
-  eapply eval_trans with z2; auto.
-
-  revert H15. apply LR_equiv.
-  unfold push_under2_denote. simpl.
-  repeat rewrite PLT.curry_apply2.
-  repeat rewrite PLT.curry_apply3.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_eq.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_eq.
-  rewrite <- (cat_assoc (PLT.PLT false)).
-  rewrite (PLT.pair_compose_commute false).
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  apply cat_respects; auto.
-  apply PLT.pair_eq; auto.
-  symmetry; apply cat_ident1.
-  rewrite pair_commute2. auto.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  symmetry; apply cat_ident1.
-
-  simpl in *.
-  exists q1. split.
-  revert H8.
-  apply eval_lrapp_congruence.
-  intros.
-  assert (eval (lrtys ls τ)
-    (tapp (tapp (push_under2 x1 x4) x3) (tapp x2 x3)) q).
-
-  rename H into Hx1.
-  rename H1 into Hx2.
-  rename H3 into Hx3.
-  rename H5 into Hx4.
-
-  clear -H8 Hx1 Hx2 Hx3 Hx4.
-  inv H8. inv H4.
-  inv H9.
-  inv H13.
-  inv H15.
-  inv H13. clear H3 H16 H17. clear H13. inv H11.
-  inv H9.
-  inv H12.
-  inv H14.
-  inv H12. clear H12.
-  inv H9. inv H18.
-  inv H20. clear H18.
-  assert (n₂1 = push_under2 x1 x4).
-  eapply eval_eq. eauto.
-  apply push_under2_value; auto.
-  subst n₂1. clear H20.
-  clear H11 H14 H21. clear H9.
-  inv H6. clear H9 H11 H12.
-  clear H6.
-  revert H7.
-  apply eval_app_congruence; auto. intro.
-  apply eval_app_congruence; auto. intros.
-  replace q1 with n₂; auto.
-  symmetry.
-  eapply eval_eq. apply H.
-  eapply eval_value; eauto.
-  intro.
-  apply eval_app_congruence; auto; intros.
-  replace q1 with n₂0; auto.
-  symmetry.
-  eapply eval_eq. apply H.
-  eapply eval_value; eauto.
-  replace q1 with n₂; auto.
-  symmetry.
-  eapply eval_eq. apply H.
-  eapply eval_value; eauto.
-  inv H4. inv H7.
-  inv H12.
-  inv H14.
-  inv H12.
-  inv H10.
-  inv H7.
-  inv H11.
-  inv H13.
-  inv H11.
-  clear H11.
-  elim H6.
-  econstructor. eapply redex_S.
-
-  cut (eval _ (tapp (tapp (tapp x1 x3) (tapp x2 x3)) x4) q).
-  apply eval_app_congruence; auto. intros.
-  eapply eapp1.
-  apply eapp2.
-  apply eapp2.
-  apply eS.
-  eauto.
+Lemma LR_S σ₁ σ₂ σ₃ : LR _ (tS σ₁ σ₂ σ₃) (denote _ (tS σ₁ σ₂ σ₃)).
+Proof.
+  simpl; intros.
+  exists (tapp (tS _ _ _) n). split.
+  apply eapp2. apply eS. auto.
   intros [? Hr]; inversion Hr.
-  eauto.
-  intros [? Hr]; inversion Hr.
-  eauto.
-  apply redex_S.
-  auto.
-  clear H9.
-
-  apply eval_app_inv in H10.
-  destruct H10 as [v1 [v2 [?[??]]]].
-  destruct (H0 x3 y3) as [z1 [??]]; auto; clear H0.
-  generalize (push_under2_plus1 _ _ _ _ x1 x4 x3 z1 H H5 H3 H12).
   intros.
-  assert (v1 = push_under1 x4 z1).
-  eapply eval_eq; eauto. subst v1.
-  clear H0 H9.
+  exists (tapp (tapp (tS _ _ _) n) n0). split.
+  apply eapp2. apply eapp2. apply eS. auto.
+  intros [? Hr]; inversion Hr. auto.
+  intros [? Hr]; inversion Hr. intros.
 
-  unfold push_under1 in H11.
-  eapply eval_redex_walk in H11.
-  2: apply redex_S.
-  eapply eval_app_congruence in H11.
-  apply H11.
-  intros. eapply eval_redex_walk in H0.
-  2: apply redex_S.
-  eapply eval_app_congruence in H0. apply H0.
-  intros. eapply eval_redex_walk in H9.
-  2: apply redex_K.
-  apply eval_trans with z1; auto.
-  apply eapp2. apply eK.
-  eapply eval_value; eauto.
-  intros [r Hr]; inversion Hr.
-  eapply eval_value; eauto.
-  intros. eapply eval_redex_walk in H9.
-  2: apply redex_I.
-  apply eval_trans with v2; auto.
-  apply eI.
-  eapply eval_value; eauto.
-  apply eapp2. apply eapp2.
-  apply eS. apply eapp2. apply eK.
-  eapply eval_value; eauto.
-  intros [r Hr]; inversion Hr.
-  intros [r Hr]; inversion Hr.
-  apply eI.
-  intros [r Hr]; inversion Hr.
-  eapply eval_value; eauto.
-  intros. eapply eval_redex_walk in H0.
-  2: apply redex_K. auto.
-  apply eapp2. apply eK.
-  eapply eval_value; eauto.
-  intros [r Hr]; inversion Hr.
-  eapply eval_value; eauto.
-  apply eapp2. apply eapp2.
-  apply eS.
-  apply eapp2. apply eapp2.
-  apply eS. apply eapp2. apply eK.
-  eapply eval_value; eauto.
-  intros [r Hr]; inversion Hr.
-  intros [r Hr]; inversion Hr.
-  apply eI.
-  intros [r Hr]; inversion Hr.
-  intros [r Hr]; inversion Hr.
-  apply eapp2.
-  apply eK.
-  eapply eval_value; eauto.
-  intros [r Hr]; inversion Hr.
-  intros [r Hr]; inversion Hr.
-  eapply eval_value; eauto.
+  assert ( (strict_app'
+           ∘ PLT.pair
+               (strict_app'
+                ∘ PLT.pair
+                    (strict_app'
+                     ∘ PLT.pair
+                         (strict_curry'
+                            (strict_curry'
+                               (strict_curry'
+                                  (strict_app'
+                                   ∘ PLT.pair
+                                       (strict_app'
+                                        ∘ PLT.pair (pi2 ∘ pi1 ∘ pi1) pi2)
+                                       (strict_app'
+                                        ∘ PLT.pair (pi2 ∘ pi1) pi2))))) h')
+                    h'0) h'1)
+     ≈
+     strict_app' ∘ PLT.pair
+       (strict_app' ∘ PLT.pair h' h'1)
+       (strict_app' ∘ PLT.pair h'0 h'1)).
+  clear -H9 H5 H1.
 
-  revert H9.
-  apply LR_equiv.
-  apply lrsemapp_equiv.
-  unfold push_under2_denote.
-
-  clear.
-  repeat rewrite PLT.curry_apply2.
-  repeat rewrite PLT.curry_apply3.
-  rewrite <- (cat_assoc (PLT.PLT false)).
+  rewrite strict_curry_app'; auto.
+  rewrite strict_curry_app2'; auto.
+  rewrite strict_curry_app2'; auto.
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects. auto.
+  rewrite <- (cat_assoc PLT).
   rewrite (PLT.pair_compose_commute false).
-  repeat rewrite PLT.curry_apply2.
-  repeat rewrite PLT.curry_apply3.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite (PLT.pair_compose_commute false).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  rewrite (PLT.curry_apply2 false).
-  rewrite (PLT.curry_apply3 false).
-  rewrite <- (cat_assoc (PLT.PLT false)).
+  apply PLT.pair_eq.
+  rewrite <- (cat_assoc PLT).
   rewrite (PLT.pair_compose_commute false).
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
   apply cat_respects. auto.
   apply PLT.pair_eq.
-  rewrite (PLT.pair_compose_commute false).
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  apply cat_respects. auto.
-  apply PLT.pair_eq.
-  apply cat_respects; auto.
-  do 2 rewrite (PLT.pair_compose_commute false).
-  apply (PLT.pair_eq false).
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  apply cat_ident1.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_eq.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.
-  rewrite pair_commute2.
-  auto.
-  apply cat_ident1.
-Qed.
-*)
-
-(*
-Lemma LR_I ls τ : forall
-  (xs : lrsyn (lrtys ls τ :: ls))
-  (ys : lrsem (lrtys ls τ :: ls))
-  (H : lrhyps (lrtys ls τ :: ls) xs ys),
-   exists z : term τ,
-     eval τ (lrapp (lrtys ls τ :: ls) τ xs (tI (lrtys ls τ))) z /\
-     semvalue
-       (lrsemapp (lrtys ls τ :: ls) τ ys
-          (denote (lrtys (lrtys ls τ :: ls) τ) (tI (lrtys ls τ)))) /\
-     LR τ z
-       (lrsemapp (lrtys ls τ :: ls) τ ys
-          (denote (lrtys (lrtys ls τ :: ls) τ) (tI (lrtys ls τ)))).
-Proof.
-  induction ls; simpl in *; intuition; fold lrtys in *; simpl in *.
-  exists b. split.
-  eapply eapp1. apply eI.
-  eauto. apply redex_I. auto.
-  split.
-  rewrite strict_curry_app'; auto.
-  rewrite pair_commute2. auto.
-  revert H0. apply LR_equiv.
-  rewrite strict_curry_app'; auto.
-  rewrite pair_commute2. auto.
-
-  destruct ys as [[ys y1] y2]; simpl in *.
-  destruct (H0 b0 y1) as [z1 [?[??]]]; auto; clear H0.
-  destruct (IHls (a1, z1) (ys, strict_app' ∘ PLT.pair y2 y1))
-    as [z2 [?[??]]]; intuition; clear IHls.
-  simpl.
-  eapply eval_value; eauto.
-
-  exists z2. split.
-  revert H0. simpl.
-  eapply eval_lrapp_congruence; eauto.
-  intros.
-  inv H0. inv H16. inv H18.
-  clear H16 H18.
-  eapply eval_trans with r; auto.
-  eapply eval_trans with z1; auto.
-  revert H4.
-  apply eval_app_congruence; auto.
-  intros.
-  eapply eapp1. apply eI.
-  eauto.
-  apply redex_I.
-  apply eval_value with b; auto.
-  inv H16. elim H18.
-  exists n₂. apply redex_I.
-
-  split. simpl in H9.
-  revert H9.
-  apply semvalue_equiv.
-  apply lrsemapp_equiv.
-  rewrite strict_curry_app'; auto.
-  rewrite pair_commute2.
-  rewrite strict_curry_app'; auto.
-  rewrite pair_commute2. auto.
-
-  revert H10. apply LR_equiv.
-  simpl. apply lrsemapp_equiv.
-  rewrite strict_curry_app'; auto.
-  rewrite pair_commute2.
-  rewrite strict_curry_app'; auto.
-  rewrite pair_commute2. auto.
-Qed.
-*)
-
-(*
-Lemma LR_K ls τ σ : forall
-  (xs : lrsyn (lrtys ls τ :: σ :: ls))
-  (ys : lrsem (lrtys ls τ :: σ :: ls))
-  (H : lrhyps (lrtys ls τ :: σ :: ls) xs ys),
-
-   exists z : term τ,
-     eval τ (lrapp (lrtys ls τ :: σ :: ls) τ xs (tK (lrtys ls τ) σ)) z /\
-     semvalue 
-       (lrsemapp (lrtys ls τ :: σ :: ls) τ ys
-          (denote (lrtys (lrtys ls τ :: σ :: ls) τ) (tK (lrtys ls τ) σ))) /\
-     LR τ z
-       (lrsemapp (lrtys ls τ :: σ :: ls) τ ys
-          (denote (lrtys (lrtys ls τ :: σ :: ls) τ) (tK (lrtys ls τ) σ))).
-Admitted.
-*)
-(*
-Proof.
-  induction ls; simpl; intuition trivial; simpl in *.
-  destruct ys as [[ys y1] y2]. simpl in *.
-  exists b. split.
-  eapply eapp1.
-  apply eapp2. apply eK. eauto.
-  intros [r Hr]; inversion Hr.
-  eauto.
-  apply redex_K. eauto.
-  revert H. apply LR_equiv.
-  rewrite PLT.curry_apply2.
-  rewrite PLT.curry_apply3.
-  rewrite <- (cat_assoc (PLT.PLT false)).
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute1.
   rewrite pair_commute1.
   rewrite pair_commute2.
   auto.
-
-  fold lrtys in *.
-  destruct ys as [[ys y1] y2]. simpl in *.
-  destruct ys as [ys y']. simpl in *.
-  destruct (H b1 y') as [z [??]]; auto.
-  destruct (IHls (a0,b0,z) (ys,y1,PLT.app ∘ PLT.pair y2 y'));
-    intuition.
-  simpl.
-  eapply eval_value; eauto.
-  exists x. simpl; split.
-  revert H9. simpl.
-  apply eval_lrapp_congruence. intros.
-  inv H8.
-  inv H15. inv H19. inv H21.
-  inv H19. clear H19. inv H17. clear H17.
-  apply eval_trans with r; auto.
-  apply eval_trans with z; auto.
-  revert H5.
-  apply eval_app_congruence; auto.
-  intros.
-  eapply eapp1.
-  apply eapp2. apply eK. eauto.
-  intros [? Hr]; inversion Hr.
-  eauto.
-  apply redex_K.
-  eapply eval_value; eauto.
-  inv H15. inv H18. inv H20.
-  inv H15. inv H21. inv H23.
-  inv H21. elim H17.
-  econstructor. apply redex_K.
-  revert H10. apply LR_equiv.
-  apply lrsemapp_equiv. simpl.
-  repeat rewrite PLT.curry_apply2.
-  repeat rewrite PLT.curry_apply3.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
+  rewrite pair_commute2.
   auto.
-Qed.
-*)
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  rewrite (PLT.pair_compose_commute false).
+  apply PLT.pair_eq; auto.
+  rewrite <- (cat_assoc PLT).
+  rewrite pair_commute1.
+  rewrite pair_commute2.
+  auto.
+  rewrite pair_commute2.
+  auto.
 
-(*
-Lemma LR_IF ls : forall τ
-  (xs : lrsyn (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls))
-  (ys : lrsem (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls))
-  (H : lrhyps (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) xs ys),
-   exists z : term τ,
-     eval τ
-       (lrapp (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) τ xs
-          (tIF (lrtys ls τ))) z /\
-     semvalue
-       (lrsemapp (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) τ ys
-          (denote (lrtys (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) τ)
-             (tIF (lrtys ls τ)))) /\
-     LR τ z
-       (lrsemapp (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) τ ys
-          (denote (lrtys (ty_bool :: lrtys ls τ :: lrtys ls τ :: ls) τ)
-             (tIF (lrtys ls τ)))).
-Admitted.
-*)
-(*
-Proof.
-  induction ls; simpl; intros.
-  destruct xs as [[[xs x1] x2] x3]. simpl in *.
-  destruct ys as [[[ys y1] y2] y3]. simpl in *. intuition. clear H6.
-  destruct H as [b [??]]. subst x3. destruct b; simpl.
-  exists x2. split.
+  rewrite H11 in H10.
+
+  destruct (H3 n1 h'1) as [z0 [??]]; auto; clear H3.
+  apply semvalue_app_out2' in H10. auto.
+  
+  destruct (H n1 h'1) as [z1 [??]]; auto; clear H.
+  apply semvalue_app_out1' in H10. auto.
+  
+  destruct (H14 z0 (strict_app' ∘ PLT.pair h'0 h'1)) as [z2 [??]]; auto; clear H14.
+  eapply eval_value; eauto.
+  apply semvalue_app_out2' in H10. auto.
+  exists z2. split.
   eapply eapp1. 
-  apply eapp2. apply eapp2. apply eIF. apply ebool.
-  intros [r Hr]; inversion Hr. eauto.
-  intros [r Hr]; inversion Hr. eauto.
-  econstructor. auto.
-  revert H2. apply LR_equiv.
-  rewrite PLT.curry_apply2. rewrite H5.
-  rewrite disc_cases_elem.
-  rewrite PLT.curry_apply3.
-  rewrite PLT.curry_apply3.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.    
-
-  exists x1. split.
-  eapply eapp1.
-  apply eapp2. apply eapp2. apply eIF. apply ebool.
-  intros [r Hr]; inversion Hr. eauto.
-  intros [r Hr]; inversion Hr. eauto.
-  econstructor. auto.
-  revert H4. apply LR_equiv.
-  rewrite PLT.curry_apply2. rewrite H5.
-  rewrite disc_cases_elem.
-  rewrite PLT.curry_apply3.
-  rewrite PLT.curry_apply3.
-  repeat rewrite pair_commute2.
-  auto.    
-  
-  destruct xs as [[[[xs x0] x1] x2] x3]. simpl in *.
-  destruct ys as [[[[ys y0] y1] y2] y3]. simpl in *. intuition.
-  destruct (H4 x0 y0) as [z1 [??]]; auto; clear H4.
-  destruct (H2 x0 y0) as [z2 [??]]; auto; clear H2.
-
-  destruct (IHls τ 
-    (xs,z1,z2,x3)
-    (ys,PLT.app ∘ PLT.pair y1 y0, PLT.app ∘ PLT.pair y2 y0, y3))
-    as [z [??]]; clear IHls; simpl; intuition.
-  eapply eval_value; eauto.    
-  eapply eval_value; eauto.    
-  simpl in *.
-  exists z. split.
-  clear H11.
-  destruct H as [b [??]]. subst x3.
-  revert H2. apply eval_lrapp_congruence.
-  intro q. intro.
-  destruct b.
-
-  eapply eval_redex_walk in H. 
-  2: econstructor. fold lrtys in *.
-  apply eval_trans with z2; auto.
-  revert H4. apply eval_app_congruence; auto. intros.
-  eapply eapp1. apply eapp2. apply eapp2. apply eIF. apply ebool.
+  apply eapp2. apply eapp2. apply eS. eauto.
   intros [? Hr]; inv Hr. eauto.
   intros [? Hr]; inv Hr. eauto.
-  econstructor.
-  eapply eval_value; eauto.
-  fold lrtys.
-  apply eapp2. apply eapp2. apply eIF. apply ebool.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-  
-  eapply eval_redex_walk in H. 
-  2: econstructor. fold lrtys in *.
-  apply eval_trans with z1; auto.
-  revert H7. apply eval_app_congruence; auto. intros.
-  eapply eapp1. apply eapp2. apply eapp2. apply eIF. apply ebool.
-  intros [? Hr]; inv Hr. eauto.
-  intros [? Hr]; inv Hr. eauto.
-  econstructor.
-  eapply eval_value; eauto.
-  fold lrtys.
-  apply eapp2. apply eapp2. apply eIF. apply ebool.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-  intros [? Hr]; inv Hr.
-  eapply eval_value; eauto.
-
-  revert H11.  
-  apply LR_equiv. apply lrsemapp_equiv.
-  destruct H as [b [??]]. rewrite H11.
-  rewrite PLT.curry_apply2.
-  rewrite PLT.curry_apply2.
-  rewrite disc_cases_elem.
-  rewrite disc_cases_elem.
-  destruct b.
-  repeat rewrite PLT.curry_apply3.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.
-
-  repeat rewrite PLT.curry_apply3.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
-  auto.
+  apply redex_S.
+  revert H.
+  apply eval_app_congruence.
+  intros. apply eval_trans with z1; auto.
+  intros. apply eval_trans with z0; auto.
+  revert H15. apply LR_equiv. auto.
 Qed.
-*)
 
-Lemma eval_lrapp_inv τ ls xs m z :
-  eval τ (lrapp ls τ xs m) z ->
-  exists m', eval _ m m' /\ eval τ (lrapp ls τ xs m') z.
+Lemma LR_IF σ : LR _ (tIF σ) (denote _ (tIF σ)).
 Admitted.
 
-Lemma inert_semvalue σ₁ σ₂ x y :    
-    value x -> inert σ₁ σ₂ x -> semvalue y ->
-    semvalue (strict_app' ∘ PLT.pair (denote _ x) y).
-Proof.
-  intros.
-  destruct (value_inert_semvalue (tmsize _ x)).
-  apply H3; auto.
-Qed.
-
-(*
-Lemma LR_Y ls : forall t τ
-  (xs : lrsyn ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls))
-  (ys : lrsem ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls))
-  (H  : lrhyps ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) xs ys)
-  (z  : term τ)
-  (Hz : eval τ
-         (lrapp ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ xs
-            (tY t (lrtys ls τ))) z),
-
-   semvalue
-     (lrsemapp ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ ys
-        (denote (lrtys ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ)
-           (tY t (lrtys ls τ)))) /\
-   LR τ z
-     (lrsemapp ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ ys
-        (denote (lrtys ((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ :: t :: ls) τ)
-           (tY t (lrtys ls τ)))).
+Lemma LR_Y σ₁ σ₂ : LR _ (tY σ₁ σ₂) (denote _ (tY σ₁ σ₂)).
 Admitted.
-*)
-(*
-Proof.
-  induction ls; intros.
-  simpl lrtys. simpl in Hz.
-  simpl lrsemapp. 
-
-  destruct xs as [[xs x1] x2].
-  destruct ys as [[ys y1] y2].
-  
-  simpl. simpl in Hz.
-  unfold Ysem.
-
-  
-
-Qed.
-*)
 
 Lemma LRok : forall σ (n:term σ) ls τ m xs ys
   (Hσ : σ = lrtys ls τ),
@@ -2144,7 +1056,9 @@ Proof.
   destruct (IHn2 nil σ₁ n2 tt tt (Logic.refl_equal _) (Logic.refl_equal _) I)
     as [q2[??]]; auto.
   simpl.
-admit.
+  apply semvalue_lrsemapp_out in H1. simpl in H1.
+  apply semvalue_app_out2' in H1. auto.
+
   destruct (IHn1 (σ₁::ls) _ n1 (xs, q2) (ys, denote σ₁ q2)
     (Logic.refl_equal _) (Logic.refl_equal _)) as [q1 [??]].
   simpl; intuition. eapply eval_value; eauto.
@@ -2171,215 +1085,86 @@ admit.
   apply soundness; auto.
   
   (* I case *)
-admit.
-(*
-  destruct ls.
-  simpl in Hσ. subst τ.
-  simpl in H. subst m.
-  exists (tI σ).
-  split. simpl. apply eI.
-  split. simpl.
-  apply strict_curry'_semvalue.
-  simpl. intros.
-  apply (LR_I nil σ (tt,n) (tt,h')). simpl.
-  intuition.
-  simpl in Hσ.
-  inversion Hσ. subst σ. subst t.
-  replace Hσ with (Logic.eq_refl (lrtys ls τ ⇒ lrtys ls τ)) in H.
-  simpl in m.
-  simpl in H. subst m.
-  apply (LR_I ls τ xs ys). auto.
+  
+  cut (exists z : term (σ ⇒ σ),
+     eval (σ ⇒ σ) (tI σ) z /\ LR (σ ⇒ σ) z (denote _ (tI _))).
+  revert H.
+  generalize (tI σ).
+  generalize Hσ.
+  rewrite Hσ. intro H.
+  replace H with (refl_equal (lrtys ls τ)). simpl. intros.
+  subst t. clear H Hσ. 
+  destruct H3 as [z0 [??]].
+  eapply LR_under_apply; eauto.
   apply Eqdep_dec.UIP_dec. decide equality.
-*)
 
+  exists (tI σ). split. apply eI.
+  apply LR_I.
 
   (* K case *)
-admit.
-
-(*
-  destruct ls; inversion Hσ.
-  simpl in Hσ. subst τ.
-  simpl in H. subst m.
-  exists (tK _ _) .
-  split. apply eK.
-  simpl. intros.
-  exists (tapp (tK _ _) n).
-  split.
-  apply eapp2. apply eK. auto.
-  intros [r Hr]; inversion Hr.
-  intros.
-  apply (LR_K nil σ₁ σ₂ (tt,n0,n) (tt,h'0,h')).
-  simpl; intuition.
-  simpl in Hσ.
-  destruct ls.
-  simpl in Hσ.
-  inversion Hσ. subst t τ. clear H3.
-  replace Hσ with
-    (Logic.refl_equal (σ₁ ⇒ σ₂ ⇒ σ₁)) in H. simpl in H.
-  subst m.
-  destruct xs. destruct ys.
-  simpl in H0. intuition.
-  simpl lrapp.
-  exists (tapp (tK _ _) t).
-  split. apply eapp2. apply eK. auto.
-  intros [r Hr]; inversion Hr.
-  simpl. intros.
-  apply (LR_K nil σ₁ σ₂ (tt,n,t) (tt,h',h)).
-  simpl; intuition.
+  cut (exists z,
+     eval _ (tK σ₁ σ₂) z /\ LR _ z (denote _ (tK _ _))).
+  revert H.
+  generalize (tK σ₁ σ₂).
+  generalize Hσ.
+  rewrite Hσ. intro H.
+  replace H with (refl_equal (lrtys ls τ)). simpl. intros.
+  subst t. clear H Hσ. 
+  destruct H3 as [z0 [??]].
+  eapply LR_under_apply; eauto.
   apply Eqdep_dec.UIP_dec. decide equality.
 
-  simpl in Hσ. subst t.
-  simpl in H3. inversion H3. subst t0 σ₁.
-  replace Hσ with
-    (Logic.refl_equal (lrtys ls τ ⇒ σ₂ ⇒ lrtys ls τ)) in H.
-  simpl in H. subst m.
-  apply LR_K; auto.
-  apply Eqdep_dec.UIP_dec. decide equality.
-*)
+  exists (tK _ _). split. apply eK.
+  apply LR_K.
+
   (* S case *)
-admit.
-(*
-  destruct ls; simpl in Hσ; inversion Hσ; subst.
+  cut (exists z,
+     eval _ (tS σ₁ σ₂ σ₃) z /\ LR _ z (denote _ (tS _ _ _))).
+  revert H.
+  generalize (tS σ₁ σ₂ σ₃).
+  generalize Hσ.
+  rewrite Hσ. intro H.
+  replace H with (refl_equal (lrtys ls τ)). simpl. intros.
+  subst t. clear H Hσ. 
+  destruct H3 as [z0 [??]].
+  eapply LR_under_apply; eauto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+
   exists (tS _ _ _).
   split. simpl. apply eS.
-  simpl; intros.
-  exists (tapp (tS _ _ _) n). split.
-  apply eapp2. apply eS. auto.
-  intros [? Hr]; inversion Hr.
-  intros.
-  exists (tapp (tapp (tS _ _ _) n) n0). split.
-  apply eapp2. apply eapp2. apply eS. auto.
-  intros [? Hr]; inversion Hr. auto.
-  intros [? Hr]; inversion Hr. intros.
-  apply (LR_S nil _ _ _ (tt,n1,n0,n) (tt,h'1,h'0,h')).
-  simpl; intuition.
-
-  destruct ls; simpl in Hσ; inversion Hσ; subst.
-  replace Hσ with
-    (Logic.refl_equal ((σ₁ ⇒ σ₂ ⇒ σ₃) ⇒ (σ₁ ⇒ σ₂) ⇒ σ₁ ⇒ σ₃)).
-  simpl in *.
-  destruct xs as [xs x1].
-  destruct ys as [ys y1].
-  intuition.
-  exists (tapp (tS _ _ _) x1). split.
-  apply eapp2. apply eS. simpl. auto.
-  intros [? Hr]; inversion Hr.
-  intros.
-  exists (tapp (tapp (tS _ _ _) x1) n). split.
-  apply eapp2. apply eapp2. apply eS. auto.
-  intros [? Hr]; inversion Hr. auto.
-  intros [? Hr]; inversion Hr. intros.
-  apply (LR_S nil _ _ _ (tt,n0,n,x1) (tt,h'0,h',y1)).
-  simpl; intuition.
-  apply Eqdep_dec.UIP_dec. decide equality.
-
-  destruct ls; simpl in Hσ; inversion Hσ; subst.
-  replace Hσ with
-    (Logic.refl_equal ((σ₁ ⇒ σ₂ ⇒ σ₃) ⇒ (σ₁ ⇒ σ₂) ⇒ σ₁ ⇒ σ₃)).
-  destruct xs as [[xs x2] x1].
-  destruct ys as [[ys y2] y1].
-  simpl in *. intuition.
-  exists (tapp (tapp (tS _ _ _) x1) x2). split.
-  apply eapp2. apply eapp2. apply eS. auto.
-  intros [? Hr]; inversion Hr. auto.
-  intros [? Hr]; inversion Hr. intros.
-  apply (LR_S nil _ _ _ (tt,n,x2,x1) (tt,h',y2,y1)).
-  simpl; intuition.
-  apply Eqdep_dec.UIP_dec. decide equality.
-
-  replace Hσ with
-    (Logic.refl_equal ((t ⇒ σ₂ ⇒ lrtys ls τ) ⇒ (t ⇒ σ₂) ⇒ t ⇒ lrtys ls τ)).
-  simpl.
-  apply LR_S; auto.
-  apply Eqdep_dec.UIP_dec. decide equality.
-*)
+  apply LR_S.
 
   (* IF case *)
-admit.
-(*
-  destruct ls. simpl in Hσ.
-  subst τ. simpl in H. subst m.
+  cut (exists z,
+     eval _ (tIF σ) z /\ LR _ z (denote _ (tIF _))).
+  revert H.
+  generalize (tIF σ).
+  generalize Hσ.
+  rewrite Hσ. intro H.
+  replace H with (refl_equal (lrtys ls τ)). simpl. intros.
+  subst t. clear H Hσ. 
+  destruct H3 as [z0 [??]].
+  eapply LR_under_apply; eauto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+
   exists (tIF σ). split. apply eIF.
-  simpl; intros.
-  exists (tapp (tIF σ) n). split.
-  apply eapp2. apply eIF. inv H1. apply ebool.
-  destruct H as [b [??]]. discriminate.
-  destruct H as [b [??]]. discriminate.
-  intros [? Hr]; inv Hr.
-  simpl; intros.
-  exists (tapp (tapp (tIF σ) n) n0). split.
-  apply eapp2. apply eapp2. apply eIF. auto.
-  intros [? Hr]; inv Hr. auto.
-  intros [? Hr]; inv Hr. intros.
-  apply (LR_IF nil σ (tt,n1,n0,n) (tt,h'1,h'0,h')).
-  simpl; intuition.
-
-  destruct ls. simpl in Hσ.
-  inversion Hσ. subst t τ.
-  replace Hσ with
-    (Logic.eq_refl (ty_bool ⇒ σ ⇒ σ ⇒ σ)) in H.
-  simpl in H. subst m.
-  destruct xs as [xs x1].
-  destruct ys as [ys y1]. simpl in *. intuition.
-  exists (tapp (tIF σ) x1). split.
-  apply eapp2. apply eIF. auto.
-  intros [? Hr]; inv Hr.
-  intros.
-  exists (tapp (tapp (tIF σ) x1) n). split.
-  apply eapp2. apply eapp2. apply eIF. auto.
-  intros [? Hr]; inv Hr. auto.
-  intros [? Hr]; inv Hr.
-  intros.
-  apply (LR_IF nil σ (tt,n0,n,x1) (tt,h'0,h',y1)).
-  simpl; intuition.
-  apply Eqdep_dec.UIP_dec. decide equality.
-
-  destruct ls. simpl in Hσ.
-  inversion Hσ. subst t t0 τ.
-  replace Hσ with
-    (Logic.eq_refl (ty_bool ⇒ σ ⇒ σ ⇒ σ)) in H.
-  simpl in H. subst m.
-  destruct xs as [[xs x1] x2].
-  destruct ys as [[ys y1] y2]. simpl in *. intuition.
-  exists (tapp (tapp (tIF σ) x2) x1). split.
-  apply eapp2. apply eapp2. apply eIF. auto.
-  intros [? Hr]; inv Hr. auto.
-  intros [? Hr]; inv Hr.
-  intros.
-  apply (LR_IF nil σ (tt,n,x1,x2) (tt,h',y1,y2)).
-  simpl; intuition.
-  apply Eqdep_dec.UIP_dec. decide equality.
-
-  simpl in Hσ. inversion Hσ. subst t1 t0 t σ.
-  replace Hσ with
-    (Logic.eq_refl (ty_bool ⇒ lrtys ls τ ⇒ lrtys ls τ ⇒ lrtys ls τ)) in H.
-  simpl in H. subst m.
-  apply LR_IF. auto.
-  apply Eqdep_dec.UIP_dec. decide equality.
-*)
+  apply LR_IF.
 
   (* Y case *)
-admit.
-(*
-  destruct ls. inv Hσ.
-  simpl in Hσ. subst τ. simpl eq_rect.
-  split.
-  apply value_semvalue. apply eY.
-  simpl LR. intros.
-  split.
-  apply (inert_semvalue _ _ (tY _ _) h'). apply eY. constructor. auto.
-  intros.
-admit.
-  simpl in Hσ. inv Hσ.
-  destruct ls.
-admit.
-  simpl in Hσ. inv Hσ.
-  replace Hσ with
-    (refl_equal (((t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ) ⇒ t ⇒ lrtys ls τ)) in *.
-  simpl eq_rect in *. clear Hσ.
-  eapply LR_Y; eauto.
+  cut (exists z,
+     eval _ (tY σ₁ σ₂) z /\ LR _ z (denote _ (tY σ₁ σ₂))).
+  revert H.
+  generalize (tY σ₁ σ₂).
+  generalize Hσ.
+  rewrite Hσ. intro H.
+  replace H with (refl_equal (lrtys ls τ)). simpl. intros.
+  subst t. clear H Hσ. 
+  destruct H3 as [z0 [??]].
+  eapply LR_under_apply; eauto.
   apply Eqdep_dec.UIP_dec. decide equality.
-*)
+
+  exists (tY σ₁ σ₂). split. apply eY.
+  apply LR_Y.
 Qed.
 
 Inductive context τ : ty -> Type :=
@@ -2515,6 +1300,8 @@ Transparent liftPPLT. simpl.
   apply image_axiom2 in H5. destruct H5 as [? [??]].
   apply empty_elem in H5. elim H5.
 Qed.   
+
+
 
 Print Assumptions adequacy.
 Print Assumptions denote_bottom_nonvalue.

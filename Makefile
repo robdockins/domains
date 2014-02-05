@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=powerdom.v\
+VFILES:=strict_utils.v\
+  powerdom.v\
   ski.v\
   lam_models.v\
   discrete.v\

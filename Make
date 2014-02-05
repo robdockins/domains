@@ -28,3 +28,4 @@ discrete.v
 lam_models.v
 ski.v
 powerdom.v
+strict_utils.v
