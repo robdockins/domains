@@ -82,6 +82,7 @@ endif
 
 VFILES:=strict_utils.v\
   powerdom.v\
+  skiy.v\
   ski.v\
   lam_models.v\
   flat.v\

@@ -28,5 +28,6 @@ discrete.v
 flat.v
 lam_models.v
 ski.v
+skiy.v
 powerdom.v
 strict_utils.v

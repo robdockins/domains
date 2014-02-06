@@ -266,6 +266,167 @@ Proof.
   apply strict_app_bot.
 Qed.
 
+
+Program Definition precompose hf (A B C:PLT.PLT hf) (f:A → B) :
+  (Preord.hom (PLT.hom_ord hf B C) (PLT.hom_ord hf A C)) := 
+  Preord.Hom (PLT.hom_ord hf B C) (PLT.hom_ord hf A C) (fun g => g ∘ f) _.
+Next Obligation.
+  intros. apply PLT.compose_mono; auto.
+Qed.
+Arguments precompose [hf A B] C f.
+
+Program Definition postcompose hf (A B C:PLT.PLT hf) (g:B → C) :
+  (Preord.hom (PLT.hom_ord hf A B) (PLT.hom_ord hf A C)) :=
+  Preord.Hom (PLT.hom_ord hf A B) (PLT.hom_ord hf A C) (fun f => g ∘ f) _.
+Next Obligation.
+  intros. apply PLT.compose_mono; auto.
+Qed.
+Arguments postcompose [hf] A [B C] g.
+
+Lemma precompose_continuous hf (A B C:PLT.PLT hf) (f:A → B) :
+  CPO.continuous (precompose C f).
+Proof.
+  repeat intro. destruct a as [a c].
+  unfold precompose in H.
+  apply compose_hom_rel in H.
+  destruct H as [y [??]].
+  simpl in H0.
+  apply union_axiom in H0. destruct H0 as [q [??]].
+  apply image_axiom2 in H0. destruct H0 as [q' [??]].
+  simpl in H2.
+  apply union_axiom.
+  exists (PLT.hom_rel (precompose C f q')).
+  split. apply image_axiom1'.
+  exists (precompose C f q').
+  split; auto.
+  apply image_axiom1'.
+  exists q'. split; auto.
+  unfold precompose.
+  apply compose_hom_rel.
+  exists y. split; auto.
+  rewrite <- H2; auto.
+Qed.
+
+Lemma postcompose_continuous hf (A B C:PLT.PLT hf) (g:B → C) :
+  CPO.continuous (postcompose A g).
+Proof.
+  repeat intro. destruct a as [a c].
+  unfold postcompose in H.
+  apply compose_hom_rel in H.
+  destruct H as [y [??]].
+  simpl in H.
+  apply union_axiom in H. destruct H as [q [??]].
+  apply image_axiom2 in H. destruct H as [q' [??]].
+  simpl in H2.
+  apply union_axiom.
+  exists (PLT.hom_rel (postcompose A g q')).
+  split. apply image_axiom1'.
+  exists (postcompose A g q').
+  split; auto.
+  apply image_axiom1'.
+  exists q'. split; auto.
+  unfold postcompose.
+  apply compose_hom_rel.
+  exists y. split; auto.
+  rewrite <- H2; auto.
+Qed.
+
+Program Definition pair_right hf (A B C:PLT.PLT hf) (f:C → A) :
+  (Preord.hom (PLT.hom_ord hf C B) (PLT.hom_ord hf C (PLT.prod A B))) := 
+  Preord.Hom (PLT.hom_ord hf C B) (PLT.hom_ord hf C (PLT.prod A B)) 
+  (fun g => PLT.pair f g) _.
+Next Obligation.
+  intros. apply PLT.pair_monotone; auto.
+Qed.
+Arguments pair_right [hf A] B [C] f.
+
+Program Definition pair_left hf (A B C:PLT.PLT hf) (g:C → B) :
+  (Preord.hom (PLT.hom_ord hf C A) (PLT.hom_ord hf C (PLT.prod A B))) := 
+  Preord.Hom (PLT.hom_ord hf C A) (PLT.hom_ord hf C (PLT.prod A B)) 
+  (fun f => PLT.pair f g) _.
+Next Obligation.
+  intros. apply PLT.pair_monotone; auto.
+Qed.
+Arguments pair_left [hf] A [B C] g.
+
+Lemma pair_right_continuous hf (A B C:PLT.PLT hf) (f:C → A) :
+  CPO.continuous (pair_right B f).
+Proof.
+  repeat intro. destruct a as [c [a b]].
+  unfold pair_right in H.  
+  simpl in H.
+  rewrite (pair_rel_elem _ _ _ _ _ _ c a b) in H.
+  destruct H.
+  apply union_axiom in H0. destruct H0 as [q [??]].
+  apply image_axiom2 in H0. destruct H0 as [q' [??]].
+  simpl in H2.
+  apply union_axiom.
+  exists (PLT.hom_rel (pair_right B f q')).
+  split.
+  apply image_axiom1'. 
+  exists (pair_right B f q'). split; auto.
+  apply image_axiom1'.  exists q'. split; auto.
+  simpl.
+  apply pair_rel_elem. split; auto.
+  rewrite <- H2; auto.
+Qed.
+
+Lemma pair_left_continuous hf (A B C:PLT.PLT hf) (g:C → B) :
+  CPO.continuous (pair_left A g).
+Proof.
+  repeat intro. destruct a as [c [a b]].
+  unfold pair_right in H.  
+  simpl in H.
+  rewrite (pair_rel_elem _ _ _ _ _ _ c a b) in H.
+  destruct H.
+  apply union_axiom in H. destruct H as [q [??]].
+  apply image_axiom2 in H. destruct H as [q' [??]].
+  simpl in H2.
+  apply union_axiom.
+  exists (PLT.hom_rel (pair_left A g q')).
+  split.
+  apply image_axiom1'. 
+  exists (pair_left A g q'). split; auto.
+  apply image_axiom1'.  exists q'. split; auto.
+  simpl.
+  apply pair_rel_elem. split; auto.
+  rewrite <- H2; auto.
+Qed.
+
+Lemma continuous_sequence hf (A B C:dcpo hf)
+  (g:Preord.hom B C) (f:Preord.hom A B) :
+  CPO.continuous g -> CPO.continuous f -> CPO.continuous (g ∘ f).
+Proof.
+  repeat intro. simpl.
+  transitivity (g (∐(image f X))).
+  apply Preord.axiom. apply H0.
+  etransitivity. apply H.
+  apply sup_monotone.
+  red; intros.
+  apply image_axiom2 in H1. destruct H1 as [y [??]].
+  apply image_axiom2 in H1. destruct H1 as [y' [??]].
+  apply image_axiom1'. exists y'. split; auto.
+  simpl. rewrite H2. rewrite H3. auto.
+Qed.
+
+Lemma continuous_equiv hf (A B:dcpo hf) (f f':Preord.hom A B) :
+  f ≈ f' -> CPO.continuous f -> CPO.continuous f'.
+Proof.
+  unfold CPO.continuous. intros.
+  generalize (H0 X); intros.
+  transitivity (f (∐X)).
+  apply H.
+  etransitivity. apply H1.
+  apply sup_equiv.
+  apply image_morphism; auto.
+  split.
+  hnf; intros.
+  destruct (H x); auto.
+  hnf; intros.
+  destruct (H x); auto.
+Qed.
+
+
 Section fixes.
   Variable Γ:PLT.
   Variable A:∂PLT.
@@ -284,7 +445,13 @@ Section fixes.
     apply PLT.pair_monotone; auto.
   Qed.    
   Next Obligation.
-  Admitted.
+    apply continuous_equiv with
+      (postcompose Γ PLT.app ∘ pair_right (U A) f).
+    hnf; simpl; intros. split; auto.
+    apply continuous_sequence.
+    apply postcompose_continuous.
+    apply pair_right_continuous.
+  Qed.
 
   Definition fixes : Γ → U A := lfp fixes_step'.
 
