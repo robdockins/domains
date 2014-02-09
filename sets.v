@@ -96,29 +96,34 @@ Definition set_preord (T:set.theory) (A:preord) :=
   set.set_preord (set.set T) (@set.member T) A.
 Canonical Structure set_preord.
 
+Notation set := set_preord.
+
 (**   Here, we equip set theories with their standard notations,
       ∈ for memebership, ⊆ for subset inclusion, and ∪ for unions.
   *)
 
-Notation set := set_preord.
 Definition image (T:set.theory) (A B:preord) (f:A → B) (X:set T A) : set T B :=
   @set.image T A B f X.
 Definition single (T:set.theory) (A:preord) (a:A) : set T A :=
   @set.single T A a.
+Definition union (T:set.theory) (A:preord) (XS:set T (set T A)) : set T A :=
+  set.union T A XS.
+
 Notation "x ∈ X" := (@set.member _ _ x (X)%set) : set_scope.
 Notation "x ∉ X"  := (not (@set.member _ _ x (X)%set)) : set_scope.
-
-Arguments image [T] [A] [B] f X.
-Arguments single [T] [A] a.
-Arguments set.member [t] [A] a X : simpl never.
-
-Definition incl {A:preord} {XSL YSL:set.theory} (X:set XSL A) (Y:set YSL A) :=
-  forall a:A, a ∈ X -> a ∈ Y.
-Notation "X ⊆ Y" := (@incl _ _ _ (X)%set (Y)%set) : set_scope.
-
-Definition union {T:set.theory} {A:preord} (XS:set T (set T A)) : set T A :=
-  set.union T A XS.
 Notation "∪ XS" := (@union _ _ (XS)%set) : set_scope.
+
+Arguments set.member [t] [A] a X : simpl never.
+Arguments image [T] [A] [B] f X : simpl never.
+Arguments single [T] [A] a : simpl never.
+Arguments union [T] [A] XS : simpl never.
+
+
+Definition incl (A:preord) (XT YT:set.theory) (X:set XT A) (Y:set YT A) :=
+  forall a:A, a ∈ X -> a ∈ Y.
+
+Notation "X ⊆ Y" := (@incl _ _ _ (X)%set (Y)%set) : set_scope.
+Arguments incl [A XT YT] X Y.
 
 (**  Here we provide convenient access points to the set theory axioms.
   *)

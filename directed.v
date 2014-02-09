@@ -88,6 +88,7 @@ Proof.
   apply cons_elem. right.
   rewrite H0 in H4. auto.
   hnf. simpl; intros.
+  unfold image in H4. simpl in H4.
   apply cons_elem in H4.
   apply cons_elem.
   destruct H4.

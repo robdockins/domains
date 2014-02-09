@@ -258,6 +258,7 @@ Section exp_functor.
     case_eq G'; intros.
     exists a. split; auto.
     hnf; simpl; intros.
+    unfold image in H1. simpl in H1.
     apply cons_elem in H1.
     destruct H1; auto.
     apply nil_elem in H1. elim H1.
@@ -271,6 +272,7 @@ Section exp_functor.
     destruct (embed_directed2 f x q a) as [z [?[??]]]; auto.
     exists z. split; auto.
     hnf; simpl; intros.
+    unfold image in H8; simpl in H8.
     apply cons_elem in H8.
     destruct H8. rewrite H8; auto.
     transitivity q; auto.

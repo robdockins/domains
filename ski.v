@@ -111,9 +111,8 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
 Fixpoint tydom (τ:ty) : PLT :=
   match τ with
   | ty_bool => disc finbool
-  | (τ₁ ⇒ τ₂)%ty => PLT.exp (tydom τ₁) (tydom τ₂)
+  | (τ₁ ⇒ τ₂)%ty => tydom τ₁ ⇒ tydom τ₂
   end.
-
 
 (**  The denotation of terms is given by a simple fixpoint on term structure.
      The denotation of each combinator is a straightforward interpretation of the
@@ -334,13 +333,14 @@ Qed.
 Fixpoint LR (τ:ty) : term τ -> (1 → tydom τ) -> Prop :=
   match τ as τ' return term τ' -> (1 → tydom τ') -> Prop
   with
-  | ty_bool => fun m h => exists b:bool, m = tbool b /\ h ≈ disc_elem b
+  | ty_bool => fun m h =>
+        exists b:bool, m = tbool b /\ h ≈ disc_elem b
   | ty_arrow σ₁ σ₂ => fun m h =>
         forall n h', 
           LR σ₁ n h' -> eval σ₁ n n ->
           exists z, 
             eval _ (m•n) z /\
-            LR σ₂ z (PLT.app ∘ PLT.pair h h')
+            LR σ₂ z (apply ∘ 〈h, h'〉)
   end.
 
 Lemma LR_equiv τ : forall m h h',
@@ -377,7 +377,7 @@ Fixpoint lrsyn (ts:list ty) : Type :=
 Fixpoint lrsem (ts:list ty) : Type :=
   match ts with
   | nil => unit
-  | t::ts' => prod (lrsem ts') (PLT.unit false → tydom t)
+  | t::ts' => prod (lrsem ts') (1 → tydom t)
   end.
 
 Fixpoint lrhyps (ls:list ty) : lrsyn ls -> lrsem ls -> Prop :=
@@ -396,13 +396,12 @@ Fixpoint lrapp (ls:list ty) z : lrsyn ls -> term (lrtys ls z) -> term z :=
   end.
 
 Fixpoint lrsemapp (ls:list ty) z :
-  lrsem ls -> (PLT.unit false → tydom (lrtys ls z)) -> (1 → tydom z) :=
+  lrsem ls -> (1 → tydom (lrtys ls z)) -> (1 → tydom z) :=
   match ls as ls' return
-    lrsem ls' ->
-    (PLT.unit false → tydom (lrtys ls' z)) -> (1 → tydom z)
+    lrsem ls' -> (1 → tydom (lrtys ls' z)) -> (1 → tydom z)
   with
   | nil => fun _ h => h
-  | t::ts => fun ys h => lrsemapp ts _ (fst ys) (apply ∘ 〈h,snd ys〉)
+  | t::ts => fun ys h => lrsemapp ts _ (fst ys) (apply ∘ 〈h, snd ys〉)
   end.
 
 
@@ -438,7 +437,7 @@ Qed.
   *)
 Lemma LR_under_apply ls :
    forall (τ : ty) (m z0 : term (lrtys ls τ)) (xs : lrsyn ls) 
-     (ys : lrsem ls) (h : PLT.unit false → (tydom (lrtys ls τ))),
+     (ys : lrsem ls) (h : 1 → (tydom (lrtys ls τ))),
    eval (lrtys ls τ) m z0 ->
    lrhyps ls xs ys ->
    LR (lrtys ls τ) z0 h ->

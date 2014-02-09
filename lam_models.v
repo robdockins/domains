@@ -20,6 +20,9 @@ Require Import exp_functor.
 Require Import profinite_adj.
 Require Import cont_adj.
 
+Notation Ue := liftEMBED.
+Notation Le := forgetEMBED.
+
 (**  * Models of untyped λ-calculi
   *)
 
@@ -27,7 +30,7 @@ Definition cbvLamF : functor (EMBED true) (EMBED true)
   := expF true ∘ pairF id id.
 
 Definition cbnLamF : functor (EMBED true) (EMBED true)
-  := forgetEMBED ∘ expF false ∘ pairF id id ∘ liftEMBED.
+  := Le ∘ expF false ∘ pairF id id ∘ Ue.
 
 Lemma cbvLamF_continuous : continuous_functor cbvLamF.
 Proof.
@@ -57,15 +60,15 @@ Definition lamModelCBV : ∂PLT := fixpoint cbvLamF.
 
 Definition lamModelCBN : ∂PLT := fixpoint cbnLamF.
 
-Lemma lamModelCBV_iso : (PLT.exp lamModelCBV lamModelCBV : ob (EMBED true)) ↔ lamModelCBV.
+Lemma lamModelCBV_iso :
+  (lamModelCBV ⊸ lamModelCBV : ob (EMBED true)) ↔ lamModelCBV.
 Proof.
   apply (fixpoint_iso cbvLamF).
   apply cbvLamF_continuous.
 Qed.
 
-Lemma lamModelCBN_iso : 
-  (forgetPLT (PLT.exp (liftPPLT lamModelCBN) (liftPPLT lamModelCBN)) : ob (EMBED true)) 
-  ↔ lamModelCBN.
+Lemma lamModelCBN_iso :
+  (L (U lamModelCBN ⇒ U lamModelCBN) : ob (EMBED true))  ↔ lamModelCBN.
 Proof.
   apply (fixpoint_iso cbnLamF).
   apply cbnLamF_continuous.

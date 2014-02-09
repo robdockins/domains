@@ -24,7 +24,6 @@ Require Import strict_utils.
 Require Import flat.
 
 
-
 Inductive ty :=
   | ty_bool
   | ty_arrow : ty -> ty -> ty.
@@ -59,7 +58,7 @@ Inductive term : ty -> Type :=
                 term (ty_bool ⇒ σ ⇒ σ ⇒ σ)
 
   | tY : forall σ₁ σ₂,
-                term ( ((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂)) ⇒ (σ₁ ⇒ σ₂)).
+                term ( ((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂)) ⇒ (σ₁ ⇒ σ₂) ).
 
 Arguments tapp [_ _] _ _.
 Notation "x • y" := (tapp x y) 
@@ -140,7 +139,7 @@ Lemma eval_app_inv σ₁ σ₂ x y z :
   eval _ (@tapp σ₁ σ₂ x y) z ->
   exists x', exists y',
     eval _ x x' /\ eval _ y y' /\
-    eval _ (x'• y') z.
+    eval _ (x' • y') z.
 Proof.
   intros. inv H.
   exists n₁. exists n₂.
@@ -401,7 +400,7 @@ Section Ydefn.
     := PLT.curry (*x:U (tydom (σ₁ ⇒ σ₂)))*) (strict_curry' (*y:U tydom σ₁ *)
 
                                                           (* w *)    (* x *)    (*y*)
-        (strict_app' ∘ PLT.pair (strict_app' ∘ PLT.pair (π₁ ∘ π₁) (π₂ ∘ π₁)) π₂)
+        (strict_app' ∘ 〈strict_app' ∘ 〈π₁ ∘ π₁, π₂ ∘ π₁〉, π₂〉)
        ).
 
   Lemma Ybody_unroll : forall Γ 
@@ -412,15 +411,14 @@ Section Ydefn.
 
     let Yf := (fixes _ _ Ybody) ∘ f in
 
-    strict_app' ∘ PLT.pair Yf x ≈
-    strict_app' ∘ PLT.pair (strict_app' ∘ PLT.pair f Yf) x.
+    strict_app' ∘ 〈Yf, x〉 ≈
+    strict_app' ∘ 〈strict_app' ∘ 〈f,Yf〉 , x〉.
   Proof.
     intros. unfold Yf at 1.
     rewrite fixes_unroll. unfold Ybody at 1.
     rewrite PLT.curry_apply2.
     rewrite <- (cat_assoc PLT).
     rewrite strict_curry_app2'.
-unfold Cartesian.product_op. simpl.
     rewrite (PLT.pair_compose_commute false).
     rewrite <- (cat_assoc PLT).
     apply cat_respects. auto.
@@ -453,9 +451,10 @@ Fixpoint denote (τ:ty) (m:term τ) : 1 → U (tydom τ) :=
   | tI σ => Λ(π₂)
   | tK σ₁ σ₂ => Λ(Λ(π₂ ∘ π₁))
   | tS σ₁ σ₂ σ₃ => Λ(Λ(Λ(
-                     strict_app' ∘ PLT.pair
-                       (strict_app' ∘ PLT.pair (π₂ ∘ π₁ ∘ π₁) π₂)
-                       (strict_app' ∘ PLT.pair (π₂ ∘ π₁) π₂)
+                     strict_app' ∘
+                       〈 strict_app' ∘ 〈π₂ ∘ π₁ ∘ π₁, π₂〉
+                       , strict_app' ∘ 〈π₂ ∘ π₁, π₂〉
+                       〉
                       )))
   | tIF σ => Λ(flat_cases' (fun b:bool =>
                 if b then Λ(Λ(π₂ ∘ π₁))
@@ -466,17 +465,16 @@ Fixpoint denote (τ:ty) (m:term τ) : 1 → U (tydom τ) :=
  where "〚 m 〛" := (denote _ m) : ski_scope.
 
 
-
 Lemma value_inert_semvalue : forall n,
   (forall σ x,
     tmsize _ x = n ->
-    eval σ x x -> semvalue (denote _ x)) /\
-  (forall σ₁ σ₂ x (y:PLT.unit _ → U (tydom σ₁)),
+    eval σ x x -> semvalue 〚x〛) /\
+  (forall σ₁ σ₂ x (y:1 → U (tydom σ₁)),
     tmsize _ x = n ->
     value x ->
     inert σ₁ σ₂ x ->
     semvalue y ->
-    semvalue (strict_app' ∘ PLT.pair (denote _ x) y)).
+    semvalue (strict_app' ∘ 〈〚x〛, y〉)).
 Proof.
   intro n. induction n using (well_founded_induction lt_wf).
 
@@ -567,7 +565,7 @@ Qed.
 
 Lemma inert_semvalue σ₁ σ₂ x y :    
   value x -> inert σ₁ σ₂ x -> semvalue y ->
-  semvalue (strict_app' ∘ PLT.pair (denote _ x) y).
+  semvalue (strict_app' ∘ 〈〚x〛, y 〉).
 Proof.
   intros.
   destruct (value_inert_semvalue (tmsize _ x)).
@@ -712,11 +710,12 @@ Fixpoint LR (τ:ty) :
   | ty_bool => fun m h => exists b:bool,
         m = tbool b /\ h ≈ flat_elem' b
   | ty_arrow σ₁ σ₂ => fun m h =>
-        forall n h', LR σ₁ n h' -> value n -> semvalue h' ->
-          semvalue (strict_app' ∘ PLT.pair h h') ->
+        forall n h',
+          LR σ₁ n h' -> value n -> semvalue h' ->
+          semvalue (strict_app' ∘ 〈h, h'〉) ->
           exists z,
-            eval _ (@tapp σ₁ σ₂ m n) z /\
-            LR σ₂ z (strict_app' ∘ PLT.pair h h')
+            eval _ (m • n) z /\
+            LR σ₂ z (strict_app' ∘ 〈h, h'〉)
   end.
 
 Lemma LR_equiv τ : forall m h h',
@@ -752,7 +751,7 @@ Fixpoint lrsyn (ts:list ty) : Type :=
 Fixpoint lrsem (ts:list ty) : Type :=
   match ts with
   | nil => unit
-  | t::ts' => prod (lrsem ts') (PLT.unit false → U (tydom t))
+  | t::ts' => prod (lrsem ts') (1 → U (tydom t))
   end.
 
 Fixpoint lrhyps (ls:list ty) : lrsyn ls -> lrsem ls -> Prop :=
@@ -766,19 +765,16 @@ Fixpoint lrhyps (ls:list ty) : lrsyn ls -> lrsem ls -> Prop :=
 Fixpoint lrapp (ls:list ty) z : lrsyn ls -> term (lrtys ls z) -> term z :=
   match ls as ls' return lrsyn ls' -> term (lrtys ls' z) -> term z with
   | nil => fun _ m => m
-  | t::ts => fun xs m => lrapp ts _ (fst xs) (tapp m (snd xs))
+  | t::ts => fun xs m => lrapp ts _ (fst xs) (m • (snd xs))
   end.
 
 Fixpoint lrsemapp (ls:list ty) z :
-  lrsem ls -> (PLT.unit false → U (tydom (lrtys ls z))) 
-  -> (PLT.unit false → U (tydom z)) :=
+  lrsem ls -> (1 → U (tydom (lrtys ls z))) -> (1 → U (tydom z)) :=
   match ls as ls' return
-    lrsem ls' ->
-    (PLT.unit false → U (tydom (lrtys ls' z))) 
-    -> (PLT.unit false → U (tydom z))
+    lrsem ls' -> (1 → U (tydom (lrtys ls' z)))  -> (1 → U (tydom z))
   with
   | nil => fun _ h => h
-  | t::ts => fun ys h => lrsemapp ts _ (fst ys) (strict_app' ∘ PLT.pair h (snd ys))
+  | t::ts => fun ys h => lrsemapp ts _ (fst ys) (strict_app' ∘ 〈h, snd ys〉)
   end.
 
 Lemma eval_lrapp_congruence ls : forall xs τ m m' z,
@@ -814,6 +810,36 @@ Proof.
   apply IHls in H.
   apply semvalue_app_out1' in H. auto.
 Qed.
+
+Lemma LR_under_apply ls :
+   forall (τ : ty) (m z0 : term (lrtys ls τ)) (xs : lrsyn ls) 
+     (ys : lrsem ls) (h : 1 → U (tydom (lrtys ls τ))),
+   eval (lrtys ls τ) m z0 ->
+   lrhyps ls xs ys ->
+   semvalue (lrsemapp ls τ ys h) ->
+   LR (lrtys ls τ) z0 h ->
+   exists z : term τ,
+     eval τ (lrapp ls τ xs m) z /\ LR τ z (lrsemapp ls τ ys h).
+Proof.
+  induction ls; simpl; intros.
+  exists z0. split; auto.
+  destruct xs as [xs x].
+  destruct ys as [ys y]. simpl in *.
+  destruct H0 as [[??][??]].
+  destruct (H2 x y) as [z1 [??]]; auto.
+  apply semvalue_lrsemapp_out in H1. auto.
+
+  generalize (IHls τ (tapp z0 x) z1 xs ys (strict_app' ∘ PLT.pair h y)
+     H6 H5 H1 H7).
+  intros [q [??]].
+  exists q; split; auto.
+  revert H8.
+  apply eval_lrapp_congruence. intro.
+  apply eval_app_congruence; auto.
+  fold lrtys. intros.
+  apply eval_trans with z0; auto.
+Qed.
+
 
 Lemma semvalue_sup (B:∂PLT) (XS:dirset (PLT.homset_cpo _ 1 (U B))) : 
   semvalue (∐XS) -> exists x, x ∈ XS /\ semvalue x.
@@ -965,11 +991,10 @@ Lemma LR_Ybody σ₁ σ₂
 
   forall (x:term σ₁) hx,
     LR σ₁ x hx -> value x -> semvalue hx ->
-
-    semvalue (strict_app' ∘ PLT.pair (fixes _ _ (Ybody σ₁ σ₂) ∘ hf) hx) ->
+    semvalue (strict_app' ∘ 〈fixes _ _ (Ybody σ₁ σ₂) ∘ hf, hx〉) ->
     exists z:term σ₂,
-      eval _ (tapp (tapp (tY σ₁ σ₂) f) x) z /\
-      LR _ z (strict_app' ∘ PLT.pair (fixes _ _ (Ybody σ₁ σ₂) ∘ hf) hx).
+      eval _ (tY σ₁ σ₂ • f • x) z /\
+      LR _ z (strict_app' ∘ 〈fixes _ _ (Ybody σ₁ σ₂) ∘ hf, hx〉).
 Proof.      
   intros Hf1 Hf2 Hf3. unfold fixes.
   apply scott_induction.
@@ -1102,7 +1127,7 @@ Proof.
   auto.
 Qed.
 
-Lemma LR_Y σ₁ σ₂ : LR _ (tY σ₁ σ₂) (denote _ (tY σ₁ σ₂)).
+Lemma LR_Y σ₁ σ₂ : LR _ (tY σ₁ σ₂) 〚tY σ₁ σ₂〛.
 Proof.
   simpl; intros.
   exists (tapp (tY _ _) n).
@@ -1125,36 +1150,8 @@ Proof.
   auto.
 Qed.
 
-Lemma LR_under_apply ls :
-   forall (τ : ty) (m z0 : term (lrtys ls τ)) (xs : lrsyn ls) 
-     (ys : lrsem ls) (h : PLT.unit false → U (tydom (lrtys ls τ))),
-   eval (lrtys ls τ) m z0 ->
-   lrhyps ls xs ys ->
-   semvalue (lrsemapp ls τ ys h) ->
-   LR (lrtys ls τ) z0 h ->
-   exists z : term τ,
-     eval τ (lrapp ls τ xs m) z /\ LR τ z (lrsemapp ls τ ys h).
-Proof.
-  induction ls; simpl; intros.
-  exists z0. split; auto.
-  destruct xs as [xs x].
-  destruct ys as [ys y]. simpl in *.
-  destruct H0 as [[??][??]].
-  destruct (H2 x y) as [z1 [??]]; auto.
-  apply semvalue_lrsemapp_out in H1. auto.
 
-  generalize (IHls τ (tapp z0 x) z1 xs ys (strict_app' ∘ PLT.pair h y)
-     H6 H5 H1 H7).
-  intros [q [??]].
-  exists q; split; auto.
-  revert H8.
-  apply eval_lrapp_congruence. intro.
-  apply eval_app_congruence; auto.
-  fold lrtys. intros.
-  apply eval_trans with z0; auto.
-Qed.
-
-Lemma LR_I σ : LR _ (tI σ) (denote _ (tI σ)).
+Lemma LR_I σ : LR _ (tI σ) 〚tI σ〛.
 Proof.
   simpl. intros.
   exists n. split.
@@ -1165,7 +1162,7 @@ Proof.
   rewrite PLT.pair_commute2; auto. auto.
 Qed.
 
-Lemma LR_K σ₁ σ₂ : LR _ (tK σ₁ σ₂) (denote _ (tK σ₁ σ₂)).
+Lemma LR_K σ₁ σ₂ : LR _ (tK σ₁ σ₂) 〚tK σ₁ σ₂〛.
 Proof.
   simpl. intros.
 
@@ -1188,7 +1185,7 @@ Proof.
   auto. auto. auto.
 Qed.
 
-Lemma LR_S σ₁ σ₂ σ₃ : LR _ (tS σ₁ σ₂ σ₃) (denote _ (tS σ₁ σ₂ σ₃)).
+Lemma LR_S σ₁ σ₂ σ₃ : LR _ (tS σ₁ σ₂ σ₃) 〚tS σ₁ σ₂ σ₃〛.
 Proof.
   simpl; intros.
   exists (tapp (tS _ _ _) n). split.
@@ -1277,7 +1274,7 @@ Proof.
   revert H15. apply LR_equiv. auto.
 Qed.
 
-Lemma LR_IF σ : LR _ (tIF σ) (denote _ (tIF σ)).
+Lemma LR_IF σ : LR _ (tIF σ) 〚tIF σ〛.
 Proof.
   simpl. intros.
   exists (tapp (tIF σ) n). split. apply eapp2.
@@ -1329,10 +1326,10 @@ Lemma fundamental_lemma : forall σ (n:term σ) ls τ m xs ys
   (Hσ : σ = lrtys ls τ),
   eq_rect σ term n (lrtys ls τ) Hσ = m ->
   lrhyps ls xs ys ->
-  semvalue (lrsemapp ls τ ys (denote _ m)) ->
+  semvalue (lrsemapp ls τ ys 〚m〛) ->
   exists z,
     eval _ (lrapp ls τ xs m) z /\
-    LR τ z (lrsemapp ls τ ys (denote _ m)).
+    LR τ z (lrsemapp ls τ ys 〚m〛).
 Proof.
   induction n; intros.
 
@@ -1457,52 +1454,14 @@ Proof.
   exists (tY σ₁ σ₂). split. apply eY. apply LR_Y.
 Qed.
 
-Lemma fundamental_lemma' : forall τ m,
-  semvalue (denote τ m) ->
-  exists z, eval τ m z /\ LR τ z (denote τ m).
+Lemma fundamental_lemma' : forall τ (m:term τ),
+  semvalue 〚m〛 ->
+  exists z, eval τ m z /\ LR τ z 〚m〛.
 Proof.
   intros.
   apply (fundamental_lemma τ m nil τ m tt tt (refl_equal _) (refl_equal _) I).
   simpl. auto.
 Qed.
-
-Lemma flat_elem'_inj (X:enumtype) (x x':X) :
-  @flat_elem' X (PLT.unit _) x ≈ flat_elem' x' -> x = x'.
-Proof.
-  intros.
-  unfold flat_elem' in H.
-  assert ((tt, Some x) ∈ PLT.hom_rel (U·(flat_elem x ∘ PLT.terminate true (L (PLT.unit false))) ∘ η)).
-  rewrite (PLT.compose_hom_rel _ _ _ _ η 
-    (U·(flat_elem x ∘ PLT.terminate true (L (PLT.unit false))))).
-  exists (Some tt). split.
-  simpl. apply adj_unit_rel_elem. auto.
-  apply U_hom_rel.
-  right. exists tt. exists x. split; auto.
-  rewrite (PLT.compose_hom_rel _ _ _ _ (PLT.terminate true (L (PLT.unit false)))
-    (flat_elem x)).
-  exists tt. split.
-  simpl. apply eprod_elem. split. apply eff_complete.
-  apply single_axiom. auto.
-  simpl. apply single_axiom. auto.
-  destruct H.
-  apply H in H0.
-  rewrite (PLT.compose_hom_rel _ _ _ _ η 
-    (U·(flat_elem x' ∘ PLT.terminate true (L (PLT.unit false))))) in H0.
-  destruct H0 as [y[??]].
-  simpl in H0. apply adj_unit_rel_elem in H0.
-  apply (U_hom_rel _ _ 
-    (flat_elem x' ∘ PLT.terminate true (L (PLT.unit false)))) in H2.
-  destruct H2. discriminate.
-  destruct H2 as [p [q [?[??]]]]. subst y. inv H4.
-  rewrite (PLT.compose_hom_rel _ _ _ _ (PLT.terminate true (L (PLT.unit false)))
-    (flat_elem x')) in H2.
-  destruct H2 as [?[??]].
-  simpl in H3.
-  apply single_axiom in H3.
-  destruct H3 as [[??][??]]. simpl in *.
-  hnf in H5. auto.
-Qed.
-
 
 Inductive context τ : ty -> Type :=
   | cxt_top : context τ τ
@@ -1592,7 +1551,7 @@ Proof.
 Qed.
 
 Corollary denote_bottom_nonvalue : forall τ (m:term τ),
-  (~exists z, eval τ m z) <-> denote τ m ≈ ⊥.
+  (~exists z, eval τ m z) <-> 〚m〛 ≈ ⊥.
 Proof.
   intros. split; intro.
 
