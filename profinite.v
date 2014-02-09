@@ -930,6 +930,8 @@ Notation "A ⊕ B" := (@PLT.sum true (A)%plt (B)%plt) : plt_scope.
 
 Notation "'π₁'"  := (@PLT.pi1 _ _ _) : plt_scope.
 Notation "'π₂'"  := (@PLT.pi2 _ _ _) : plt_scope.
+Notation "'ι₁'"  := (@PLT.iota1 _ _ _) : plt_scope.
+Notation "'ι₂'"  := (@PLT.iota2 _ _ _) : plt_scope.
 
 Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
     (@PLT.pair hf C A B)
@@ -1071,8 +1073,9 @@ Proof.
   apply bottom_least.
 Qed.
 
-Theorem pi1_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → A) :
-  (forall C (f:C → A) (g:C → B), proj ∘ 《f, g》 ≤ f) -> proj ≤ π₁.
+Theorem pi1_greatest (A B:ob ∂PLT) (proj:A⊗B → A) :
+  (forall C (f:C → A) (g:C → B), proj ∘ 《f, g》 ≤ f) ->
+  proj ≤ π₁.
 Proof.
   repeat intro.
   destruct a as [[a b] a']. simpl in *.
@@ -1089,8 +1092,9 @@ Proof.
   apply ident_elem. auto.
 Qed.
   
-Theorem pi2_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → B) :
-  (forall C (f:C → A) (g:C → B), proj ∘ 《f, g》 ≤ g) -> proj ≤ π₂.
+Theorem pi2_greatest (A B:ob ∂PLT) (proj:A⊗B → B) :
+  (forall C (f:C → A) (g:C → B), proj ∘ 《f, g》 ≤ g) ->
+  proj ≤ π₂.
 Proof.
   repeat intro.
   destruct a as [[a b] b']. simpl in *.
@@ -1162,7 +1166,7 @@ Proof.
 Qed.
 
 Theorem antistrict_pair_commute2 (C A:∂PLT) (f:C → A) :
-  antistrict f <-> forall B (g:C → B), π₂ ∘ PLT.pair f g ≈ g.
+  antistrict f <-> forall B (g:C → B), π₂ ∘ 《f, g》 ≈ g.
 Proof.
   split; intros.
   split. apply PLT.pair_le_commute2.
