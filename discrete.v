@@ -96,7 +96,7 @@ Canonical Structure disc (X:fintype) : PLT :=
         (fintype.fintype_effective X)
         (fintype.fintype_plotkin false X)).
 
-Program Definition disc_elem (Y:fintype) (y:Y) : PLT.unit false → disc Y :=
+Program Definition disc_elem (Y:fintype) (y:Y) : 1 → disc Y :=
   PLT.Hom false (PLT.unit false) (disc Y) (single (tt,y)) _ _.
 Next Obligation.
   intros. destruct x'. destruct x.
@@ -141,7 +141,7 @@ Section disc_cases.
     split; simpl; auto. split; auto.
   Qed.
 
-  Fixpoint mk_disc_cases_rel (ls:list X) : eset ((PLT.ord A×disc X)×B) :=
+  Fixpoint mk_disc_cases_rel (ls:list X) : eset ((PLT.ord A×disc X)×B)%cat_ob :=
     match ls with
     | nil => ∅
     | x::xs => union2 (image (insert_index x) (PLT.hom_rel (f x)))
@@ -190,7 +190,7 @@ Section disc_cases.
     apply IHls; auto.
   Qed.
 
-  Program Definition disc_cases : PLT.prod A (disc X) → B :=
+  Program Definition disc_cases : (A × (disc X))%plt → B :=
     PLT.Hom false (PLT.prod A (disc X)) B
        (mk_disc_cases_rel (fintype.fintype_list X)) _ _.
   Next Obligation.
@@ -232,27 +232,28 @@ Section disc_cases.
     apply fintype.fintype_complete. auto.
   Qed.
 
-  Lemma disc_cases_elem x h : disc_cases ∘ PLT.pair h (disc_elem x) ≈ f x ∘ h.
+  Lemma disc_cases_elem x h : disc_cases ∘ 〈 h, disc_elem x 〉 ≈ f x ∘ h.
   Proof.
     split; intros a H. destruct a.
-    apply compose_hom_rel in H.
-    apply compose_hom_rel.
+    apply PLT.compose_hom_rel in H.
+    apply PLT.compose_hom_rel.
     destruct H as [q [??]].
     destruct q.
     apply (mk_disc_cases_elem (fintype.fintype_list X)) in H0.
     simpl in H.
-    rewrite (pair_rel_elem _ _ _ _ _ _ c c1 c2) in H. destruct H.
+    rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
     exists c1. split; auto.
+    simpl in H1.
     apply single_axiom in H1.
     destruct H1 as [[??][??]]. simpl in *.
     hnf in H2. subst c2. auto.
     apply fintype.fintype_complete.
     destruct a.
-    apply compose_hom_rel in H.
-    apply compose_hom_rel.
+    apply PLT.compose_hom_rel in H.
+    apply PLT.compose_hom_rel.
     destruct H as [q [??]].
     exists (q,x). split.
-    apply pair_rel_elem. split; auto.
+    apply PLT.pair_hom_rel. split; auto.
     simpl. apply single_axiom.
     destruct c. auto.
     apply (mk_disc_cases_elem (fintype.fintype_list X)).
@@ -273,4 +274,3 @@ Next Obligation.
 Qed.
 
 Canonical Structure finbool.
-

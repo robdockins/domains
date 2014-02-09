@@ -2078,8 +2078,8 @@ Section curry.
     change (c,a,b) with
       (mk_pair (π₁ ∘ π₁) (π₂ ∘ π₂) #
         ( ( ((c,a),(S,a)), ((S,a),b) )
-        : (((C×A) × joinable_rel_order hf A B × A) ×
-            (joinable_rel_order hf A B × A) × B)
+        : (((C×A) × (joinable_rel_order hf A B × A)) ×
+            ((joinable_rel_order hf A B × A) × B))
         )).
     apply image_axiom1.
     apply esubset_dec_elem.
@@ -2090,7 +2090,6 @@ Section curry.
     unfold pair_rel'.
     change (c,a,(S,a)) with
       ((mk_pair (mk_pair (π₁ ∘ π₁) (π₁ ∘ π₂)) (mk_pair (π₂ ∘ π₁) (π₂ ∘ π₂)))
-      #
       ( ((c,S),(a,a))
       :  (C × joinable_rel_order hf A B) × (A×A)
       )).

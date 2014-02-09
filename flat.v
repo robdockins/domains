@@ -19,9 +19,9 @@ Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
 
-(**  * Discrete unpointed domains
+(**  * Flat pointed domains
 
-     Every finite type can be turned into a discrete profinite domain.
+     Every enumerable type can be turned into a flat profinite domain.
      These are useful for representing base types.
   *)
 
@@ -138,21 +138,21 @@ Section flat_cases.
   Variables (A B:∂PLT).
   Variable f : X -> (A → B).
 
-  Program Definition insert_index (x:X) : Preord.hom (A×B) ((A×flat X)×B) :=
-    Preord.Hom (A×B) ((A×flat X)×B) (fun ab => ((fst ab, x), snd ab)) _.
+  Program Definition insert_index (x:X) : Preord.hom (A×B)%cat_ob ((A×flat X)×B)%cat_ob :=
+    Preord.Hom (A×B)%cat_ob ((A×flat X)×B)%cat_ob (fun ab => ((fst ab, x), snd ab)) _.
   Next Obligation.
     intros x [??] [??] [??]; simpl in *; auto.
     split; simpl; auto. split; auto.
   Qed.
 
-  Program Definition map_indexes : Preord.hom (flat X) (eset ((PLT.ord A×flat X)×PLT.ord B)) :=
-    Preord.Hom (flat X) (eset ((A× flat X)×B))
+  Program Definition map_indexes : Preord.hom (flat X) (eset ((PLT.ord A×flat X)×PLT.ord B)%cat_ob) :=
+    Preord.Hom (flat X) (eset ((A× flat X)×B)%cat_ob)
       (fun x => image (insert_index x) (PLT.hom_rel (f x))) _.
   Next Obligation.
     intros. hnf in H. subst a. auto.
   Qed.
 
-  Definition flat_cases_rel : erel (PLT.ord A×flat X) (PLT.ord B) :=
+  Definition flat_cases_rel : erel (PLT.ord A×flat X)%cat_ob (PLT.ord B) :=
     union (image map_indexes (enumtype.enumtype_set X : eset (flat X))).
 
   Lemma flat_cases_rel_elem : forall x a b,
@@ -184,7 +184,7 @@ Section flat_cases.
     destruct H3 as [[??]?]; auto.
   Qed.
 
-  Program Definition flat_cases : PLT.prod A (flat X) → B :=
+  Program Definition flat_cases : A ⊗ flat X → B :=
     PLT.Hom true (PLT.prod A (flat X)) B flat_cases_rel _ _.
   Next Obligation.
     intros. 
@@ -209,23 +209,24 @@ Section flat_cases.
     apply (flat_cases_rel_elem x a x0). auto.
   Qed.
 
-  Lemma flat_cases_elem x h : flat_cases ∘ PLT.pair h (flat_elem x) ≈ f x ∘ h.
+  Lemma flat_cases_elem x h : flat_cases ∘ 《h, flat_elem x》 ≈ f x ∘ h.
   Proof.
     split; intros a H. destruct a.
-    apply compose_hom_rel in H.
-    apply compose_hom_rel.
+    apply PLT.compose_hom_rel in H.
+    apply PLT.compose_hom_rel.
     destruct H as [q [??]].
     destruct q.
     apply (flat_cases_rel_elem) in H0.
     simpl in H.
-    rewrite (pair_rel_elem _ _ _ _ _ _ c c1 c2) in H. destruct H.
+    rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
     exists c1. split; auto.
+    simpl in H1.
     apply single_axiom in H1.
     destruct H1 as [[??][??]]. simpl in *.
     hnf in H2. subst c2. auto.
     destruct a.
-    apply compose_hom_rel in H.
-    apply compose_hom_rel.
+    apply PLT.compose_hom_rel in H.
+    apply PLT.compose_hom_rel.
     destruct H as [q [??]].
     exists (q,x). split.
     apply pair_rel_elem. split; auto.
@@ -252,4 +253,3 @@ Next Obligation.
 Qed.
 
 Canonical Structure enumbool.
-

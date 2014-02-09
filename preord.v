@@ -6,6 +6,9 @@ Require Import Coq.Program.Basics.
 Require Import basics.
 Require Import categories.
 
+Delimit Scope preord_scope with preord.
+Open Scope preord_scope.
+
 (**  * Preordered types and monotone functions.
 
      A preorder is a type equipped with a transitive,
@@ -112,10 +115,10 @@ Module Preord.
 End Preord.
 Notation preord := Preord.type.
 
-Notation "x ≤ y" := (@Preord.ord_op _ x y) (at level 70).
-Notation "y ≥ x" := (@Preord.ord_op _ x y) (at level 70, only parsing).
-Notation "x ≰ y" := (~ (@Preord.ord_op _ x y)) (at level 70).
-Notation "y ≱ x" := (~ (@Preord.ord_op _ x y)) (at level 70, only parsing).
+Notation "x ≤ y" := (@Preord.ord_op _ x y) : preord_scope.
+Notation "y ≥ x" := (@Preord.ord_op _ x y) (only parsing) : preord_scope.
+Notation "x ≰ y" := (~ (@Preord.ord_op _ x y)) : preord_scope.
+Notation "y ≱ x" := (~ (@Preord.ord_op _ x y)) (only parsing) : preord_scope.
 
 (**  Here we set up the category PREORD of preorders with montone functions
      and the canonical structure magic that makes notation work.
@@ -340,7 +343,8 @@ Canonical Structure preord_terminated :=
      preord_terminated_mixin.
 
 (** PREORD is initialized. *)
-Program Definition emptypo := Preord.Pack False (Preord.Mixin _ (fun _ _ => False) _ _).
+Program Definition emptypo :=
+  Preord.Pack False (Preord.Mixin _ (fun _ _ => False) _ _).
 Canonical Structure emptypo.
 
 Program Definition preord_initiate (A:preord) : emptypo → A :=

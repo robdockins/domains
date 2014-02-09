@@ -32,63 +32,6 @@ Require Import embed.
     seem to be widely appreciated.
   *)
 
-
-
-(**  Some general lemmas that really ought to be moved somewhere else.
-  *)
-Lemma nil_subset X (Q:finset X) :
-  (nil : finset X) ⊆ Q.
-Proof.
-  repeat intro. apply nil_elem in H. elim H.
-Qed.
-
-Lemma ub_nil : forall (X:preord) (a:X),
-  upper_bound a (nil : finset X).
-Proof.
-  repeat intro. apply nil_elem in H. elim H.
-Qed.
-
-Lemma dec_conj (P Q : Prop) :
-  {P}+{~P} -> {Q}+{~Q} -> {P/\Q}+{~(P/\Q)}.
-Proof.
-  intros. destruct H. destruct H0.
-  left; auto.
-  right; intros [??]; contradiction.
-  right; intros [??]; contradiction.
-Qed.
-
-Lemma ub_cons (X:preord) (x:X) (xs:finset X) (a:X) :
-  x ≤ a ->
-  upper_bound a xs ->
-  upper_bound a (x::xs : finset X).
-Proof.
-  repeat intro.
-  apply cons_elem in H1. destruct H1.
-  rewrite H1. auto. apply H0; auto.
-Qed.
-
-Lemma cons_subset (X:preord) (x:X) (xs ys:finset X) :
-  x ∈ ys -> xs ⊆ ys -> (x::xs : finset X) ⊆ ys.
-Proof.
-  repeat intro.
-  apply cons_elem in H1. destruct H1.
-  rewrite H1; auto. apply H0; auto.
-Qed.
-
-Lemma cons_morphism (X:preord) (x x':X) (xs xs':finset X) :
-  x ≈ x' -> xs ≈ xs' -> (x :: xs:finset X) ≈ x' :: xs'.
-Proof.
-  intros.
-  split.
-  apply cons_subset. apply cons_elem. auto.
-  red; intros. apply cons_elem; auto.
-  right. rewrite <- H0; auto.
-  apply cons_subset. apply cons_elem. auto.
-  red; intros. apply cons_elem; auto.
-  right. rewrite H0; auto.
-Qed.
-
-
 Inductive pdom_sort :=
   | Lower
   | Upper
@@ -1642,4 +1585,3 @@ Proof.
   apply (powerdom.pdom_elem_eq_eq hf (cocone_point CC) sort).
   simpl. auto.
 Qed.
-

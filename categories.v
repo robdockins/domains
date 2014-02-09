@@ -1,6 +1,7 @@
 (* Copyright (c) 2014, Robert Dockins *)
 
 Require Import Setoid.
+
 Require Import basics.
 
 (** * Some elementary category theory.
@@ -14,6 +15,13 @@ Require Import basics.
       to respect hom-set equality.
   *)
 
+Delimit Scope category_ob_scope with cat_ob.
+Delimit Scope category_hom_scope with cat.
+Delimit Scope category_ops_scope with cat_ops.
+
+Open Scope category_ob_scope.
+Open Scope category_hom_scope.
+Open Scope category_ops_scope.
 
 (**  The [Comp] module represents the structure of composition
      and an identity.  Later we will layer on the category
@@ -31,9 +39,11 @@ Module Comp.
 End Comp.
 Definition comp_op T := Comp.comp _ _ (Comp.mixin T).
 Definition ident_op T := Comp.identity _ _ (Comp.mixin T).
-Notation "x ∘ y" := (@comp_op _ _ _ _ x y) (at level 40, left associativity).
-Notation "'id'" := (@ident_op _ _).
-Notation "'id' ( A )" := (@ident_op _ A) (only parsing).
+
+Notation "x ∘ y" := (@comp_op _ _ _ _ (x)%cat (y)%cat) : category_hom_scope.
+Notation "'id'" := (@ident_op _ _) : category_hom_scope.
+Notation "'id' ( A )" := (@ident_op _ (A)%cat_ob) (only parsing) 
+  : category_hom_scope.
 
 (**  Here we put together the pieces: the setoid structure
      on hom-sets, the composition strucutre, and the category axioms.
@@ -77,7 +87,9 @@ Notation category := Category.category.
 Notation Category := Category.Category.
 Notation ob := Category.ob.
 Notation hom := Category.hom.
-Notation "A → B" := (Category.hom _ A B) (at level 65).
+Notation "A → B" := (Category.hom _ A B) : category_hom_scope.
+
+Bind Scope category_ob_scope with Category.ob.
 
 Coercion ob : category >-> Sortclass.
 
@@ -173,8 +185,7 @@ Canonical Structure Groupoid.comp.
 
 Coercion Groupoid.category : groupoid >-> category.
 
-Notation "f '⁻¹'" := (Groupoid.inv_op _ _ _ f) (at level 1, format "f '⁻¹'").
-
+Notation "f '⁻¹'" :=  (Groupoid.inv_op _ _ _ f) : category_hom_scope.
 
 Lemma inv_id1 (X:groupoid) :
   forall (A B:X) (f:A → B), f ∘ f⁻¹ ≈ id.
@@ -273,7 +284,7 @@ Arguments mono_hom [C] [A] [B] m.
 Arguments mono_axiom [C] [A] [B] m [X] [g] [h] _.
 
 Coercion mono_hom : monomorphism >-> hom.
-Notation "A ↣ B" := (monomorphism _ A B) (at level 65).
+Notation "A ↣ B" := (monomorphism _ A B) : category_hom_scope.
 
 Program Definition mono_eq (C:category) (A B:C) :=
   Eq.Mixin (monomorphism C A B)
@@ -357,7 +368,7 @@ Arguments epi_hom [C] [A] [B] e.
 Arguments epi_axiom [C] [A] [B] e _ _ _ _.
 
 Coercion epi_hom : epimorphism >-> hom.
-Notation "A ↠ B" := (epimorphism _ A B) (at level 65).
+Notation "A ↠ B" := (epimorphism _ A B) : category_hom_scope.
 
 Program Definition epi_eq (C:category) (A B:C) :=
   Eq.Mixin (epimorphism C A B)
@@ -444,7 +455,7 @@ Arguments iso_axiom1 [C] [A] [B] i.
 Arguments iso_axiom2 [C] [A] [B] i.
 
 Coercion iso_hom : isomorphism >-> hom.
-Notation "A ↔ B" := (isomorphism _ A B) (at level 65).
+Notation "A ↔ B" := (isomorphism _ A B) : category_hom_scope.
 
 Program Definition iso_eq (C:category) (A B:C) :=
   Eq.Mixin (isomorphism C A B)
@@ -454,7 +465,7 @@ Next Obligation.
 Qed.
 
 Program Definition iso_id (C:category) (A:C) :=
-  Isomorphism C A A (id(A)) (id(A)) _ _.
+  Isomorphism C A A id(A) id(A) _ _.
 Next Obligation.
   apply cat_ident1.
 Qed.
@@ -498,8 +509,7 @@ Proof.
   simpl; intros. apply cat_respects; auto.
 Qed.
 
-Definition iso_inverse (C:category) (A B:C)
-  (f:A ↔ B) : B ↔ A :=
+Definition iso_inverse (C:category) (A B:C) (f:A ↔ B) : B ↔ A :=
   Isomorphism C B A (iso_inv f) (iso_hom f)
     (iso_axiom2 f) (iso_axiom1 f).
 
@@ -513,7 +523,6 @@ Next Obligation.
   apply iso_axiom2.
   apply iso_axiom1.
 Qed.
-
 
 Canonical Structure ISO_EQ (C:category) A B
   := Eq.Pack (isomorphism C A B) (iso_eq C A B).
@@ -581,11 +590,11 @@ Canonical Structure Terminated.comp.
 Canonical Structure Terminated.category.
 Coercion Terminated.category : terminated >-> category.
 
-Notation "'!'" := (Terminated.terminus_op _).
-Notation terminate := (Terminated.terminate_op _ _).
+Notation "'!'" := (Terminated.terminus_op _) : category_ob_scope.
+Notation "'∗'" := (Terminated.terminate_op _ _) : category_ops_scope.
 
 Lemma terminate_univ (X:terminated) :
-  forall (A:X) (f:A → !), f ≈ terminate.
+  forall (A:X) (f:A → !), f ≈ ∗.
 Proof (Terminated.axiom _ _ _ (Terminated.mixin X)).
 
 (**  Categories with initial objects, called initilized categories.
@@ -641,7 +650,7 @@ Canonical Structure Initialized.comp.
 Canonical Structure Initialized.category.
 Coercion Initialized.category : initialized >-> category.
 
-Notation "'¡'" := (Initialized.initium_op _).
+Notation "'¡'" := (Initialized.initium_op _) : category_ob_scope.
 Notation initiate := (Initialized.initiate_op _ _).
 
 Lemma initiate_univ (X:initialized) :
@@ -653,7 +662,7 @@ Proof (Initialized.axiom _ _ _ (Initialized.mixin X)).
      they are initialized and have a binary coproduct for every pair
      of objects satisfying the usual universal property.
 
-     The coproduct of [A] and [B] is written [A ⊕ B].  The injection
+     The coproduct of [A] and [B] is written [A + B].  The injection
      functions are [ι₁] and [ι₂].  When we have [f:A → C]  and [g:B → C],
      the case function [either f g : A⊕B → C] is the mediating universal
      morphism for the colimit diagram.
@@ -737,10 +746,10 @@ Canonical Structure Cocartesian.initalized.
 Coercion Cocartesian.initalized : cocartesian >-> initialized.
 Coercion Cocartesian.category : cocartesian >-> category.
 
-Notation "A ⊕ B" := (Cocartesian.sum_op _ A B)
-    (at level 56, right associativity).
-Notation "'ι₁'"  := (Cocartesian.inl_op _ _ _).
-Notation "'ι₂'"  := (Cocartesian.inr_op _ _ _).
+Notation "A + B" := (Cocartesian.sum_op _ A B)
+  : category_ob_scope.
+Notation "'ι₁'"  := (Cocartesian.inl_op _ _ _) : category_ops_scope.
+Notation "'ι₂'"  := (Cocartesian.inr_op _ _ _) : category_ops_scope.
 Notation either := Cocartesian.either_op.
 Arguments either [X C A B] f g.
 
@@ -757,23 +766,21 @@ Proof (Cocartesian.inr_commute _ _ _ _ _ _ _ _
          (Cocartesian.cocartesian_axioms _ _ _ _ (Cocartesian.mixin X))).
 
 Lemma either_univ (X:cocartesian) :
-  forall (C A B:ob X) (f:A → C) (g:B → C) (h:A⊕B → C),
+  forall (C A B:ob X) (f:A → C) (g:B → C) (h:A+B → C),
   h ∘ ι₁ ≈ f -> h ∘ ι₂ ≈ g -> h ≈ either f g.
 
 Proof (Cocartesian.either_univ _ _ _ _ _ _ _ _
          (Cocartesian.cocartesian_axioms _ _ _ _ (Cocartesian.mixin X))).
 
-
 Program Definition sum_map (X:cocartesian) (A B C D:ob X)
-  (f:A → B) (g:C → D) : A⊕C → B⊕D := either (ι₁ ∘ f) (ι₂ ∘ g).
+  (f:A → B) (g:C → D) : A+C → B+D := either (ι₁ ∘ f) (ι₂ ∘ g).
 Arguments sum_map [X A B C D] f g.
-
 
 Add Parametric Morphism (X:cocartesian) (C A B:ob X) :
   (@Cocartesian.either_op X C A B)
    with signature (eq_op (Cocartesian.eq X A C)) ==>
                   (eq_op (Cocartesian.eq X B C)) ==>
-                  (eq_op (Cocartesian.eq X (A⊕B) C))
+                  (eq_op (Cocartesian.eq X (A+B)%cat_ob C))
     as either_morphism.
 Proof.
   intros. apply either_univ.
@@ -869,10 +876,12 @@ Canonical Structure Cartesian.terminated.
 Coercion Cartesian.terminated : cartesian >-> terminated.
 Coercion Cartesian.category : cartesian >-> category.
 
-Notation "A × B" := (Cartesian.product_op _ A B) (at level 54, right associativity).
-Notation "'π₁'"  := (Cartesian.proj1_op _ _ _).
-Notation "'π₂'"  := (Cartesian.proj2_op _ _ _).
-Notation "〈 f , g 〉" := (Cartesian.pairing_op _ _ _ _ f g).
+Notation "A × B" := (Cartesian.product_op _ A B)
+  : category_ob_scope.
+Notation "'π₁'"  := (Cartesian.proj1_op _ _ _) : category_ops_scope.
+Notation "'π₂'"  := (Cartesian.proj2_op _ _ _) : category_ops_scope.
+Notation "〈 f , g 〉" := (Cartesian.pairing_op _ _ _ _ f g)
+  : category_ops_scope.
 
 Lemma proj1_commute (X:cartesian) :
   forall (C A B:ob X) (f:C → A) (g:C → B), π₁ ∘ 〈 f, g 〉 ≈ f.
@@ -902,7 +911,7 @@ Add Parametric Morphism (X:cartesian) (C A B:ob X) :
   (Cartesian.pairing_op X C A B)
    with signature (eq_op (Cartesian.eq X C A)) ==>
                   (eq_op (Cartesian.eq X C B)) ==>
-                  (eq_op (Cartesian.eq X C (A×B)))
+                  (eq_op (Cartesian.eq X C (A×B)%cat_ob))
     as pairing_morphism.
 Proof.
   intros. apply pairing_univ.
@@ -936,7 +945,7 @@ Section distributive.
   Canonical Structure cocartesian'.
 
   Record mixin_of :=
-  { distrib_law : forall A B C:ob, A×(B⊕C) ↔ (A×B) ⊕ (A×C)
+  { distrib_law : forall A B C:ob, A×(B+C) ↔ (A×B) + (A×C)
   }.
 
 End distributive.
@@ -1089,8 +1098,9 @@ Coercion CartesianClosed.category : cartesian_closed >-> category.
 Coercion CartesianClosed.terminated : cartesian_closed >-> terminated.
 Coercion CartesianClosed.cartesian : cartesian_closed >-> cartesian.
 
-Notation "'Λ' f" := (CartesianClosed.curry_op _ _ _ _ f) (at level 10).
-Notation "A ⇒ B" := (CartesianClosed.exp_op _ A B) (at level 35, right associativity).
+Notation "'Λ' f" := (CartesianClosed.curry_op _ _ _ _ f) : category_ops_scope.
+Notation "A ⇒ B" := (CartesianClosed.exp_op _ A B)
+  : category_ob_scope.
 Notation apply := (CartesianClosed.apply_op _ _ _).
 
 Lemma curry_commute (X:cartesian_closed) : 
@@ -1108,13 +1118,46 @@ Proof (CartesianClosed.curry_univ _ _ _ _ _ _ _ _ _ _
 
 Add Parametric Morphism (X:cartesian_closed) (C A B:ob X) :
   (CartesianClosed.curry_op X C A B)
-  with signature (eq_op (CartesianClosed.eq X (C×A) B)) ==>
-                 (eq_op (CartesianClosed.eq X C (A⇒B)))
+  with signature (eq_op (CartesianClosed.eq X (C×A)%cat_ob B)) ==>
+                 (eq_op (CartesianClosed.eq X C (A⇒B)%cat_ob))
    as curry_morphism.
 Proof.
   intros. apply curry_univ. rewrite curry_commute. auto.
 Qed.
 
+Lemma curry_commute3 (X:cartesian_closed) : 
+  forall (D C A B:X) (f:C×A → B) (g:D → C) (h:D → A),
+    apply ∘ 〈 Λ f ∘ g, h 〉 ≈ f ∘ 〈 g, h 〉.
+Proof.
+  intros.
+  transitivity (apply ∘ 〈Λ f ∘ π₁, π₂〉 ∘ 〈g, h〉).
+  rewrite <- (cat_assoc X). apply (cat_respects X); auto.
+  symmetry. apply pairing_univ.
+  rewrite (cat_assoc X).
+  transitivity (Λ(f) ∘ π₁ ∘ 〈g,h〉).
+  apply cat_respects; auto.
+  apply (proj1_commute X).
+  rewrite <- (cat_assoc X).
+  apply cat_respects; auto.
+  apply proj1_commute.
+  rewrite (cat_assoc X).
+  transitivity (π₂ ∘ 〈g,h〉).
+  apply cat_respects; auto.
+  apply (proj2_commute X).
+  apply (proj2_commute X).
+  apply cat_respects; auto.
+  apply curry_commute.
+Qed.
+
+Lemma curry_commute2 (X:cartesian_closed) : 
+  forall (C A B:X) (f:C×A → B) (h:C → A),
+    apply ∘ 〈 Λ f, h 〉 ≈ f ∘ 〈 id, h 〉.
+Proof.
+  intros. rewrite <- (curry_commute3 X C C A B f id h).
+  apply cat_respects. auto.
+  apply pairing_morphism; auto.
+  symmetry. apply cat_ident1.
+Qed.
 
 (**  Here I define "polynomial categories" as categories with finite sums,
      finite products, and exponents where sums distribute over products.
@@ -1191,8 +1234,6 @@ Coercion PolynomialCategory.cartesian_closed : polynomial_category >-> cartesian
 Coercion PolynomialCategory.distributive : polynomial_category >-> distributive.
 
 
-
-
 (**  A concrete category is one where every object has a [Type]
      carrier, and every hom defines a function between the carriers.
 
@@ -1213,7 +1254,9 @@ Record concrete (C:category) :=
        Eq.eq _ (obeq Z) (hommap (g ∘ f) x) (hommap g (hommap f x))
   }.
 
-Notation "f '#' x" := (hommap _ _ f x) (at level 33, right associativity).
+Notation "f # x" := (hommap _ _ f x) 
+  (at level 33, right associativity)
+  : category_hom_scope.
 
 Canonical Structure CONCRETE_EQ (CAT:category) (CC:concrete CAT) (A:ob CAT) :=
   Eq.Pack (obmap CAT CC A) (obeq CAT CC A).
@@ -1227,7 +1270,6 @@ Add Parametric Morphism (C:category) (CC:concrete C) (A B:ob C) :
 Proof.
   intros; apply hommap_eq; auto.
 Qed.  
-
 
 
 Module Functor.
@@ -1275,10 +1317,10 @@ Arguments Functor.respects [C] [D] f A B f0 g _.
 Notation functor := Functor.functor.
 Notation Functor := Functor.Functor.
 
-(**  The '@' symbol is used to indicate the action of a functor on a hom.  Thus, if
-     [f : A → B] is a hom in category [C] then [F@f : F A → F B] is a hom in category [D].
+(**  The '·' symbol is used to indicate the action of a functor on a hom.  Thus, if
+     [f : A → B] is a hom in category [C] then [F·f : F A → F B] is a hom in category [D].
   *)
-Notation "F '@' f" := (Functor.hom_map F _ _ f) (at level 36, left associativity).
+Notation "F · f" := (Functor.hom_map F _ _ f) : category_hom_scope.
 Coercion Functor.ob_map : functor >-> Funclass.
 
 Section functor_compose.
@@ -1393,14 +1435,14 @@ Section nt.
 
   Structure nt := NT
     { transform :> forall A, F A → G A
-    ; axiom : forall A B (f:A → B), transform B ∘ F@f ≈ G@f ∘ transform A
+    ; axiom : forall A B (f:A → B), transform B ∘ F·f ≈ G·f ∘ transform A
     }.
 End nt.
 
 Arguments nt [C] [D] F G.
 Arguments NT [C] [D] F G transform axiom.
-Arguments transform [C] [D] [F] [G] n A.
-Arguments axiom [C] [D] [F] [G] n [A] [B] f.
+Arguments transform [C] [D] [F] [G] (n)%cat (A)%cat_ob.
+Arguments axiom [C] [D] [F] [G] n [A] [B] (f)%cat.
 
 Section nt_compose.
   Variables C D E:category.
@@ -1416,9 +1458,9 @@ Section nt_compose.
   Program Definition compose (F G H:functor C D) (s:nt G H) (t:nt F G) : nt F H :=
     NT F H (fun A => s A ∘ t A) _.
   Next Obligation.
-    rewrite <- (cat_assoc D _ _ _ _ (s B) (t B) (F@f)).
+    rewrite <- (cat_assoc D _ _ _ _ (s B) (t B) (F·f)).
     rewrite (axiom t).
-    rewrite (cat_assoc D _ _ _ _ (s B) (G@f) (t A)).
+    rewrite (cat_assoc D _ _ _ _ (s B) (G·f) (t A)).
     rewrite (axiom s).
     rewrite <- (cat_assoc D).
     trivial.
@@ -1431,7 +1473,7 @@ Section nt_compose.
   Program Definition stacknt
     (F:functor D E) (G H:functor C D)
     (n:nt G H) : nt (F ∘ G) (F ∘ H) :=
-    NT _ _ (fun A => F@(n A)) _.
+    NT _ _ (fun A => F·(n A)) _.
   Next Obligation.
     rewrite <- (Functor.compose F). 2: reflexivity.
     rewrite axiom.
@@ -1443,7 +1485,7 @@ Section nt_compose.
     (G H:functor D E)
     (n:nt G H) (F:functor C D)
     : nt (G ∘ F) (H ∘ F) :=
-    NT _ _ (fun A => n (F A)) (fun A B f => NT.axiom n (F@f)).
+    NT _ _ (fun A => n (F A)) (fun A B f => NT.axiom n (F·f)).
 End nt_compose.
 
 Section NT_mixins.
@@ -1463,8 +1505,10 @@ End NT_mixins.
 End NT.
 
 Coercion NT.transform : NT.nt >-> Funclass.
-Notation "F @@ nt" := (NT.stacknt _ _ _ F _ _ nt) (at level 36).
-Notation "nt >> F" := (NT.pushnt _ _ _ _ _ nt F) (at level 36).
+Notation "F ▹ nt" := (NT.stacknt _ _ _ F _ _ nt)
+  : category_hom_scope.
+Notation "nt ◃ F" := (NT.pushnt _ _ _ _ _ nt F)
+  : category_hom_scope.
 Notation nt := NT.nt.
 Notation NT := NT.NT.
 
@@ -1667,8 +1711,8 @@ Section adjunction.
     Adjunction
     { unit   : nt id(D) (R ∘ L)
     ; counit : nt (L ∘ R) id(C)
-    ; adjoint_axiom1 : counit>>L ∘ L@@unit ≈ id
-    ; adjoint_axiom2 : R@@counit ∘ unit>>R ≈ id
+    ; adjoint_axiom1 : counit◃L ∘ L▹unit ≈ id
+    ; adjoint_axiom2 : R▹counit ∘ unit◃R ≈ id
     }.
 End adjunction.
 
@@ -1700,7 +1744,7 @@ Section cone.
     Cone
     { point : ob C
     ; spoke : forall j, point → (F j) 
-    ; axiom : forall j j' (h:j → j'), spoke j' ≈ F@h ∘ spoke j 
+    ; axiom : forall j j' (h:j → j'), spoke j' ≈ F·h ∘ spoke j 
     }.
   
   Record cone_hom (M N:cone) :=
@@ -1764,7 +1808,7 @@ Section alg.
   Record alg_hom (M N:alg) :=
   Alg_hom
   { hom_map : carrier M → carrier N
-  ; hom_axiom : hom_map ∘ iota M ≈ iota N ∘ F@hom_map
+  ; hom_axiom : hom_map ∘ iota M ≈ iota N ∘ F·hom_map
   }.
 
   Program Definition ident (M:alg) : alg_hom M M :=
@@ -1794,12 +1838,13 @@ Section alg.
   Initial_alg
   { init :> alg
   ; cata : forall M:alg, alg_hom init M
-  ; cata_axiom : forall (M:alg) (h:alg_hom init M), hom_map _ _ h ≈ hom_map _ _ (cata M)
+  ; cata_axiom : forall (M:alg) (h:alg_hom init M), 
+       hom_map _ _ h ≈ hom_map _ _ (cata M)
   }.
 
   Lemma cata_axiom' I :
     forall (M:alg) (h:carrier (init I) → carrier M),
-      (h ∘ iota (init I) ≈ iota  M ∘ F@h) ->
+      (h ∘ iota (init I) ≈ iota  M ∘ F·h) ->
       h ≈ hom_map _ _ (cata I M).
   Proof.
     intros.
@@ -1807,7 +1852,7 @@ Section alg.
   Qed.
 
   Definition lift_alg (A:alg) :=
-    Alg (F A) (F@iota A).
+    Alg (F A) (F·iota A).
 
   Definition out (I:initial_alg) :=
     hom_map _ _ (cata I (lift_alg I)).
@@ -1835,7 +1880,7 @@ Section alg.
     out I ∘ iota I ≈ id.
   Proof.
     intros.
-    transitivity (F@(hom_map _ _ (cata I I))).
+    transitivity (F·(hom_map _ _ (cata I I))).
     unfold out.
     rewrite (hom_axiom).
     simpl.
@@ -2023,7 +2068,7 @@ Section pairF.
   Program Definition pairF : functor C (PROD D E) :=
     Functor C (PROD D E)
       (fun X => PROD.Ob D E (F X) (G X))
-      (fun X Y f => PROD.Hom _ _ _ _ (F@f) (G@f))
+      (fun X Y f => PROD.Hom _ _ _ _ (F·f) (G·f))
       _ _ _.
   Next Obligation.
     simpl; intros. split; simpl.
@@ -2242,8 +2287,7 @@ Qed.
 Canonical Structure SET_terminated.
 
 Definition elem (X:ob SET) (x:X) : ! → X :=
-  SET.Hom ! X (fun _ => x) (fun a b H => eq_refl _ _).
-
+  SET.Hom !%cat_ob X (fun _ => x) (fun a b H => eq_refl _ _).
 
 (**  We can define the category class structure for the large
      category of small categories.  However! we cannot complete
@@ -2268,7 +2312,6 @@ Qed.
 Next Obligation.
   intros. hnf in *. subst. auto.
 Qed.
-
 
 (** No can do, universe inconsistency:
 <<

@@ -29,7 +29,7 @@ Section map_rel.
   Variable f:A -> B.
   Variable g:C -> D.
 
-  Fixpoint map_rel (G:finset (A×C)) : finset (B×D) :=
+  Fixpoint map_rel (G:finset (A×C)%cat_ob) : finset (B×D)%cat_ob :=
     match G with
     | nil => nil
     | (a,c)::G' => (f a, g c)::map_rel G'
@@ -152,7 +152,7 @@ Section exp_functor.
     exists (p,q). auto.
     intros.
     destruct (mub_complete (PLT.plotkin B) 
-      (image π₁ (map_rel f g G)) (f x)) as [z [??]].
+      (image (π₁)%cat_ops (map_rel f g G)) (f x)) as [z [??]].
     apply inh_image.
     apply map_rel_inh; auto.
     hnf; intros.
@@ -224,9 +224,9 @@ Section exp_functor.
     apply unmap_rel_sub in H1.
     destruct H1 as [G' [??]].
     
-    assert (exists q, upper_bound q (image π₁ G') /\ f q ≤ x).
+    assert (exists q, upper_bound q (image (π₁)%cat_ops G') /\ f q ≤ x).
     destruct H2. clear H4.
-    assert (upper_bound x (image π₁ (map_rel f g G'))).
+    assert (upper_bound x (image (π₁)%cat_ops (map_rel f g G'))).
     hnf; intros.
     apply H2.
     apply image_axiom2 in H4.
@@ -276,7 +276,7 @@ Section exp_functor.
     transitivity q; auto.
 
     destruct H4 as [q [??]].
-    destruct (mub_complete (PLT.plotkin A) (image π₁ G') q) as [q' [??]].
+    destruct (mub_complete (PLT.plotkin A) (image (π₁)%cat_ops G') q) as [q' [??]].
     destruct hf; hnf; auto.
     destruct HGinh.
     destruct x0.
@@ -347,7 +347,7 @@ Section exp_functor.
     end.
 
 
-  Program Definition unimage_jrel (y:finset (B×D)) :=
+  Program Definition unimage_jrel (y:finset (B×D)%cat_ob) :=
     esubset
       (fun ac =>
         exists b d, (b,d) ∈ y /\ b ≤ f (fst ac) /\ g (snd ac) ≤ d)
@@ -767,9 +767,9 @@ Section expF_decompose.
     { i:I & { a:ds_F DS2 i | cocone_spoke CC2 i a ≈ x }}.
 
   Lemma finrel_decompose
-    (X:finset (PLT.ord (cocone_point CC1) × PLT.ord (cocone_point CC2))) :
+    (X:finset (PLT.ord (cocone_point CC1) × PLT.ord (cocone_point CC2))%cat_ob) :
     forall (Hinh : inh hf X),
-    { k:I & { Y:finset (PLT.ord (ds_F DS1 k) × PLT.ord (ds_F DS2 k)) |
+    { k:I & { Y:finset (PLT.ord (ds_F DS1 k) × PLT.ord (ds_F DS2 k))%cat_ob |
        X ≈ map_rel (cocone_spoke CC1 k) (cocone_spoke CC2 k) Y }}.
   Proof.
     induction X; intros.
@@ -873,4 +873,3 @@ Proof.
   destruct e. apply H1 in H0.
   exists a. exists b. auto.
 Qed.
-

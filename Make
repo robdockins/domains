@@ -1,5 +1,6 @@
 # coq_makefile -f Make -o Makefile
 
+notations.v
 pairing.v
 basics.v
 categories.v

@@ -1,6 +1,7 @@
 (* Copyright (c) 2014, Robert Dockins *)
 
 Require Import Setoid.
+Require Export notations.
 
 (** * Setoids and equality.
 
@@ -13,6 +14,9 @@ Require Import Setoid.
       We use the symbol ≈ to indicate the equality relation on setoids.  For the vast
       majority of this development, ≈ will be the notion of equivalence of interest.
   *)
+
+Delimit Scope equiv_scope with eq.
+Open Scope equiv_scope.
 
 Module Eq.
   Record mixin_of (T:Type) :=
@@ -28,8 +32,8 @@ Module Eq.
 
 End Eq.
 Definition eq_op T := Eq.eq _ (Eq.mixin T).
-Notation "x ≈ y" := (@eq_op _ x y) (at level 70).
-Notation "x ≉ y" := (~(@eq_op _ x y)) (at level 70).
+Notation "x ≈ y" := (@eq_op _ x y) : equiv_scope.
+Notation "x ≉ y" := (~(@eq_op _ x y)) : equiv_scope.
 Coercion Eq.carrier : Eq.type >-> Sortclass.
 
 

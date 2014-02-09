@@ -8,6 +8,9 @@ Require Import finsets.
 Require Import esets.
 Require Import directed.
 
+Delimit Scope cpo_scope with cpo.
+Open Scope cpo_scope.
+
 (**  * Complete partial orders
 
      Here we define the category of colored CPOs.  We will mostly
@@ -49,8 +52,50 @@ Module CPO.
     sup CL (ord t) (cpo_mixin t).
   Arguments sup_op [CL] [t] X.
 
-  Definition continuous (CL:color) (A B:type CL) (f:Preord.hom (ord A) (ord B)) :=
-    forall X, f (sup_op X) ≤ sup_op (image f X).
+  Notation "∐ XS" := (@sup_op _ _ (XS)%set) : cpo_scope.
+
+  Definition continuous (CL:color) (A B:type CL) (f:ord A → ord B) :=
+    forall lub (XS:cl_eset CL (ord A)),
+      least_upper_bound lub XS ->
+      least_upper_bound (f lub) (image f XS).
+
+  Lemma sup_is_lub : forall CL (A:type CL) (XS:cl_eset CL (ord A)),
+    least_upper_bound (∐XS) XS.
+  Proof.
+    intros. split. apply sup_is_ub. apply sup_is_least.
+  Qed.
+
+  Lemma continuous_sup : forall CL (A B:type CL) (f:ord A → ord B),
+    continuous CL A B f <->
+    forall (XS:cl_eset CL (ord A)), f (sup_op XS) ≤ sup_op (image f XS).
+  Proof.
+    intros. split; intros.
+    destruct (H (∐XS) XS (sup_is_lub CL A XS)).
+    apply H1. red; intros. apply sup_is_ub; auto.
+
+    red; intros; split; repeat intro.
+    apply image_axiom2 in H1.
+    destruct H1 as [y [??]]. rewrite H2.
+    apply Preord.axiom.
+    apply H0. auto.
+    transitivity (f (∐XS)).
+    apply Preord.axiom.
+    apply H0. apply sup_is_ub.
+    transitivity (∐(image f XS)). apply H.
+    apply sup_is_least. auto.
+  Qed.    
+
+  Lemma continuous_sup' : forall CL (A B:type CL) (f:ord A → ord B),
+    continuous CL A B f <->
+    forall (XS:cl_eset CL (ord A)), f (sup_op XS) ≈ sup_op (image f XS).
+  Proof.
+    intros. rewrite continuous_sup.
+    split; intros. split. apply H.
+    apply sup_is_least. red; intros.
+    apply image_axiom2 in H0. destruct H0 as [y [??]].
+    rewrite H1. apply Preord.axiom. apply sup_is_ub. auto.
+    apply H.
+  Qed.
 
   Record hom CL (A B:type CL) :=
     Hom
@@ -62,7 +107,7 @@ Module CPO.
     }.
   Arguments map [CL] [A] [B] h x.
   Arguments mono [CL] [A] [B] h a b _.
-  Arguments cont  [CL] [A] [B] h X.
+  Arguments cont  [CL] [A] [B] h lub XS _.
   
   Definition ord_hom {CL:color} {A B:type CL} (f:hom CL A B) : Preord.hom (ord A) (ord B) :=
     Preord.Hom _ _ (map f) (mono f).
@@ -70,53 +115,52 @@ Module CPO.
 
   Program Definition build_hom {CL:color} (A B:type CL)
     (f:Preord.hom (ord A) (ord B))
-    (H:forall X, f (sup_op X) ≤ sup_op (image f X))
+    (H:continuous CL A B f)
     : hom CL A B
     := Hom CL A B (Preord.map _ _ f) _ _.
   Next Obligation.
     simpl; intros. apply Preord.axiom. auto.
   Qed.
   Next Obligation.
-    simpl; intros.
-    red. simpl; intros.
-    etransitivity.
-    apply H.
-    apply sup_is_least; auto.
-    red; simpl. intros.
-    apply sup_is_ub; auto.
-  Qed.    
+    intros. apply H.
+  Qed.
 
   Program Definition ident {CL:color} (X:type CL) :
     hom CL X X := build_hom X X (Preord.ident (ord X)) _.
   Next Obligation.
-    simpl; intros.
-    apply sup_is_least; auto.
-    red. intros.
-    apply sup_is_ub; auto.
-    destruct H as [n ?].
-    exists n. simpl in *.
-    unfold eset.eimage.
-    case_eq (proj1_sig X0 n); auto.
-    simpl; intros.
-    rewrite H0. rewrite H0 in H. auto.
-    simpl; intros. rewrite H0 in H. elim H.
+    repeat intro.
+    simpl.
+    destruct H; split; repeat intro.
+    apply image_axiom2 in H1. destruct H1 as [?[??]].
+    simpl in H2. rewrite H2; apply H; auto.
+    apply H0. red; intros.
+    apply H1.
+    apply image_axiom1'. exists x. split; auto.
   Qed.
 
   Program Definition compose {CL:color} {X Y Z:type CL} (g:hom CL Y Z) (f:hom CL X Y)
     := build_hom X Z (g ∘ f) _.
   Next Obligation.
-    intros.
-    transitivity (ord_hom g (ord_hom f (sup_op X0))).
-    apply eq_ord. apply hommap_axiom.
-    transitivity (ord_hom g (sup_op (image (ord_hom f) X0))).
-    apply Preord.axiom.
-    apply cont.
-    transitivity (sup_op (image g (image f X0))).
-    apply cont.
-    apply sup_is_least; auto.
-    red; intros.
-    apply sup_is_ub; auto.
-    apply image_axiom0. auto.
+    repeat intro. 
+    cut (least_upper_bound (g (f lub)) (image g (image f XS))).
+    intros [??]; split; repeat intro.
+    apply H0. apply image_axiom2 in H2.
+    destruct H2 as [q [??]]. simpl in H3.
+    rewrite H3.
+    apply image_axiom1'. exists (f q); split; auto.
+    apply image_axiom1'. exists q; split; auto.
+    apply H1. repeat intro.
+    apply H2.
+    apply image_axiom2 in H3.
+    destruct H3 as [y [??]].
+    apply image_axiom2 in H3.
+    destruct H3 as [y' [??]].
+    apply image_axiom1'. exists y'.
+    split; auto.
+    simpl.
+    rewrite H4.
+    rewrite H5. auto.
+    apply (cont g). apply (cont f). auto.
   Qed.
 
   Definition comp_mixin CL := Comp.Mixin (type CL) (hom CL) (@ident CL) (@compose CL).
@@ -162,32 +206,34 @@ Module CPO.
   Qed.
   Next Obligation.
     repeat intro.
+    split; repeat intro.
+    apply image_axiom2 in H0. destruct H0 as [y [??]].
+    simpl in H1.
+    rewrite H1.
     apply sup_is_least. red; intros.
-    apply image_axiom2 in H.
-    destruct H as [y [??]].
-    rewrite H0.
-    simpl.
-    etransitivity.
-    apply cont.
-    apply sup_is_least. red; intros.
-    apply image_axiom2 in H1.
-    destruct H1 as [z [??]].
-    set (f := {|
-          Preord.map := fun x1 : X =>
-                        sup_op
-                          (colored_sets.cimage eset_theory CL
-                             (hom_ord CL X Y) (ord Y) 
-                             (app_to CL X Y x1) FS);
-          Preord.axiom := hom_sup_obligation_1 CL X Y FS |}).
-    transitivity (f z).
-    rewrite H2.
-    simpl.
-    apply CPO.sup_is_ub.
-    change (y z)
-      with ((app_to CL X Y z) y).
-    apply image_axiom1. auto.
-    apply CPO.sup_is_ub.
-    apply image_axiom1. auto.
+    apply image_axiom2 in H2.
+    destruct H2 as [y' [??]]. simpl in H3. simpl.
+    rewrite H3.
+    transitivity (y' lub).
+    apply mono. apply H. auto.
+    apply sup_is_ub.
+    apply image_axiom1'.
+    simpl. exists y'. split; auto.
+
+    simpl. apply sup_is_least.
+    repeat intro.
+    apply image_axiom2 in H1. destruct H1 as [y [??]].
+    simpl in H2. rewrite H2.
+    destruct (cont y lub XS); auto.
+    apply H4.
+    hnf; intros.
+    apply image_axiom2 in H5. destruct H5 as [q [??]].
+    simpl in H6. rewrite H6.
+    transitivity (sup_op (image (app_to CL X Y q) FS)).
+    apply sup_is_ub. simpl.
+    apply image_axiom1'. simpl. exists y. split; auto.
+    apply H0.
+    apply image_axiom1'. simpl. exists q. split; auto.
   Qed.    
 
   Program Definition hom_mixin CL X Y :=
@@ -250,33 +296,18 @@ Module CPO.
 
   Canonical Structure CPO CL := Category (type CL) (hom CL) _ _ (cat_axioms CL).
 
-(*
-  Program Definition concrete CL : concrete (CPO CL) :=
-    Concrete
-      (CPO CL)
-      (@carrier CL)
-      (fun X => Eq.mixin (Preord_Eq (ord X)))
-      (@app CL)
-      _ _.
-  Next Obligation.
-    intros.
-    apply Eq.trans with (app f y).
-    change (ord_hom f#(x:ord A) ≈ ord_hom f#(y:ord A)).
-    apply preord_eq. auto.    
-    destruct H. simpl.
-    split; auto.
-  Qed.
-  Next Obligation.
-    intros. simpl. split; apply Preord.refl.
-  Qed.
-  Canonical Structure concrete.
-*)
-
   Lemma axiom : forall CL (A B:ob (CPO CL)) (f:A → B),
-    forall X, 
-      f (sup_op X) ≈ sup_op (image f X).
+    forall X, f (∐X) ≈ ∐(image f X).
   Proof.
-    intros. apply ord_antisym. apply cont.
+    intros. apply ord_antisym.
+    destruct (cont f (sup_op X) X).
+    split. apply sup_is_ub.
+    apply sup_is_least.
+    apply H0; auto.
+    repeat intro.
+    apply image_axiom2 in H1. destruct H1 as [q [??]].
+    simpl in H2. rewrite H2.
+    apply sup_is_ub. apply image_axiom1'. exists q; split; auto.
 
     apply sup_is_least.
     red. intros.
@@ -288,18 +319,12 @@ Module CPO.
     apply sup_is_ub; auto.
   Qed.
 
-  Lemma sup_is_lub : forall CL (A:type CL) (X:cl_eset CL (ord A)),
-    least_upper_bound (sup_op X) X.
-  Proof.
-    split. apply sup_is_ub. apply sup_is_least.
-  Qed.
-
   Section prod.  
     Variable CL:color.
     Variables A B:type CL.
 
     Program Definition prod_sup (X:cl_eset CL (prod_preord (ord A) (ord B))) : A*B :=
-      (sup_op (image π₁ X), sup_op (image π₂ X)).
+      (∐(image π₁ X), ∐(image π₂ X)).
 
     Program Definition prod_mixin : mixin_of CL (prod_preord (ord A) (ord B)) :=
       Mixin CL _ prod_sup _ _.
@@ -338,10 +363,20 @@ Module CPO.
     Next Obligation.
       simpl; intros.
       red; intros.
-      apply sup_is_least; repeat intro.
-      apply sup_is_ub.
-      apply image_axiom2 in H. destruct H as [y [??]].
-      apply image_axiom1'. exists y. split; auto.
+      split; simpl; repeat intro.
+      apply image_axiom2 in H0. destruct H0 as [q [??]].
+      simpl in H1. rewrite H1.
+      destruct H. apply H in H0.
+      destruct H0; auto.
+
+      destruct H.
+      destruct (H1 (b,snd lub)).
+      hnf; intros.
+      split; simpl; auto.
+      apply H0.
+      apply image_axiom1'. simpl. exists x. split; auto.
+      apply H in H2. destruct H2; auto.
+      simpl in *. auto.
     Qed.    
     
     Program Definition pi2 : prod_cpo → B :=
@@ -352,10 +387,20 @@ Module CPO.
     Next Obligation.
       simpl; intros.
       red; intros.
-      apply sup_is_least; repeat intro.
-      apply sup_is_ub.
-      apply image_axiom2 in H. destruct H as [y [??]].
-      apply image_axiom1'. exists y. split; auto.
+      split; simpl; repeat intro.
+      apply image_axiom2 in H0. destruct H0 as [q [??]].
+      simpl in H1. rewrite H1.
+      destruct H. apply H in H0.
+      destruct H0; auto.
+
+      destruct H.
+      destruct (H1 (fst lub, b)).
+      hnf; intros.
+      split; simpl; auto.
+      apply H in H2. destruct H2; auto.
+      apply H0.
+      apply image_axiom1'. simpl. exists x. split; auto.
+      simpl in *. auto.
     Qed.    
   End prod.
 
@@ -365,22 +410,27 @@ Module CPO.
     repeat intro. split; simpl; apply mono; auto.
   Qed.
   Next Obligation.
-    repeat intro. split; simpl.
-    etransitivity. apply cont.
-    apply sup_is_least; repeat intro.
-    apply sup_is_ub.
-    apply image_axiom2 in H. destruct H as [y [??]].
-    apply image_axiom1'. simpl in H0.
-    exists (f y, g y). split; auto.
-    apply image_axiom1'. exists y. split; auto.
-    etransitivity. apply cont.
-    apply sup_is_least; repeat intro.
-    apply sup_is_ub.
-    apply image_axiom2 in H. destruct H as [y [??]].
-    apply image_axiom1'. simpl in H0.
-    exists (f y, g y). split; auto.
-    apply image_axiom1'. exists y. split; auto.
-  Qed.
+    repeat intro. 
+    split; hnf; intros.
+    apply image_axiom2 in H0. destruct H0 as [y [??]]. simpl in *.
+    rewrite H1.
+    apply H in H0.
+    split; simpl. apply (mono f); auto. apply (mono g); auto.
+    simpl.
+    split; simpl.
+    destruct (cont f lub XS); auto.
+    apply H2. hnf; intros.
+    apply image_axiom2 in H3. destruct H3 as [q [??]]. 
+    destruct (H0 (f q, g q)).
+    apply image_axiom1'. simpl. exists q; split; auto.
+    simpl in H5. simpl in H4. rewrite H4; auto.
+    destruct (cont g lub XS); auto.
+    apply H2. hnf; intros.
+    apply image_axiom2 in H3. destruct H3 as [q [??]]. 
+    destruct (H0 (f q, g q)).
+    apply image_axiom1'. simpl. exists q; split; auto.
+    simpl in H6. simpl in H4. rewrite H4; auto.
+  Qed.    
 
 End CPO.
 
@@ -414,13 +464,11 @@ Canonical Structure hom_eq CL X Y:=
 Coercion CPO.ord : CPO.type >-> preord.
 Coercion CPO.ord_hom : CPO.hom >-> Preord.hom.
 
-Notation "∐ XS" := (@CPO.sup_op _ _ XS) (at level 10).
-
-Hint Resolve CPO.sup_is_lub.
+Notation "∐ XS" := (@CPO.sup_op _ _ (XS)%set) : cpo_scope.
 
 Arguments CPO.axiom [CL A B] f X.
 Arguments CPO.mono [CL A B] h a b _.
-Arguments CPO.cont [CL A B] h X.
+Arguments CPO.cont [CL A B] h lub XS _.
 Arguments CPO.continuous [CL A B] f.
 
 (**  Supremum is a monotone operation. *)
@@ -443,7 +491,7 @@ Class pointed (CL:color) (X:CPO.type CL) :=
   ; bottom_least : forall x, bottom ≤ x
   }.
 
-Notation "⊥" := (@bottom _ _ _).
+Notation "⊥" := (@bottom _ _ _) : cpo_scope.
 
 Arguments pointed [CL] X.
 Hint Resolve bottom_least.
@@ -657,7 +705,8 @@ Section lfp.
     split.
 
     unfold lfp, chain_sup.
-    etransitivity. apply CPO.cont.
+    simpl.
+    rewrite (CPO.axiom f (iter_chain false X ⊥ f _ _)).
     apply CPO.sup_is_least; simpl.
     hnf; simpl; intros.
     apply image_axiom2 in H. destruct H as [q [??]]. rewrite H0.

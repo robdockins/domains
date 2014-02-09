@@ -55,7 +55,7 @@ Program Definition dir_sys_app I C D
 
   DirSys I D
     (fun i => F (ds_F DS i))
-    (fun i j Hij => F@(ds_hom DS i j Hij))
+    (fun i j Hij => F·(ds_hom DS i j Hij))
     _ _.
 Next Obligation.
   intros.
@@ -74,7 +74,7 @@ Program Definition cocone_app I C D (DS:directed_system I C)
   (CC:cocone DS) (F:functor C D)
   : cocone (dir_sys_app DS F) :=
 
-  Cocone (dir_sys_app DS F) (F CC) (fun i => F@cocone_spoke CC i) _.
+  Cocone (dir_sys_app DS F) (F CC) (fun i => F·cocone_spoke CC i) _.
 Next Obligation.
   simpl; intros.
   rewrite <- (Functor.compose F). 2: reflexivity.
@@ -136,7 +136,7 @@ Section fixpoint.
     | S i' => fun j =>
         match j as j' return forall (Hij:S i' <= j'), iterF (S i') → iterF j' with
         | O => fun Hij => False_rect _ (HSle0 i' Hij) (* impossible case *)
-        | S j' => fun Hij => F@(iter_hom i' j' (gt_S_le i' j' Hij))
+        | S j' => fun Hij => F·(iter_hom i' j' (gt_S_le i' j' Hij))
         end
     end.
 
@@ -219,7 +219,7 @@ Section fixpoint.
     Fixpoint cata_hom' (i:nat) : iterF i → AG :=
       match i as i' return iterF i' → AG with
       | O => initiate
-      | S i' => Alg.iota AG ∘ F@(cata_hom' i')
+      | S i' => Alg.iota AG ∘ F·(cata_hom' i')
       end.
 
     Lemma cata_hom_iter_hom : forall (i j:nat_ord) (Hij:i≤j),
@@ -295,7 +295,7 @@ Section fixpoint.
     rewrite Functor.compose. 2: reflexivity.
     rewrite (cat_assoc _ _ _ _ _ (Alg.iota M)).
     rewrite <- (Alg.hom_axiom h). simpl.
-    repeat rewrite <- (@cat_assoc C).
+    repeat rewrite <- (cat_assoc C).
     apply cat_respects; auto.
     symmetry.
     apply (colim_commute BL cocone_plus1).

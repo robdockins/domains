@@ -13,6 +13,7 @@ Require Import plotkin.
 Require Import joinable.
 Require Import approx_rels.
 Require Import profinite.
+Require Import cpo.
 
 (**  * Adjoint relation between the pointed and unpointed domains.
 
@@ -270,8 +271,7 @@ Next Obligation.
   destruct H0 as [a' [c' [?[??]]]].  
   destruct H.
   apply H in H0.
-  simpl in H0.
-  apply compose_elem in H0.
+  apply PLT.compose_hom_rel in H0.
   destruct H0 as [b' [??]].
   exists (Some b').
   split.
@@ -280,10 +280,9 @@ Next Obligation.
   eauto.
   apply (liftPPLT_rel_elem _ _ (PLT.effective B) (PLT.hom_rel f)).
   right. eauto.
-  apply PLT.hom_order.
 
   destruct a as [a c].
-  apply compose_elem in H0.
+  apply PLT.compose_hom_rel in H0.
   destruct H0 as [b [??]]. simpl in b.
   apply (liftPPLT_rel_elem _ _ (PLT.effective A) (PLT.hom_rel g)) in H0.
   apply (liftPPLT_rel_elem _ _ (PLT.effective B) (PLT.hom_rel f)) in H1.
@@ -304,27 +303,6 @@ Next Obligation.
   exists y.
   split; auto.
   apply PLT.hom_order with x' y'; auto.
-  simpl. intros.
-  apply (liftPPLT_rel_elem _ _ (PLT.effective A) (PLT.hom_rel g)) in H3.
-  apply (liftPPLT_rel_elem _ _ (PLT.effective A) (PLT.hom_rel g)).
-  destruct H3. left.
-  split; auto.
-  rewrite H3 in H2; auto.
-  red; simpl; auto.
-  destruct H3 as [p [q [?[??]]]].  
-  destruct y'. 2: auto.
-  right.  
-  destruct x. destruct y.
-  destruct x'.
-  exists c3. exists c0. split; auto.
-  apply PLT.hom_order with p q; auto.
-  destruct H4.
-  transitivity c1; auto.
-  destruct H5.
-  transitivity c2; auto.
-  elim H1.
-  destruct H5. elim H6.
-  destruct H4. elim H6.
 Qed.
 Next Obligation.
   intros.  
@@ -430,11 +408,11 @@ Next Obligation.
   simpl; intros.
   split; hnf; simpl; intros.
   destruct a as [a b].
-  apply compose_elem in H.
+  apply PLT.compose_hom_rel in H.
   destruct H as [b' [??]].
+  simpl in H0.
   apply adj_unit_rel_elem in H0.
-  apply compose_elem.
-  apply adj_unit_hom_obligation_1.
+  apply PLT.compose_hom_rel.
   simpl.
   exists (Some a).
   split.
@@ -445,15 +423,13 @@ Next Obligation.
   exists a. exists c.
   split; auto.
   apply PLT.hom_order with a b'; auto.
-  apply PLT.hom_order.
   
   destruct a as [a b].
-  apply compose_elem in H.
+  apply PLT.compose_hom_rel in H.
   simpl in H.
   destruct H as [a' [??]].
   apply adj_unit_rel_elem in H.
-  apply compose_elem.
-  apply PLT.hom_order.
+  apply PLT.compose_hom_rel.
   apply (liftPPLT_rel_elem _ _ (PLT.effective A) (PLT.hom_rel f)) in H0.
   destruct H0.
   destruct (PLT.hom_directed _ _ _ f a nil).  
@@ -468,7 +444,6 @@ Next Obligation.
   apply PLT.hom_order with p q; auto.
   rewrite H1 in H. auto.
   apply adj_unit_rel_elem. auto.
-  apply adj_unit_hom_obligation_1.
 Qed.
 
 Definition adj_counit_rel (Y:ob ∂PLT) 
@@ -551,7 +526,7 @@ Next Obligation.
   intros.
   split; hnf; simpl; intros.
   destruct a as [a b].
-  apply compose_elem in H; simpl.
+  apply PLT.compose_hom_rel in H; simpl.
   simpl in H.
   destruct H as [b' [??]].
   apply (adj_counit_rel_elem B) in H0.
@@ -559,23 +534,20 @@ Next Obligation.
   destruct H.
   rewrite H in H0. elim H0.
   destruct H as [p [q [?[??]]]].  
-  apply compose_elem.
-  apply adj_counit_hom_obligation_1.
+  apply PLT.compose_hom_rel.
   rewrite H2 in H0.
   exists p.
   split.
   apply adj_counit_rel_elem.
   rewrite H1; auto.
   apply PLT.hom_order with p q; auto.
-  apply liftPPLT_map_obligation_1.
 
   destruct a as [a b].
-  apply compose_elem in H; simpl.
+  apply PLT.compose_hom_rel in H; simpl.
   destruct H as [a' [??]].  
   apply adj_counit_rel_elem in H.
   destruct a. 2: elim H.
-  apply compose_elem; simpl.
-  apply liftPPLT_map_obligation_1.
+  apply PLT.compose_hom_rel. simpl.
   exists (Some b).
   split.
   apply (liftPPLT_rel_elem _ _ (PLT.effective A) (PLT.hom_rel f)).
@@ -583,7 +555,6 @@ Next Obligation.
   exists c. exists b. split; auto.
   apply (PLT.hom_order _ _ _ f) with a' b; auto.
   apply adj_counit_rel_elem. auto.
-  apply adj_counit_hom_obligation_1.
 Qed.
 
 Program Definition adj_counit_inv_hom Y : Y → forgetPLT (liftPPLT Y) :=
@@ -609,40 +580,35 @@ Next Obligation.
 Qed.
 
 Lemma adj_counit_inv_ntish : forall A B f,
-  adj_counit_inv_hom B ∘ f ≤ forgetPLT@(liftPPLT@ f) ∘ adj_counit_inv_hom A.
+  adj_counit_inv_hom B ∘ f ≤ forgetPLT·liftPPLT·f ∘ adj_counit_inv_hom A.
 Proof.
   intros. hnf; simpl; intros.
   destruct a as [a b].
-  apply compose_elem in H.
-  apply compose_elem. simpl.
-  intros. apply adj_unit_rel_elem in H2.
-  apply adj_unit_rel_elem.
-  transitivity y; auto.
-  transitivity (Some x); auto.
-  simpl.
-  destruct H as [y [??]].
+  apply PLT.compose_hom_rel in H.
+  apply PLT.compose_hom_rel. simpl.
   exists (Some a). split.
   apply adj_unit_rel_elem; auto.
   apply (liftPPLT_rel_elem _ _ (PLT.effective A) (PLT.hom_rel f)).
+  destruct H as [y [??]].
+  simpl in H0.
   apply adj_unit_rel_elem in H0.
   destruct b; auto.
   right.
   exists a. exists c. split; auto.
   apply PLT.hom_order with a y; auto.
-  apply PLT.hom_order.
 Qed.
 
 Lemma adj_counit_inv_le Y : adj_counit_inv_hom Y ∘ adj_counit Y ≤ id.
 Proof.
   hnf; simpl; intros.
   destruct a as [y y'].
-  apply compose_elem in H.
-  destruct H as  [y'' [??]].
+  apply PLT.compose_hom_rel in H.
+  destruct H as [y'' [??]].
   apply adj_counit_rel_elem in H.
+  simpl in H0.
   apply adj_unit_rel_elem in H0. 
   apply ident_elem.
   transitivity (Some y''); auto.
-  apply adj_counit_hom_obligation_1.
 Qed.
 
 Lemma adj_counit_inv_largest Y : forall f,
@@ -652,9 +618,7 @@ Proof.
   destruct a.
   apply adj_unit_rel_elem.
   assert ((Some c, o) ∈ PLT.hom_rel (f ∘ adj_counit_hom Y)).
-  simpl.
-  apply compose_elem.
-  apply adj_counit_hom_obligation_1.
+  apply (PLT.compose_hom_rel _ _ _ _ (adj_counit_hom Y) f).
   exists c. split; auto.
   apply adj_counit_rel_elem. auto.
   apply H in H1.
@@ -666,7 +630,7 @@ Lemma adj_counit_inv_eq Y : adj_counit Y ∘ adj_counit_inv_hom Y ≈ id.
 Proof.
   split; hnf; simpl; intros.
   destruct a as [y y'].
-  apply compose_elem in H.
+  apply PLT.compose_hom_rel in H.
   simpl in H.
   destruct H as  [y'' [??]].
   apply adj_unit_rel_elem in H.
@@ -675,21 +639,10 @@ Proof.
   destruct y''.
   transitivity c; auto.
   elim H0.
-  simpl. intros.
-  apply adj_unit_rel_elem in H2.
-  apply adj_unit_rel_elem.
-  transitivity y0; auto.
-  transitivity (Some x); auto.
 
   destruct a as [y y'].
   apply ident_elem in H.
-  apply compose_elem.
-  simpl; intros.
-  apply adj_unit_rel_elem in H2.
-  apply adj_unit_rel_elem.
-  transitivity y0; auto.
-  transitivity (Some x); auto.
-  simpl.  
+  apply PLT.compose_hom_rel.
   exists (Some y').
   split.
   apply adj_unit_rel_elem. auto.
@@ -698,24 +651,24 @@ Qed.
 
 Lemma adj_inv_eq : forall A B (f:A → liftPPLT B),
   (forall a, exists b, (a, Some b) ∈ PLT.hom_rel f) ->
-  adj_counit_inv_hom B ∘ adj_counit B ∘ forgetPLT@f ≈ forgetPLT@f.
+  adj_counit_inv_hom B ∘ adj_counit B ∘ forgetPLT·f ≈ forgetPLT·f.
 Proof.
   intros. split.
-  transitivity (id ∘ forgetPLT@f).
+  transitivity (id ∘ forgetPLT·f).
   apply PLT.compose_mono. auto.
   apply adj_counit_inv_le.
   rewrite (cat_ident2 ∂PLT). auto.
   hnf. intros [x y] H0.
-  apply compose_hom_rel.
+  apply PLT.compose_hom_rel.
   destruct y.
   exists (Some c). split; auto.
-  apply compose_hom_rel. simpl.
+  apply PLT.compose_hom_rel.
   exists c. split.
   apply adj_counit_rel_elem. auto.
   apply adj_unit_rel_elem. auto.
   destruct (H x) as [y ?].
   exists (Some y). split; auto.
-  apply compose_hom_rel.
+  apply PLT.compose_hom_rel.
   exists y. split.
   apply adj_counit_rel_elem. auto.
   apply adj_unit_rel_elem. hnf. auto.
@@ -728,18 +681,16 @@ Next Obligation.
   split; hnf; simpl; intros.
   destruct a as [a a'].
   apply ident_elem. 
-  apply compose_elem in H; simpl in *.
+  apply PLT.compose_hom_rel in H; simpl in *.
   destruct H as [y [??]].  
   apply adj_unit_rel_elem in H.
   apply (adj_counit_rel_elem (forgetPLT_ob A)) in H0.
   change (Some a' ≤ Some a).
   transitivity y; auto.
-  apply adj_unit_hom_obligation_1.
 
   destruct a as [a a'].
   apply ident_elem in H.
-  apply compose_elem; simpl in *.
-  apply adj_unit_hom_obligation_1.
+  apply PLT.compose_hom_rel; simpl in *.
   exists (Some a).
   split.
   apply adj_unit_rel_elem. auto.
@@ -750,7 +701,7 @@ Next Obligation.
   split; hnf; simpl; intros.
   destruct a as [a a'].
   apply ident_elem. 
-  apply compose_elem in H; simpl in *.
+  apply PLT.compose_hom_rel in H; simpl in *.
   destruct H as [y [??]].  
   apply adj_unit_rel_elem in H.
   apply (liftPPLT_rel_elem _ _ (PLT.effective _) (adj_counit_rel A)) in H0.
@@ -761,14 +712,10 @@ Next Obligation.
   apply (adj_counit_rel_elem A) in H0.
   transitivity p; auto.
   rewrite H1 in H. auto.
-  simpl; intros.
-  eapply adj_unit_hom_obligation_1; eauto.
   
   destruct a as [a a'].
   apply ident_elem in H.  
-  apply compose_elem; simpl in *.
-  simpl; intros.
-  eapply adj_unit_hom_obligation_1; eauto.
+  apply PLT.compose_hom_rel; simpl in *.
   exists (Some a).  
   split.
   apply adj_unit_rel_elem. auto.
@@ -783,8 +730,60 @@ Next Obligation.
   elim H.  
 Qed.
 
-Lemma liftPPLT_reflects : forall (X Y:ob ∂PLT) (f f':X → Y),
-  liftPPLT@f ≤ liftPPLT@f' -> f ≤ f'.
+Notation U := liftPPLT.
+Notation L := forgetPLT.
+Notation ε := (adj_counit _).
+Notation η := (adj_unit _).
+Notation γ := (adj_counit_inv_hom _).
+
+Definition plt_hom_adj (X:PLT) (Y:∂PLT) (f:X → U Y) : L X → Y 
+  := ε ∘ L·f.
+ 
+Definition plt_hom_adj' (X:PLT) (Y:∂PLT) (f:L X → Y) : X → U Y
+  := U·f ∘ η.
+
+Arguments plt_hom_adj [X Y] f.
+Arguments plt_hom_adj' [X Y] f.
+
+Notation Ψ := plt_hom_adj.
+Notation "Ψ⁻¹" := plt_hom_adj'.
+
+Lemma plt_hom_adj1 (X:PLT) (Y:∂PLT) (f:X → U Y) : Ψ⁻¹ (Ψ f) ≈ f.
+Proof.
+  unfold plt_hom_adj, plt_hom_adj'.
+  rewrite (Functor.compose U). 2: reflexivity.
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (NT.axiom adj_unit f).
+  rewrite (cat_assoc PLT).
+  generalize (Adjunction.adjoint_axiom2 PLT_adjoint Y); simpl; intros.
+  rewrite H. apply cat_ident2.
+Qed.
+
+Lemma plt_hom_adj2 (X:PLT) (Y:∂PLT) (f:L X → Y) : Ψ (Ψ⁻¹ f) ≈ f.
+Proof.
+  unfold plt_hom_adj, plt_hom_adj'.
+  rewrite (Functor.compose L). 2: reflexivity.
+  rewrite (cat_assoc ∂PLT).
+  rewrite (NT.axiom adj_counit f).
+  rewrite <- (cat_assoc ∂PLT).
+  generalize (Adjunction.adjoint_axiom1 PLT_adjoint X); simpl; intros.
+  rewrite H. apply cat_ident1.
+Qed.
+
+Lemma U_mono : forall (X Y:ob ∂PLT) (f f':X → Y),
+  f ≤ f' -> U·f ≤ U·f'.
+Proof.
+  repeat intro; simpl in *.
+  destruct a as [x y].
+  apply (liftPPLT_rel_elem _ _ _ (PLT.hom_rel f)) in H0.
+  apply (liftPPLT_rel_elem _ _ _ (PLT.hom_rel f')).
+  destruct H0; auto. right.
+  destruct H0 as [a [b [?[??]]]].
+  exists a. exists b. split; auto.
+Qed.  
+
+Lemma U_reflects : forall (X Y:ob ∂PLT) (f f':X → Y),
+  U·f ≤ U·f' -> f ≤ f'.
 Proof.
   repeat intro; simpl in *.
   destruct a as [x y].
@@ -802,63 +801,69 @@ Proof.
   split; split; auto.
 Qed.
 
-Lemma liftPPLT_mono : forall (X Y:ob ∂PLT) (f f':X → Y),
-  f ≤ f' -> liftPPLT@f ≤ liftPPLT@f'.
-Proof.
-  repeat intro; simpl in *.
-  destruct a as [x y].
-  apply (liftPPLT_rel_elem _ _ _ (PLT.hom_rel f)) in H0.
-  apply (liftPPLT_rel_elem _ _ _ (PLT.hom_rel f')).
-  destruct H0; auto. right.
-  destruct H0 as [a [b [?[??]]]].
-  exists a. exists b. split; auto.
-Qed.  
-
-Lemma forgetPLT_mono : forall (X Y:ob PLT) (f f':X → Y),
-  f ≤ f' -> forgetPLT@f ≤ forgetPLT@f'.
+Lemma L_mono : forall (X Y:ob PLT) (f f':X → Y),
+  f ≤ f' -> L·f ≤ L·f'.
 Proof.
   auto.
 Qed.
 
-Lemma forgetPLT_reflects : forall (X Y:ob PLT) (f f':X → Y),
-  forgetPLT@f ≤ forgetPLT@f' -> f ≤ f'.
+Lemma L_reflects : forall (X Y:ob PLT) (f f':X → Y),
+  L·f ≤ L·f' -> f ≤ f'.
 Proof.
   auto.
 Qed.
 
-Require Import cpo.
+Lemma Psi_mono (X:PLT) (Y:∂PLT) (f g:X → U Y) :
+  f ≤ g -> Ψ f ≤ Ψ g.
+Proof.
+  unfold plt_hom_adj. intros.
+  apply PLT.compose_mono; auto.
+Qed.
 
-Notation U := liftPPLT.
-Notation L := forgetPLT.
 
-Lemma lift_plt_bottom_least (X:PLT) (Y:∂PLT) (f:X → liftPPLT Y) :
-  liftPPLT@⊥ ∘ adj_unit X ≤ f.
+Lemma Psi_inv_mono (X:PLT) (Y:∂PLT) (f g:L X → Y) :
+  f ≤ g -> Ψ⁻¹ f ≤ Ψ⁻¹ g.
+Proof.
+  unfold plt_hom_adj'. intros.
+  apply PLT.compose_mono; auto.
+  apply U_mono. auto.
+Qed.
+
+Lemma Psi_reflects (X:PLT) (Y:∂PLT) (f g:X → U Y) :
+  Ψ f ≤ Ψ g -> f ≤ g.
 Proof.
   intros.
-  transitivity
-    (liftPPLT@(adj_counit Y ∘ forgetPLT@f) ∘ adj_unit X).
-  apply PLT.compose_mono. auto.
-  apply liftPPLT_mono.
+  rewrite <- (plt_hom_adj1 X Y f).
+  rewrite <- (plt_hom_adj1 X Y g).
+  apply Psi_inv_mono; auto.
+Qed.
+
+Lemma Psi_inv_reflects (X:PLT) (Y:∂PLT) (f g:L X → Y) :
+  Ψ⁻¹ f ≤ Ψ⁻¹ g -> f ≤ g.
+Proof.
+  intros.
+  rewrite <- (plt_hom_adj2 X Y f).
+  rewrite <- (plt_hom_adj2 X Y g).
+  apply Psi_mono; auto.
+Qed.
+
+Lemma U_bottom_least (X:PLT) (Y:∂PLT) (f:X → U Y) :
+  Ψ⁻¹ ⊥ ≤ f.
+Proof.
+  intros.
+  apply Psi_reflects.
+  rewrite plt_hom_adj2.
   apply bottom_least.
-  rewrite Functor.compose. 2: reflexivity.
-  rewrite <- (cat_assoc PLT).
-  rewrite <- (NT.axiom adj_unit f).
-  rewrite (cat_assoc PLT).
-  rewrite (Adjunction.adjoint_axiom2 PLT_adjoint Y).
-  rewrite (cat_ident2 PLT). auto.
 Qed.
 
 Instance lift_plt_pointed (X:PLT) (Y:∂PLT) : 
   pointed (PLT.homset_cpo _ X (liftPPLT Y)) :=
-  { bottom := liftPPLT @ ⊥ ∘ adj_unit X
-  ; bottom_least := lift_plt_bottom_least X Y
+  { bottom := Ψ⁻¹ ⊥
+  ; bottom_least := U_bottom_least X Y
   }.
 
-Program Definition lift_unit :
-  PLT.unit true → forgetPLT (PLT.unit false)
-  := PLT.Hom true (PLT.unit true) (forgetPLT (PLT.unit false))
-          (ident_rel effective_unit)
-          _ _.
+Program Definition lift_unit : 1 → L 1
+  := PLT.Hom true 1 (L 1) (ident_rel effective_unit) _ _.
 Next Obligation.        
   intros. eapply ident_ordering; eauto.
 Qed.
@@ -866,11 +871,8 @@ Next Obligation.
   intros. apply ident_image_dir.
 Qed.
  
-Program Definition lift_unit' :
-  forgetPLT (PLT.unit false) → PLT.unit true
-  := PLT.Hom true (forgetPLT (PLT.unit false)) (PLT.unit true) 
-          (ident_rel effective_unit)
-          _ _.
+Program Definition lift_unit' : L 1 → 1
+  := PLT.Hom true (L 1) 1 (ident_rel effective_unit) _ _.
 Next Obligation.        
   intros. eapply ident_ordering; eauto.
 Qed.
@@ -884,7 +886,7 @@ Proof.
   destruct a. destruct c. destruct c0.
   simpl. apply ident_elem. auto.
   destruct a. destruct c. destruct c0.
-  apply compose_hom_rel. exists tt.
+  apply PLT.compose_hom_rel. exists tt.
   split; simpl; apply ident_elem; auto.
 Qed.
 
@@ -894,14 +896,12 @@ Proof.
   destruct a. destruct c. destruct c0.
   simpl. apply ident_elem. auto.
   destruct a. destruct c. destruct c0.
-  apply compose_hom_rel. exists tt.
+  apply PLT.compose_hom_rel. exists tt.
   split; simpl; apply ident_elem; auto.
 Qed.
 
-Program Definition lift_prod (A B:PLT) :
-  PLT.prod (forgetPLT A) (forgetPLT B) → forgetPLT (PLT.prod A B)
-  := PLT.Hom true
-          (PLT.prod (forgetPLT A) (forgetPLT B)) (forgetPLT (PLT.prod A B))
+Program Definition lift_prod (A B:PLT) : (L A ⊗ L B) → L (A × B)
+  := PLT.Hom true (L A ⊗ L B) (L (A × B))
           (ident_rel (effective_prod (PLT.effective A) (PLT.effective B)))
           _ _.
 Next Obligation.  
@@ -911,10 +911,8 @@ Next Obligation.
   intros. apply ident_image_dir.
 Qed.
 
-Program Definition lift_prod' (A B:PLT) :
-  forgetPLT (PLT.prod A B) → PLT.prod (forgetPLT A) (forgetPLT B)
-  := PLT.Hom true
-          (forgetPLT (PLT.prod A B)) (PLT.prod (forgetPLT A) (forgetPLT B)) 
+Program Definition lift_prod' (A B:PLT) : L (A × B) → L A ⊗ L B 
+  := PLT.Hom true (L (A × B)) (L A ⊗ L B)
           (ident_rel (effective_prod (PLT.effective A) (PLT.effective B)))
           _ _.
 Next Obligation.  
@@ -928,12 +926,12 @@ Lemma lift_prod_id1 A B : lift_prod A B ∘ lift_prod' A B ≈ id.
 Proof.
   split; hnf; intros.
   destruct a.
-  apply compose_hom_rel in H.
+  apply PLT.compose_hom_rel in H.
   destruct H as [q [??]].
   simpl in *. apply ident_elem in H. apply ident_elem in H0.
   apply ident_elem. transitivity q; auto.
   destruct a.
-  apply compose_hom_rel.
+  apply PLT.compose_hom_rel.
   simpl. exists c0.
   simpl in *. apply ident_elem in H.
   split; apply ident_elem; auto.
@@ -943,48 +941,51 @@ Lemma lift_prod_id2 A B : lift_prod' A B ∘ lift_prod A B ≈ id.
 Proof.
   split; hnf; intros.
   destruct a.
-  apply compose_hom_rel in H.
+  apply PLT.compose_hom_rel in H.
   destruct H as [q [??]].
   simpl in *. apply ident_elem in H. apply ident_elem in H0.
   apply ident_elem. transitivity q; auto.
   destruct a.
-  apply compose_hom_rel.
+  apply PLT.compose_hom_rel.
   simpl. exists c0.
   simpl in *. apply ident_elem in H.
   split; apply ident_elem; auto.
 Qed.
 
+Local Transparent PLT.pair.
+
 Lemma lift_prod_pair C A B (f:C → A) (g:C → B) :
-  lift_prod A B ∘ PLT.pair (forgetPLT@f) (forgetPLT@g) ≈ forgetPLT@(PLT.pair f g).
+  lift_prod A B ∘ 《L·f, L·g》 ≈ L·〈f, g〉.
 Proof.
   split; hnf; intros.
   destruct a.
-  apply compose_hom_rel in H.
+  apply PLT.compose_hom_rel in H.
   destruct H as [q [??]].
   simpl in H0.
   apply ident_elem in H0.
   revert H. simpl.
+  simpl.
   apply pair_rel_ordering; auto.
   apply PLT.hom_order.
   apply PLT.hom_order.
   destruct a.
-  apply compose_hom_rel.
+  apply PLT.compose_hom_rel.
   exists c0.  
   split. auto.
   simpl. apply ident_elem. auto.
 Qed.
 
 Lemma lift_prod_pair' C A B (f:C → A) (g:C → B) :
-  PLT.pair (forgetPLT@f) (forgetPLT@g) ≈ lift_prod' A B ∘ forgetPLT@(PLT.pair f g).
+  《L·f, L·g》 ≈ lift_prod' A B ∘ L·〈f, g〉.
 Proof.
   split; hnf; intros.
   destruct a.
-  apply compose_hom_rel.
+  apply PLT.compose_hom_rel.
   exists c0.  
   split. auto.
   simpl. apply ident_elem. auto.
   destruct a.
-  apply compose_hom_rel in H.
+  apply PLT.compose_hom_rel in H.
   destruct H as [q [??]].
   simpl in H0.
   apply ident_elem in H0.
@@ -1001,23 +1002,16 @@ Qed.
 
 Section strictify.
   Variables X Y:ob ∂PLT.
-  Variable f: liftPPLT X → liftPPLT Y.  
+  Variable f: U X → U Y.  
 
-  Let strictify := adj_counit Y ∘ forgetPLT@f ∘ adj_counit_inv_hom X.
+  Let strictify := ε ∘ L·f ∘ γ.
 
-  Lemma f_explode : liftPPLT@(adj_counit Y ∘ forgetPLT@f) ∘ adj_unit (liftPPLT X) ≈ f.
-    rewrite Functor.compose. 2: reflexivity.
-    rewrite <- (cat_assoc _ _ _ _ _ (liftPPLT@adj_counit Y)).
-    rewrite <- (NT.axiom adj_unit f).
-    rewrite (cat_assoc _ _ _ _ _ (liftPPLT@adj_counit Y)).
-    generalize (Adjunction.adjoint_axiom2 PLT_adjoint Y).
-    intros. simpl in H.
-    rewrite H.
-    rewrite (cat_ident2 _ _ _ (id@f)).
-    auto.
+  Lemma f_explode : U·(ε ∘ L·f) ∘ η ≈ f.
+  Proof.
+    apply plt_hom_adj1.
   Qed.
 
-  Lemma strictify_le : liftPPLT@strictify ≤ f.
+  Lemma strictify_le : U·strictify ≤ f.
   Proof.  
     unfold strictify.
     rewrite Functor.compose. 2: reflexivity.
@@ -1028,28 +1022,27 @@ Section strictify.
     intro.
     generalize (H X).
     intros.
-    transitivity
-      (liftPPLT@adj_counit_inv_hom X ∘ id (liftPPLT X)).
-    rewrite (cat_ident1 _ _ _ (liftPPLT@adj_counit_inv_hom X)). auto.
+    transitivity (U·adj_counit_inv_hom X ∘ id (U X)).
+    rewrite (cat_ident1 _ _ _ (U·adj_counit_inv_hom X)). auto.
     rewrite <- H0.
     simpl.
-    rewrite (cat_assoc _ _ _ _ _ (liftPPLT@adj_counit_inv_hom X)).
-    rewrite <- (Functor.compose liftPPLT). 2: reflexivity.
-    transitivity (id ∘ adj_unit_hom (liftPPLT_ob X)).
+    rewrite (cat_assoc _ _ _ _ _ (U·adj_counit_inv_hom X)).
+    rewrite <- (Functor.compose U). 2: reflexivity.
+    transitivity (id ∘ adj_unit_hom (U X)).
     apply PLT.compose_mono. auto.
-    transitivity (liftPPLT@(id (forgetPLT (liftPPLT X)))).
-    apply liftPPLT_mono.
+    transitivity (U·(id (L(U(X))))).
+    apply U_mono.
     apply adj_counit_inv_le.
     rewrite Functor.ident; auto.
     rewrite (cat_ident2 _ _ _ (adj_unit_hom _)). auto.
     auto.        
   Qed.    
 
-  Lemma strictify_largest : forall q, liftPPLT@q ≤ f -> q ≤ strictify.
+  Lemma strictify_largest : forall q, U·q ≤ f -> q ≤ strictify.
   Proof.
     intros.
     unfold strictify.
-    transitivity (adj_counit Y ∘ forgetPLT@(liftPPLT@q) ∘ adj_counit_inv_hom X).
+    transitivity (adj_counit Y ∘ L·U·q ∘ adj_counit_inv_hom X).
     transitivity (adj_counit Y ∘ adj_counit_inv_hom Y ∘ q).
     rewrite (adj_counit_inv_eq Y).
     rewrite (cat_ident2 _ _ _ q). auto.
@@ -1064,6 +1057,38 @@ Section strictify.
   Qed.
 End strictify.
 
+Lemma U_hom_rel (A B:∂PLT) (f:A → B) (a:U A) (b:U B) :
+  (a,b) ∈ PLT.hom_rel (U·f) <->
+  (b = None \/ exists a' b', (a',b') ∈ PLT.hom_rel f /\ a = Some a' /\ b = Some b').
+Proof.
+  simpl. split; intros.
+  rewrite  (liftPPLT_rel_elem _ _ _ _ a b) in H.
+  destruct H.
+  destruct b; auto.
+  destruct H. elim H.
+  destruct H as [p [q [?[??]]]].
+  right.
+  destruct a.
+  destruct b.
+  exists c. exists c0. split; auto.
+  revert H. apply PLT.hom_order; auto.
+  destruct H1. elim H2.
+  destruct H0. elim H2.
+  apply liftPPLT_rel_elem.
+  destruct H. subst b; auto.
+  destruct H as [p [q [?[??]]]].
+  subst a b.
+  right.   eauto.
+Qed.
+
+Lemma L_hom_rel (A B:PLT) (f:A → B) (a:L A) (b:L B) :
+  (a,b) ∈ PLT.hom_rel (L·f) <-> (a,b) ∈ PLT.hom_rel f.
+Proof.
+  split; auto.
+Qed.
+
+Definition lift (X:PLT) : PLT := U (L X).
+Definition colift (X:∂PLT) : ∂PLT := L (U X).
+
 Global Opaque liftPPLT.
 Global Opaque forgetPLT.
-

@@ -15,11 +15,16 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import cpo.
 
+Delimit Scope plt_scope with plt.
+Open Scope plt_scope.
+
 (**  * Categories of profinite domains, expressed as Plotkin orders
 
-     Here we define the category PLT of effective Plotkin orders,
-     which is equivalant to the category of profinite domains via
-     ideal completion.
+     Here we define both the category PLT of effective Plotkin orders,
+     and the category ∂PLT of partial Plotkin orders.  PLT is 
+     is equivalant to the category of profinite domains via
+     ideal completion, and ∂PLT is equivalant to the category of
+     pointed profinite domains with strict continuous functions.
 
      The objects of PLT are the effective Plotkin orders, and the
      arrows are approximable relations.  The objects and characteristic
@@ -28,7 +33,7 @@ Require Import cpo.
 
      PLT is DCPO-enriched, which means that each homset is equipped
      with a DCPO.  In addition the composition operation is
-     continuous in both arguments. (FIXME, prove this)
+     continuous in both arguments.
   *)
 
 Module PLT.
@@ -372,7 +377,7 @@ Section PLT.
     apply hom_order.
   Qed.
 
-  Theorem pair_commute1 C A B (f:C → A) (g:C → B) :
+  Theorem pair_le_commute1 C A B (f:C → A) (g:C → B) :
     pi1 ∘ pair f g ≤ f.
   Proof.
     apply pair_proj_commute1_le.
@@ -380,7 +385,7 @@ Section PLT.
     apply PLT.hom_order.
   Qed.
 
-  Theorem pair_commute2 C A B (f:C → A) (g:C → B) :
+  Theorem pair_le_commute2 C A B (f:C → A) (g:C → B) :
     pi2 ∘ pair f g ≤ g.
   Proof.
     apply pair_proj_commute2_le.
@@ -396,10 +401,10 @@ Section PLT.
     apply pair_universal_le.
     rewrite (cat_assoc _ _ _ _ _ pi1).
     apply compose_mono; auto.
-    apply pair_commute1.
+    apply pair_le_commute1.
     rewrite (cat_assoc _ _ _ _ _ pi2).
     apply compose_mono; auto.
-    apply pair_commute2.
+     apply pair_le_commute2.
     hnf; simpl; intros.
     destruct a as  [d [a b]].
     rewrite (pair_rel_elem _ _ _ (effective D) (compose_rel (effective C) f h) (compose_rel (effective C) g h) d a b) in H.
@@ -439,12 +444,12 @@ Section PLT.
     app ∘ pair_map (curry f) id ≈ f.
   Proof.
     rewrite pair_map_eq.
-    apply curry_apply. 
+    apply curry_apply.
     apply hom_directed. 
     apply plotkin.
   Qed.
 
-  Theorem pair_monotone (C A B:ob) (f f':C → A) (g g':C → B) :
+  Theorem pair_mono (C A B:ob) (f f':C → A) (g g':C → B) :
     f ≤ f' -> g ≤ g' -> pair f g ≤ pair f' g'.
   Proof.
     repeat intro.
@@ -457,10 +462,10 @@ Section PLT.
   Theorem pair_eq (C A B:ob) (f f':C → A) (g g':C → B) :
     f ≈ f' -> g ≈ g' -> pair f g ≈ pair f' g'.
   Proof.
-    intros. split; apply pair_monotone; auto.
+    intros. split; apply pair_mono; auto.
   Qed.
 
-  Theorem sum_cases_monotone (C A B:ob) (f f':A → C) (g g':B → C) :
+  Theorem sum_cases_mono (C A B:ob) (f f':A → C) (g g':B → C) :
     f ≤ f' -> g ≤ g' -> sum_cases f g ≤ sum_cases f' g'.
   Proof.
     repeat intro.
@@ -473,10 +478,10 @@ Section PLT.
   Theorem sum_cases_eq (C A B:ob) (f f':A → C) (g g':B → C) :
     f ≈ f' -> g ≈ g' -> sum_cases f g ≈ sum_cases f' g'.
   Proof.
-    intros. split; apply sum_cases_monotone; auto.
+    intros. split; apply sum_cases_mono; auto.
   Qed.
 
-  Theorem curry_monotone (C A B:ob) (f f':prod C A → B) :
+  Theorem curry_mono (C A B:ob) (f f':prod C A → B) :
     f ≤ f' -> curry f ≤ curry f'.
   Proof.
     repeat intro. destruct a as [c R].
@@ -490,7 +495,7 @@ Section PLT.
   Theorem curry_eq (C A B:ob) (f f':prod C A → B) :
     f ≈ f' -> curry f ≈ curry f'.
   Proof.
-    intros; split; apply curry_monotone; auto.
+    intros; split; apply curry_mono; auto.
   Qed.
 
   Theorem pair_map_pair C X Y Z W (f1:C → X) (f2:X → Y) (g1:C → Z) (g2:Z → W) :
@@ -611,6 +616,59 @@ Section PLT.
   Definition cocartesian :=
     Cocartesian ob hom hom_eq_mixin comp_mixin cat_axioms initialized_mixin cocartesian_mixin.
 
+  Lemma compose_hom_rel : forall (A B C:PLT) (f:A → B) (g:B → C) x z,
+    (x,z) ∈ PLT.hom_rel (g ∘ f) <-> 
+    exists y, (x,y) ∈ PLT.hom_rel f /\ (y,z) ∈ PLT.hom_rel g.
+  Proof.
+    simpl; intros.
+    split; intros.
+    apply compose_elem in H. auto.
+    apply PLT.hom_order.
+    apply compose_elem. apply PLT.hom_order.
+    auto.
+  Qed.
+
+  Lemma pair_hom_rel : forall (A B C:PLT) (f:C → A) (g:C → B) c a b ,
+    (c,(a,b)) ∈ hom_rel (pair f g) <-> (c,a) ∈ hom_rel f /\ (c,b) ∈ hom_rel g.
+  Proof.
+    simpl; intros.
+    rewrite pair_rel_elem. intuition.
+  Qed.
+
+  Lemma sum_cases_hom_rel : forall (A B C:PLT) (f:A → C) (g:B → C) c z,
+    (z,c) ∈ hom_rel (sum_cases f g) <->
+        match z with
+        | inl a => (a,c) ∈ hom_rel f
+        | inr b => (b,c) ∈ hom_rel g
+        end.
+  Proof.
+    simpl; intros.
+    rewrite (sum_cases_elem _ _ _ (hom_rel f) (hom_rel g) z c). intuition.
+  Qed.
+
+  Lemma curry_hom_rel : forall (A B C:PLT) (f:prod C A → B) c R,
+    (c,R) ∈ hom_rel (curry f) <-> 
+    (forall a b, (a,b) ∈ proj1_sig R -> ((c,a),b) ∈ hom_rel f).
+  Proof.
+    intros. simpl.
+    rewrite (curry_rel_elem _ _ _ _ _ _ _ _ f (hom_order _ _ f) c R).
+    split; auto.
+  Qed.
+
+  Lemma app_hom_rel : forall (A B:PLT) R x y,
+    ((R,x),y) ∈ hom_rel (@app A B) <-> 
+    exists x' y', (x',y') ∈ proj1_sig R /\ x' ≤ x /\ y ≤ y'.
+  Proof.
+    intros. simpl.
+    rewrite (apply_rel_elem _ _ _ _ _ _ x y R). split; auto.
+  Qed.
+
+  Global Opaque compose.
+  Global Opaque pair.
+  Global Opaque sum_cases.
+  Global Opaque curry.  
+  Global Opaque app.
+
   Section homset_cpo.
     Variables A B:ob.
 
@@ -721,6 +779,99 @@ Section PLT.
       CPO.Pack _ (hom A B) (hom_ord_mixin A B) homset_cpo_mixin.
   End homset_cpo.
 End PLT.
+
+Theorem pair_commute1 (C A B:PLT false) (f:C → A) (g:C → B) :
+  pi1 false ∘ pair false f g ≈ f.
+Proof.
+  apply pair_proj_commute1.
+  apply PLT.hom_order.
+  apply PLT.hom_order.
+  apply PLT.hom_directed.
+Qed.
+
+Theorem pair_commute2 (C A B:PLT false) (f:C → A) (g:C → B) :
+  pi2 false ∘ pair false f g ≈ g.
+Proof.
+  apply pair_proj_commute2.
+  apply PLT.hom_order.
+  apply PLT.hom_order.
+  apply PLT.hom_directed.
+Qed.
+
+Program Definition terminated_mixin
+  := Terminated.Mixin (ob false) (hom false) 
+       (hom_eq_mixin false)
+       (unit false) (terminate false) _.
+Next Obligation.
+  intros. split.
+  apply terminate_le_univ.
+  hnf; simpl; intros.
+  destruct a.
+  destruct (hom_directed _ _ _ f c nil). hnf; auto.
+  simpl. red; intros. apply nil_elem in H0. elim H0.
+  destruct H0. apply erel_image_elem in H1.
+  revert H1; apply hom_order; auto.
+  hnf. auto.
+Qed.
+
+Program Definition cartesian_mixin
+  := Cartesian.Mixin (ob false) (hom false) 
+       (hom_eq_mixin false) (comp_mixin false)
+       (prod false) (@pi1 false) (@pi2 false)
+       (@pair false) _.
+Next Obligation.
+  constructor.
+  apply pair_commute1.
+  apply pair_commute2.
+  apply pair_universal.
+Qed.
+
+Program Definition cartesian_closed_mixin
+  := CartesianClosed.Mixin (ob false) (hom false) 
+       (hom_eq_mixin false) (comp_mixin false)
+       (cat_axioms false)
+       terminated_mixin
+       cartesian_mixin 
+       (exp false) (@curry false) (@app false)
+       _.
+Next Obligation.
+  constructor.
+  intros. 
+  generalize (curry_apply false A B C f).
+  intros. 
+  etransitivity. 2: apply H.
+  apply cat_respects; auto.
+  unfold pair_map.
+  apply pair_eq; auto.
+  symmetry. apply cat_ident2.
+  intros.
+  apply curry_universal.
+  etransitivity. 2: apply H.
+  apply cat_respects; auto.
+  unfold pair_map.
+  apply pair_eq; auto.
+  apply cat_ident2.
+Qed.
+
+Definition terminated :=
+  Terminated (ob false) (hom false) 
+       (hom_eq_mixin false) (comp_mixin false)
+       (cat_axioms false)
+       terminated_mixin.
+Definition cartesian :=
+  Cartesian (ob false) (hom false) 
+       (hom_eq_mixin false) (comp_mixin false)
+       (cat_axioms false)
+       terminated_mixin
+       cartesian_mixin.
+Definition cartesian_closed :=
+  CartesianClosed (ob false) (hom false) 
+       (hom_eq_mixin false) (comp_mixin false)
+       (cat_axioms false)
+       cartesian_mixin
+       terminated_mixin
+       cartesian_closed_mixin.
+
 End PLT.
 
 Canonical Structure PLT.PLT.
@@ -731,6 +882,9 @@ Canonical Structure PLT.hom_eq.
 Canonical Structure PLT.comp.
 Canonical Structure PLT.homset_cpo.
 Canonical Structure PLT.cocartesian.
+Canonical Structure PLT.terminated.
+Canonical Structure PLT.cartesian.
+Canonical Structure PLT.cartesian_closed.
 
 Arguments PLT.hom [hf] A B.
 Arguments PLT.hom_rel [hf] [A] [B] h n.
@@ -749,13 +903,33 @@ Arguments PLT.sum [hf] A B.
 Arguments PLT.exp [hf] A B.
 Arguments PLT.app [hf A B].
 Arguments PLT.curry [hf C A B] f.
+Arguments PLT.pair_map [hf] [A B C D] f g.
 
 Coercion PLT.ord : PLT.ob >-> preord.
 Coercion PLT.carrier : PLT.ob >-> Sortclass.
 
+Global Close Scope category_ops_scope.
+
 Notation PLT := (PLT.PLT false).
 Notation "'∂PLT'" := (PLT.PLT true).
 
+Notation "0" := (PLT.empty _) : plt_scope.
+Notation "1" := (PLT.unit _) : plt_scope.
+Notation "'Λ' f" := (PLT.curry f) : plt_scope.
+Notation apply := (@PLT.app _ _ _).
+
+Notation "〈 f , g 〉" := (@PLT.pair false _ _ _ (f)%plt (g)%plt) : plt_scope.
+Notation "A × B" := (@PLT.prod false (A)%plt (B)%plt) : plt_scope.
+Notation "A ⇒ B" := (@PLT.exp false (A)%plt (B)%plt) : plt_scope.
+Notation "A + B" := (@PLT.sum false (A)%plt (B)%plt) : plt_scope.
+
+Notation "《 f , g 》" := (@PLT.pair true _ _ _ (f)%plt (g)%plt) : plt_scope.
+Notation "A ⊗ B" := (@PLT.prod true (A)%plt (B)%plt) : plt_scope.
+Notation "A ⊸ B" := (@PLT.exp true (A)%plt (B)%plt) : plt_scope.
+Notation "A ⊕ B" := (@PLT.sum true (A)%plt (B)%plt) : plt_scope.
+
+Notation "'π₁'"  := (@PLT.pi1 _ _ _) : plt_scope.
+Notation "'π₂'"  := (@PLT.pi2 _ _ _) : plt_scope.
 
 Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
     (@PLT.pair hf C A B)
@@ -764,7 +938,7 @@ Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
                    (Preord.ord_op (PLT.hom_ord hf C (PLT.prod A B)))
      as plt_le_pair_morphism.
 Proof.
-  intros. apply PLT.pair_monotone; auto.
+  intros. apply PLT.pair_mono; auto.
 Qed.
 
 Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
@@ -808,7 +982,7 @@ Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
                    (Preord.ord_op (PLT.hom_ord hf C (PLT.exp A B)))
      as plt_le_curry_morphism.
 Proof.
-  intros. apply PLT.curry_monotone; auto.
+  intros. apply PLT.curry_mono; auto.
 Qed.
 
 Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
@@ -820,52 +994,6 @@ Proof.
   intros. apply PLT.curry_eq; auto.
 Qed.
 
-
-(*
-Program Definition pplt_bot (A B:ob ∂PLT) : A → B :=
-  PLT.Hom true A B ∅ _ _.
-Next Obligation.
-  intros. apply empty_elem in H1. elim H1.
-Qed.
-Next Obligation.
-  repeat intro.
-  destruct Hinh as [q ?].
-  apply H in H0.
-  apply erel_image_elem in H0.
-  apply empty_elem in H0. elim H0.
-Qed.
-
-Lemma plt_bot_least (A B:∂PLT) (f:A → B) : ⊥ ≤ f.
-Proof.
-  apply bottom_least.
-  repeat intro; simpl in *.
-  apply empty_elem in H. elim H.
-Qed.
-
-Instance pplt_pointed (A B:∂PLT) : pointed (PLT.homset_cpo A B) :=
-  { bottom := pplt_bot A B
-  ; bottom_least := plt_bot_least A B
-  }.
-*)
-
-
-Theorem pair_commute1 (C A B:ob PLT) (f:C → A) (g:C → B) :
-  PLT.pi1 ∘ PLT.pair f g ≈ f.
-Proof.
-  apply pair_proj_commute1.
-  apply PLT.hom_order.
-  apply PLT.hom_order.
-  apply PLT.hom_directed.
-Qed.
-
-Theorem pair_commute2 (C A B:ob PLT) (f:C → A) (g:C → B) :
-  PLT.pi2 ∘ PLT.pair f g ≈ g.
-Proof.
-  apply pair_proj_commute2.
-  apply PLT.hom_order.
-  apply PLT.hom_order.
-  apply PLT.hom_directed.
-Qed.
 
 Section plt_const.
   Variable hf:bool.
@@ -912,181 +1040,149 @@ Section plt_const.
   Qed.
 End plt_const.  
 
-Lemma compose_hom_rel : forall hf (A B C:PLT.PLT hf) (f:A → B) (g:B → C) x z,
-  (x,z) ∈ PLT.hom_rel (g ∘ f) <-> 
-  exists y, (x,y) ∈ PLT.hom_rel f /\ (y,z) ∈ PLT.hom_rel g.
+Theorem pair_bottom1 (C A B:ob ∂PLT) (f:C → A) :
+  《 f, ⊥ : C → B 》 ≈ ⊥.
 Proof.
-  simpl; intros.
-  split; intros.
-  apply compose_elem in H. auto.
-  apply PLT.hom_order.
-  apply compose_elem. apply PLT.hom_order.
-  auto.
+  split. hnf; simpl; intros.
+  destruct a as [c [a b]].
+  apply (PLT.pair_hom_rel _ A B C) in H.
+  destruct H.
+  simpl in H0.
+  apply union_axiom in H0.
+  destruct H0 as [q [??]].
+  apply image_axiom2 in H0.
+  destruct H0 as [?[??]].
+  apply empty_elem in H0. elim H0.
+  apply bottom_least.
 Qed.
 
-Module PPLT.
+Theorem pair_bottom2 (C A B:ob ∂PLT) (g:C → B) :
+  《 ⊥ : C → A,  g 》 ≈ ⊥.
+Proof.
+  split. hnf; simpl; intros.
+  destruct a as [c [a b]].
+  apply (PLT.pair_hom_rel _ A B C) in H.
+  destruct H. simpl in H.
+  apply union_axiom in H.
+  destruct H as [q [??]].
+  apply image_axiom2 in H.
+  destruct H as [?[??]].
+  apply empty_elem in H. elim H.
+  apply bottom_least.
+Qed.
 
-  Theorem pair_bot1 (C A B:ob ∂PLT) (f:C → A) :
-    PLT.pair f (⊥ : C → B)  ≈ ⊥.
-  Proof.
-    split. hnf; simpl; intros.
-    destruct a as [c [a b]].
-    apply (pair_rel_elem A B C (PLT.effective C) (PLT.hom_rel f)) in H.
-    destruct H.
-    apply union_axiom in H0.
-    destruct H0 as [q [??]].
-    apply image_axiom2 in H0.
-    destruct H0 as [?[??]].
-    apply empty_elem in H0. elim H0.
-    apply bottom_least.
-  Qed.
+Theorem pi1_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → A) :
+  (forall C (f:C → A) (g:C → B), proj ∘ 《f, g》 ≤ f) -> proj ≤ π₁.
+Proof.
+  repeat intro.
+  destruct a as [[a b] a']. simpl in *.
+  apply pi1_rel_elem.
+  apply (plt_const_rel_elem true B A a b a').
+  apply (H B (plt_const _ _ _ a) (id) (b,a')).
+  apply PLT.compose_hom_rel.
+  exists (a,b).
+  split; auto.
+  simpl.
+  apply PLT.pair_hom_rel.
+  split; auto.
+  apply plt_const_rel_elem. auto.
+  apply ident_elem. auto.
+Qed.
+  
+Theorem pi2_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → B) :
+  (forall C (f:C → A) (g:C → B), proj ∘ 《f, g》 ≤ g) -> proj ≤ π₂.
+Proof.
+  repeat intro.
+  destruct a as [[a b] b']. simpl in *.
+  apply pi2_rel_elem.
+  apply (plt_const_rel_elem true A B b a b').
+  apply (H A (id) (plt_const _ _ _ b) (a,b')).
+  apply PLT.compose_hom_rel.
+  exists (a,b).
+  split; auto.
+  simpl.
+  apply PLT.pair_hom_rel.
+  split; auto.
+  apply ident_elem. auto.
+  apply plt_const_rel_elem. auto.
+Qed.
 
-  Theorem pair_bot2 (C A B:ob ∂PLT) (g:C → B) :
-    PLT.pair (⊥ : C → A) g ≈ ⊥.
-  Proof.
-    split. hnf; simpl; intros.
-    destruct a as [c [a b]].
-    apply (pair_rel_elem A B C (PLT.effective C)) in H.
-    destruct H.
-    apply union_axiom in H.
-    destruct H as [q [??]].
-    apply image_axiom2 in H.
-    destruct H as [?[??]].
-    apply empty_elem in H. elim H.
-    apply bottom_least.
-  Qed.
-
-  Theorem pair_commute1 (C A B:ob ∂PLT) (f:C → A) (g:C → B) :
-    PLT.pi1 ∘ PLT.pair f g ≤ f.
-  Proof.
-    apply pair_proj_commute1_le.
-    apply PLT.hom_order.
-    apply PLT.hom_order.
-  Qed.
-
-  Theorem pi1_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → A) :
-    (forall C (f:C → A) (g:C → B), proj ∘ PLT.pair f g ≤ f) -> proj ≤ PLT.pi1.
-  Proof.
-    repeat intro.
-    destruct a as [[a b] a']. simpl in *.
-    apply pi1_rel_elem.
-    apply (plt_const_rel_elem true B A a b a').
-    apply (H B (plt_const _ _ _ a) (id) (b,a')).
-    apply compose_hom_rel.
-    exists (a,b).
-    split; auto.
-    simpl.
-    apply pair_rel_elem.
-    split; auto.
-    apply plt_const_rel_elem. auto.
-    apply ident_elem. auto.
-  Qed.
-
-  Theorem pair_commute2 (C A B:ob ∂PLT) (f:C → A) (g:C → B) :
-    PLT.pi2 ∘ PLT.pair f g ≤ g.
-  Proof.
-    apply pair_proj_commute2_le.
-    apply PLT.hom_order.
-    apply PLT.hom_order.
-  Qed.
-
-  Theorem pi2_greatest (A B:ob ∂PLT) (proj:PLT.prod A B → B) :
-    (forall C (f:C → A) (g:C → B), proj ∘ PLT.pair f g ≤ g) -> proj ≤ PLT.pi2.
-  Proof.
-    repeat intro.
-    destruct a as [[a b] b']. simpl in *.
-    apply pi2_rel_elem.
-    apply (plt_const_rel_elem true A B b a b').
-    apply (H A (id) (plt_const _ _ _ b) (a,b')).
-    apply compose_hom_rel.
-    exists (a,b).
-    split; auto.
-    simpl.
-    apply pair_rel_elem.
-    split; auto.
-    apply ident_elem. auto.
-    apply plt_const_rel_elem. auto.
-  Qed.
-
-  Definition antistrict (A B:∂PLT) (f:A → B) :=
-    forall a, exists b, (a,b) ∈ PLT.hom_rel f.
-
-  Arguments antistrict [A B] f.
+Definition antistrict (A B:∂PLT) (f:A → B) :=
+  forall a, exists b, (a,b) ∈ PLT.hom_rel f.
+Arguments antistrict [A B] f.
     
-  Definition nonbottom (A B:∂PLT) (f:A → B) :=
-    exists x, x ∈ PLT.hom_rel f.
+Definition nonbottom (A B:∂PLT) (f:A → B) :=
+  exists x, x ∈ PLT.hom_rel f.
+Arguments nonbottom [A B] f.
 
-  Arguments nonbottom [A B] f.
+Lemma antistrict_nonbottom (A B C:∂PLT) (f:A → B) :
+  antistrict f <-> (forall C (g:C → A), nonbottom g -> nonbottom (f ∘ g)).
+Proof.
+  split; intros.
+  destruct H0 as [[??] ?].
+  destruct (H c0) as [q ?].
+  exists (c,q). apply PLT.compose_hom_rel. eauto.
+  red; intros.
+  destruct (H (PLT.unit true) (plt_const true _ _ a)).
+  exists (tt,a). simpl. apply plt_const_rel_elem. auto.
+  destruct x as [??].
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [q [??]].
+  simpl in *. apply plt_const_rel_elem in H0.
+  exists c0. eapply PLT.hom_order; eauto.
+Qed.
 
-  Lemma antistrict_nonbottom (A B C:∂PLT) (f:A → B) :
-    antistrict f <-> (forall C (g:C → A), nonbottom g -> nonbottom (f ∘ g)).
-  Proof.
-    split; intros.
-    destruct H0 as [[??] ?].
-    destruct (H c0) as [q ?].
-    exists (c,q). apply compose_hom_rel. eauto.
-    red; intros.
-    destruct (H (PLT.unit true) (plt_const true _ _ a)).
-    exists (tt,a). simpl. apply plt_const_rel_elem. auto.
-    destruct x as [??].
-    apply compose_hom_rel in H0.
-    destruct H0 as [q [??]].
-    simpl in *. apply plt_const_rel_elem in H0.
-    exists c0. eapply PLT.hom_order; eauto.
-  Qed.
+Theorem antistrict_pair_commute1 (C B:∂PLT) (g:C → B) :
+  antistrict g <-> forall A (f:C → A), π₁ ∘ 《f,g》 ≈ f.
+Proof.
+  intros.
+  split; repeat intro.
+  split. apply PLT.pair_le_commute1.
+  hnf; intros.
+  apply PLT.compose_hom_rel. simpl.
+  destruct a as [c a].
+  destruct (H c) as [b ?].
+  exists (a,b).    
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply pi1_rel_elem. auto.
 
-  Theorem antistrict_pair_commute1 (C B:∂PLT) (g:C → B) :
-    antistrict g <-> forall A (f:C → A), PLT.pi1 ∘ PLT.pair f g ≈ f.
-  Proof.
-    intros.
-    split; repeat intro.
-    split. apply pair_commute1.
-    hnf; intros.
-    apply compose_hom_rel. simpl.
-    destruct a as [c a].
-    destruct (H c) as [b ?].
-    exists (a,b).    
-    split.
-    apply pair_rel_elem. split; auto.
-    apply pi1_rel_elem. auto.
+  rename a into c.
+  destruct (H C id).
+  assert ((c,c) ∈ PLT.hom_rel (PLT.pi1 ∘ PLT.pair id g)).
+  apply H1. simpl. apply ident_elem. auto.
+  apply PLT.compose_hom_rel in H2.
+  destruct H2 as [q [??]].
+  destruct q.
+  simpl in H2.
+  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
+  simpl in H2.
+  apply ident_elem in H2.
+  exists c1; auto.
+Qed.
 
-    rename a into c.
-    destruct (H C id).
-    assert ((c,c) ∈ PLT.hom_rel (PLT.pi1 ∘ PLT.pair id g)).
-    apply H1. simpl. apply ident_elem. auto.
-    apply compose_hom_rel in H2.
-    destruct H2 as [q [??]].
-    destruct q.
-    simpl in H2.
-    rewrite (pair_rel_elem _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
-    apply ident_elem in H2.
-    exists c1; auto.
-  Qed.
-
-  Theorem antistrict_pair_commute2 (C A:∂PLT) (f:C → A) :
-    antistrict f <-> forall B (g:C → B), PLT.pi2 ∘ PLT.pair f g ≈ g.
-  Proof.
-    split; intros.
-    split. apply pair_commute2.
-    hnf; intros.
-    apply compose_hom_rel. simpl.
-    destruct a as [c b].
-    destruct (H c) as [a ?].
-    exists (a,b).    
-    split.
-    apply pair_rel_elem. split; auto.
-    apply pi2_rel_elem. auto.
-
-    intro c. destruct (H C id).
-    assert ((c,c) ∈ PLT.hom_rel (PLT.pi2 ∘ PLT.pair f id)).
-    apply H1. simpl. apply ident_elem. auto.
-    apply compose_hom_rel in H2.
-    destruct H2 as [q [??]].
-    destruct q.
-    simpl in H2.
-    rewrite (pair_rel_elem _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
-    apply ident_elem in H4.
-    exists c0; auto.
-  Qed.
-
-End PPLT.
+Theorem antistrict_pair_commute2 (C A:∂PLT) (f:C → A) :
+  antistrict f <-> forall B (g:C → B), π₂ ∘ PLT.pair f g ≈ g.
+Proof.
+  split; intros.
+  split. apply PLT.pair_le_commute2.
+  hnf; intros.
+  apply PLT.compose_hom_rel. simpl.
+  destruct a as [c b].
+  destruct (H c) as [a ?].
+  exists (a,b).    
+  split.
+  apply pair_rel_elem. split; auto.
+  apply pi2_rel_elem. auto.
+  
+  intro c. destruct (H C id).
+  assert ((c,c) ∈ PLT.hom_rel (π₂ ∘ PLT.pair f id)).
+  apply H1. simpl. apply ident_elem. auto.
+  apply PLT.compose_hom_rel in H2.
+  destruct H2 as [q [??]].
+  destruct q.
+  simpl in H2.
+  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
+  simpl in H4. apply ident_elem in H4.
+  exists c0; auto.
+Qed.

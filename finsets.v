@@ -189,111 +189,57 @@ Proof.
   right. apply IHP; auto.
 Qed.
 
-(* This is an idea that didn't really work out.
-   
-
-Record pigment :=
-  Pigment
-  { pigment_pred : forall {A:preord} (X:finset A), Prop
-  ; pigment_dec : forall A (X:finset A), { pigment_pred X }+{ ~pigment_pred X }
-  ; pigment_equiv : forall A (X Y:finset A), X ≈ Y -> pigment_pred X -> pigment_pred Y
-  ; pigment_inv_image : forall (A B:preord) (X:finset A) (f:A → B),
-       pigment_pred (image f X) -> pigment_pred X
-  ; pigment_union : forall A (M:finset A) T (XS:set T (set T A)),
-       pigment_pred M -> M ⊆ ∪XS ->
-       exists XS':finset (set T A),
-         pigment_pred XS' /\
-         XS' ⊆ XS /\
-         forall x, x ∈ M -> exists X, X ∈ XS' /\ x ∈ X
-  }.
-
-Arguments pigment_pred p [A] X.
-Coercion pigment_pred : pigment >-> Funclass.
-
-Definition pdirected_pred (PG:pigment) (T:set.theory) (A:preord) (Z:set T A) :=
-  forall (M:finset A), M ⊆ Z -> PG A M -> exists x, x ∈ Z /\ upper_bound x M.
-
-Program Definition pdirected (PG:pigment) : color :=
-  Color (pdirected_pred PG) _ _ _ _.
-Next Obligation.
-  unfold pdirected_pred; intros.
-  destruct (H0 M) as [x [??]]; auto.
-  rewrite H; auto.
-  exists x; split; auto.
-  rewrite <- H; auto.
+Lemma nil_subset X (Q:finset X) :
+  (nil : finset X) ⊆ Q.
+Proof.
+  repeat intro. apply nil_elem in H. elim H.
 Qed.
-Next Obligation.
-  unfold pdirected_pred; simpl; intros.
-  exists a. split; auto.
-  apply single_axiom. auto.
-  red; intros.
-  apply H in H1. apply single_axiom in H1. destruct H1; auto.
+
+Lemma ub_nil : forall (X:preord) (a:X),
+  upper_bound a (nil : finset X).
+Proof.
+  repeat intro. apply nil_elem in H. elim H.
 Qed.
-Next Obligation.
-  unfold pdirected_pred; intros.
-  assert (exists M':finset A, M' ⊆ X /\ ((image f M':finset B) ≈ M)).
-  clear H H1.
-  induction M.
-  exists nil. split; auto.
-  red; intros. apply nil_elem in H. elim H.
-  assert (a ∈ image f X).
-  apply H0. apply cons_elem; auto.
-  apply image_axiom2 in H.
-  destruct H as [y [??]].
-  destruct IHM as [M' [??]].
-  red; intros. apply H0. apply cons_elem; auto.
-  exists (y::M').
+
+Lemma ub_cons (X:preord) (x:X) (xs:finset X) (a:X) :
+  x ≤ a ->
+  upper_bound a xs ->
+  upper_bound a (x::xs : finset X).
+Proof.
+  repeat intro.
+  apply cons_elem in H1. destruct H1.
+  rewrite H1. auto. apply H0; auto.
+Qed.
+
+Lemma cons_subset (X:preord) (x:X) (xs ys:finset X) :
+  x ∈ ys -> xs ⊆ ys -> (x::xs : finset X) ⊆ ys.
+Proof.
+  repeat intro.
+  apply cons_elem in H1. destruct H1.
+  rewrite H1; auto. apply H0; auto.
+Qed.
+
+Lemma cons_morphism (X:preord) (x x':X) (xs xs':finset X) :
+  x ≈ x' -> xs ≈ xs' -> (x :: xs:finset X) ≈ x' :: xs'.
+Proof.
+  intros.
   split.
-  red; intros.
-  apply cons_elem in H4. destruct H4.
-  rewrite H4; auto.
-  apply H2; auto.
-  split.
-  red; simpl; intros.
-  apply cons_elem in H4.
-  destruct H4.
-  apply cons_elem.
-  left. rewrite H4. rewrite H1. auto.
-  apply cons_elem. right.
-  rewrite <- H3. auto.
-  red; simpl; intros.
-  apply cons_elem in H4.
-  destruct H4.
-  apply cons_elem.
-  left. rewrite H4. rewrite H1. auto.
-  apply cons_elem. right.
-  rewrite  H3. auto.
-  destruct H2 as [M' [??]].
-  destruct (H M') as [x [??]]; auto.
-  apply pigment_inv_image with B f.
-  apply pigment_equiv with M; auto.
-  exists (f#x).
-  split.
-  apply image_axiom1; auto.
-  red; intros.
-  rewrite <- H3 in H6.
-  apply image_axiom2 in H6.
-  destruct H6 as [y [??]].
-  rewrite H7.
-  apply Preord.axiom. 
-  apply H5. auto.
+  apply cons_subset. apply cons_elem. auto.
+  red; intros. apply cons_elem; auto.
+  right. rewrite <- H0; auto.
+  apply cons_subset. apply cons_elem. auto.
+  red; intros. apply cons_elem; auto.
+  right. rewrite H0; auto.
 Qed.
-Next Obligation.
-  unfold pdirected_pred; intros.
-  generalize (pigment_union PG A M T XS H2 H1). intro H3.
-  destruct H3 as [XS' [?[??]]].
-  destruct (H XS') as [X [??]]; auto.
-  destruct (H0 X) with M as [x [??]]; auto.
-  red; intros.
-  red in H7.
-  destruct (H5 a) as [X' [??]]; auto.
-  apply H7 in H9.
-  apply H9. auto.
-  exists x. split; auto.
-  apply union_axiom.
-  exists X. split; auto.
+
+Lemma dec_conj (P Q : Prop) :
+  {P}+{~P} -> {Q}+{~Q} -> {P/\Q}+{~(P/\Q)}.
+Proof.
+  intros. destruct H. destruct H0.
+  left; auto.
+  right; intros [??]; contradiction.
+  right; intros [??]; contradiction.
 Qed.
-*)
 
 (**  The cartesian product of finite sets.
   *)
@@ -905,4 +851,3 @@ Proof.
   apply cons_elem; auto.
   apply cons_elem; right. rewrite H0; auto.
 Qed.  
-

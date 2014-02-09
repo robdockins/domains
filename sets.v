@@ -7,6 +7,9 @@ Require Import basics.
 Require Import preord.
 Require Import categories.
 
+Delimit Scope set_scope with set.
+Open Scope set_scope.
+
 (**  * Set theory.
 
        Here we define a notion of "set theory" that is sufficent
@@ -88,9 +91,6 @@ Record theory :=
   ; mixin :> mixin_of set member single image union
   }.
 End set.
-Arguments set.image [t] [A] [B] f X.
-Arguments set.single [t] [A] x.
-Arguments set.member [t] [A] a X : simpl never.
 
 Definition set_preord (T:set.theory) (A:preord) :=
   set.set_preord (set.set T) (@set.member T) A.
@@ -99,19 +99,26 @@ Canonical Structure set_preord.
 (**   Here, we equip set theories with their standard notations,
       ∈ for memebership, ⊆ for subset inclusion, and ∪ for unions.
   *)
+
 Notation set := set_preord.
-Notation single := set.single.
-Notation image := set.image.
-Notation "x ∈ X" := (@set.member _ _ x X) (at level 60).
-Notation "x ∉ X"  := (not (@set.member _ _ x X)) (at level 60).
+Definition image (T:set.theory) (A B:preord) (f:A → B) (X:set T A) : set T B :=
+  @set.image T A B f X.
+Definition single (T:set.theory) (A:preord) (a:A) : set T A :=
+  @set.single T A a.
+Notation "x ∈ X" := (@set.member _ _ x (X)%set) : set_scope.
+Notation "x ∉ X"  := (not (@set.member _ _ x (X)%set)) : set_scope.
+
+Arguments image [T] [A] [B] f X.
+Arguments single [T] [A] a.
+Arguments set.member [t] [A] a X : simpl never.
 
 Definition incl {A:preord} {XSL YSL:set.theory} (X:set XSL A) (Y:set YSL A) :=
   forall a:A, a ∈ X -> a ∈ Y.
-Notation "X ⊆ Y" := (@incl _ _ _ X Y) (at level 66).
+Notation "X ⊆ Y" := (@incl _ _ _ (X)%set (Y)%set) : set_scope.
 
 Definition union {T:set.theory} {A:preord} (XS:set T (set T A)) : set T A :=
   set.union T A XS.
-Notation "∪ XS" := (@union _ _ XS) (at level 50).
+Notation "∪ XS" := (@union _ _ (XS)%set) : set_scope.
 
 (**  Here we provide convenient access points to the set theory axioms.
   *)
@@ -325,12 +332,34 @@ Proof.
   exists X. split; auto.
 Qed.
 
+Section image_compose.
+  Variable T:set.theory.
+  Variables A B C:preord.
+  Variable f:B → C.
+  Variable g:A → B.
+  Variable XS:set T A.
+
+  Lemma image_compose : 
+    image (f ∘ g) XS ≈ image f (image g XS).
+  Proof.
+    split; hnf; intros.
+    apply image_axiom2 in H. destruct H as [y [??]].
+    simpl in H0.
+    rewrite H0.
+    apply image_axiom1. apply image_axiom1. auto.
+    apply image_axiom2 in H. destruct H as [y [??]].
+    apply image_axiom2 in H. destruct H as [z [??]].
+    rewrite H0. rewrite H1.
+    apply image_axiom1'. exists z. split; auto.
+  Qed.
+End image_compose.
+
+
 (**  A set theory has a [set_dec] if set membership is decidable.
   *)
 Record set_dec (T:set.theory) (A:preord) :=
   Setdec
   { setdec :> forall (x:A) (X:set T A), { x ∈ X } + { x ∉ X } }.
-
 
 (**  Here we define some general order-theoretic notions.
   *)
@@ -368,6 +397,91 @@ Definition greatest_lower_bound {T:set.theory} {A:preord}
   lower_bound glb X /\
   (forall b, lower_bound b X -> b ≤ glb).
 
+(**  Now prove that these definitions all respect set equality.
+  *)
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@lower_set T A)
+  with signature (eq_op _) ==> impl
+    as lower_set_morphism.
+Proof.
+  repeat intro.
+  rewrite <- H. apply (H0 a b); auto. rewrite H; auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@upper_set T A)
+  with signature (eq_op _) ==> impl
+    as upper_set_morphism.
+Proof.
+  repeat intro.
+  rewrite <- H. apply (H0 a b); auto. rewrite H; auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@upper_bound T A)
+  with signature (eq_op _) ==> (eq_op _) ==> impl
+    as upper_bound_morphism.
+Proof.
+  repeat intro. rewrite <- H. apply H1. rewrite H0. auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@lower_bound T A)
+  with signature (eq_op _) ==> (eq_op _) ==> impl
+    as lower_bound_morphism.
+Proof.
+  repeat intro. rewrite <- H. apply H1. rewrite H0. auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@least_upper_bound T A)
+  with signature (eq_op _) ==> (eq_op _) ==> impl
+    as least_upper_bound_morphism.
+Proof.
+  repeat intro. 
+  destruct H1; split; intros.
+  eapply upper_bound_morphism; eauto.
+  rewrite <- H. apply H2.
+  eapply upper_bound_morphism. 3: eauto. auto. auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@minimal_upper_bound T A)
+  with signature (eq_op _) ==> (eq_op _) ==> impl
+    as minimal_upper_bound_morphism.
+Proof.
+  repeat intro. 
+  destruct H1; split; intros.
+  eapply upper_bound_morphism; eauto.
+  rewrite <- H. apply H2.
+  eapply upper_bound_morphism. 3: eauto. auto. auto.
+  rewrite H; auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@greatest_lower_bound T A)
+  with signature (eq_op _) ==> (eq_op _) ==> impl
+    as greatest_lower_bound_morphism.
+Proof.
+  repeat intro. 
+  destruct H1; split; intros.
+  eapply lower_bound_morphism; eauto.
+  rewrite <- H. apply H2.
+  eapply lower_bound_morphism. 3: eauto. auto. auto.
+Qed.
+
+Add Parametric Morphism (T:set.theory) (A:preord) :
+  (@maximal_lower_bound T A)
+  with signature (eq_op _) ==> (eq_op _) ==> impl
+    as maximal_lower_bound_morphism.
+Proof.
+  repeat intro. 
+  destruct H1; split; intros.
+  eapply lower_bound_morphism; eauto.
+  rewrite <- H. apply H2.
+  eapply lower_bound_morphism. 3: eauto. auto. auto.
+  rewrite H; auto.
+Qed.
 
 (**  Colored sets are a generalization of the idea of "directed" sets.
 

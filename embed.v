@@ -387,9 +387,7 @@ Section ep_pairs.
         assert ((x,x) ∈ PLT.hom_rel (p ∘ e)).
         apply H.
         apply ident_elem. auto.
-        simpl in H0.
-        apply compose_elem in H0.
-        2: apply PLT.hom_order.
+        apply PLT.compose_hom_rel in H0.
         destruct H0 as [y [??]].
         exists y. unfold embed_image.
         apply esubset_elem.
@@ -421,8 +419,7 @@ Section ep_pairs.
       apply ident_elem in H4. auto.
       apply ep_ident0.
       simpl.
-      apply compose_elem; auto.
-      apply PLT.hom_order.
+      apply PLT.compose_hom_rel; auto.
       exists a. split; auto.
       apply PLT.hom_order with y' b; auto.
     Qed.
@@ -444,8 +441,7 @@ Section ep_pairs.
       cut ((x',x) ∈ PLT.hom_rel id).
       simpl; intros. apply ident_elem in H4. auto.
       apply pe_ident0.
-      simpl. apply compose_elem.
-      apply PLT.hom_order.
+      simpl. apply PLT.compose_hom_rel.
       exists y'. intuition.
       apply PLT.hom_order with y x; auto.
     Qed.
@@ -476,8 +472,7 @@ Section ep_pairs.
       simpl; auto.
       intros. apply ident_elem in H4. auto.
       apply ep_ident0.
-      simpl. apply compose_elem.
-      apply PLT.hom_order.
+      simpl. apply PLT.compose_hom_rel.
       exists x; auto.
     Qed.
 
@@ -527,8 +522,7 @@ Section ep_pairs.
       simpl; intros. apply ident_elem in H11. auto.
       apply ep_ident0.
       simpl.
-      apply compose_elem.
-      apply PLT.hom_order.
+      apply PLT.compose_hom_rel.
       exists q. split; auto.
       split; apply H7; auto.
       apply cons_elem; auto.
@@ -551,7 +545,7 @@ Section ep_pairs.
     Variable embed : embedding hf X Y.
 
     Definition project_rel :=
-      esubset_dec (PLT.ord Y × PLT.ord X)
+      esubset_dec (PLT.ord Y × PLT.ord X)%cat_ob
          (fun yx => fst yx ≥ embed#(snd yx))
          (fun yx => eff_ord_dec Y (PLT.effective Y) (embed#(snd yx)) (fst yx))
          (eprod (eff_enum Y (PLT.effective Y)) (eff_enum X (PLT.effective X))).
@@ -563,8 +557,8 @@ Section ep_pairs.
       unfold project_rel.
       apply esubset_dec_elem.
       intros.
-      change (fst y0) with (π₁#y0).
-      change (snd y0) with (π₂#y0).
+      change (fst y0) with (π₁#y0)%cat_ops.
+      change (snd y0) with (π₂#y0)%cat_ops.
       rewrite <- H0. auto.
       split; auto.
       apply eprod_elem; split; apply eff_complete; auto.
@@ -572,8 +566,8 @@ Section ep_pairs.
       apply esubset_dec_elem in H.
       destruct H; auto.
       intros.
-      change (fst y0) with (π₁#y0).
-      change (snd y0) with (π₂#y0).
+      change (fst y0) with (π₁#y0)%cat_ops.
+      change (snd y0) with (π₂#y0)%cat_ops.
       rewrite <- H0. auto.
     Qed.
 
@@ -611,7 +605,7 @@ Section ep_pairs.
     Qed.      
 
     Definition embed_rel :=
-      esubset_dec (PLT.ord X×PLT.ord Y)
+      esubset_dec (PLT.ord X×PLT.ord Y)%cat_ob
          (fun xy => embed#(fst xy) ≥ snd xy)
          (fun xy => eff_ord_dec Y (PLT.effective Y) (snd xy) (embed#(fst xy)))
          (eprod (eff_enum X (PLT.effective X)) (eff_enum Y (PLT.effective Y))).
@@ -623,8 +617,8 @@ Section ep_pairs.
       unfold embed_rel.
       apply esubset_dec_elem.
       intros.
-      change (fst y0) with (π₁#y0).
-      change (snd y0) with (π₂#y0).
+      change (fst y0) with (π₁#y0)%cat_ops.
+      change (snd y0) with (π₂#y0)%cat_ops.
       rewrite <- H0. auto.
       split; auto.
       apply eprod_elem; split; apply eff_complete; auto.
@@ -632,8 +626,8 @@ Section ep_pairs.
       apply esubset_dec_elem in H.
       destruct H; auto.
       intros.
-      change (fst y0) with (π₁#y0).
-      change (snd y0) with (π₂#y0).
+      change (fst y0) with (π₁#y0)%cat_ops.
+      change (snd y0) with (π₂#y0)%cat_ops.
       rewrite <- H0. auto.
     Qed.
 
@@ -667,8 +661,7 @@ Section ep_pairs.
       split.
       hnf; simpl; intros.
       destruct a as [x x'].
-      apply compose_elem in H.
-      2: apply embed_hom_obligation_1.
+      apply PLT.compose_hom_rel in H.
       apply ident_elem.
       destruct H as [y [??]].
       apply embed_rel_elem in H.
@@ -679,8 +672,7 @@ Section ep_pairs.
       hnf; simpl; intros.
       destruct a as [x x'].
       apply ident_elem in H.
-      apply compose_elem.
-      apply embed_hom_obligation_1.
+      apply PLT.compose_hom_rel.
       exists (embed#(x:X)).
       split.
       apply embed_rel_elem. auto.
@@ -688,8 +680,7 @@ Section ep_pairs.
 
       hnf; simpl; intros.      
       destruct a as [y y'].
-      apply compose_elem in H.
-      2: apply project_hom_obligation_1.
+      apply PLT.compose_hom_rel in H.
       apply ident_elem.
       destruct H as [x [??]].
       apply project_rel_elem in H.
@@ -732,7 +723,7 @@ Section ep_pairs.
     simpl; intros. apply ident_elem in H1. auto.
     generalize (ep_correct X Y ep). intros [??].
     apply ep_ident0. simpl.
-    apply compose_elem. apply PLT.hom_order.
+    apply PLT.compose_hom_rel.
     eauto.
   Qed.
 
@@ -795,18 +786,17 @@ Next Obligation.
   destruct a as [a c].
   apply embed_rel_elem in H0.
   destruct H. 
-  apply compose_elem.
-  apply embed_hom_obligation_1.
+  apply PLT.compose_hom_rel.
   exists (g a).
   split.
   apply embed_rel_elem. auto.
   apply embed_rel_elem. 
   rewrite H0. apply H.
   destruct a as [a c].
-  apply compose_elem in H0.
-  2: apply embed_hom_obligation_1.
+  apply PLT.compose_hom_rel in H0.
   destruct H0 as [y [??]].
   apply embed_rel_elem.
+  simpl in *.
   apply embed_rel_elem in H0.
   apply embed_rel_elem in H1.
   rewrite H1. rewrite H0.

@@ -549,14 +549,11 @@ Section bilimit.
     hnf; simpl; intros.
     hnf; simpl; intros.
     destruct a0 as [x y].
-    apply approx_rels.compose_elem in H0 as [z [??]].
-    apply approx_rels.compose_elem.
-    apply (PLT.hom_order _ _ _ 
-      (project_hom hf (ds_F DS b) bilimit (limset_spoke b))).
-    2: apply (PLT.hom_order _ _ _ 
-      (project_hom hf (ds_F DS a) bilimit (limset_spoke a))).
+    apply PLT.compose_hom_rel in H0 as [z [??]].
+    apply PLT.compose_hom_rel.
     exists (ds_hom DS a b H z).
     split; simpl.
+    simpl in *.
     apply project_rel_elem.
     apply project_rel_elem in H0.
     rewrite <- H0.
@@ -564,6 +561,7 @@ Section bilimit.
     intro. 
     destruct H2. apply H3.
     apply embed_rel_elem.
+    simpl in H1.
     apply embed_rel_elem in H1.
     rewrite H1.
     generalize (limset_spoke_commute a b H).
@@ -611,9 +609,7 @@ Section bilimit.
     exists i. split; auto.
     apply eff_complete.
     simpl.
-    apply approx_rels.compose_elem.
-    apply (PLT.hom_order _ _ _ 
-      (project_hom hf (ds_F DS i) bilimit (limset_spoke i))).
+    apply PLT.compose_hom_rel.
     exists a. split.
     apply project_rel_elem. auto.
     apply embed_rel_elem. auto.
@@ -862,7 +858,7 @@ Section total_fixpoint.
   Fixpoint injectA (j:nat) : A ⇀ iterF j :=
     match j as j' return A ⇀ iterF j' with
     | 0 => id
-    | S n => F@(injectA n) ∘ h
+    | S n => F·(injectA n) ∘ h
     end.
 
   Fixpoint iter_hom (i:nat) : forall (j:nat) (Hij:i <= j), iterF i ⇀ iterF j :=
@@ -871,7 +867,7 @@ Section total_fixpoint.
     | S i' => fun j =>
         match j as j' return forall (Hij:S i' <= j'), iterF (S i') ⇀ iterF j' with
         | O => fun Hij => False_rect _ (HSle0 i' Hij) (* impossible case *)
-        | S j' => fun Hij => F@(iter_hom i' j' (gt_S_le i' j' Hij))
+        | S j' => fun Hij => F·(iter_hom i' j' (gt_S_le i' j' Hij))
         end
     end.
 
@@ -936,7 +932,7 @@ Section total_fixpoint.
   Program Definition cocone_minus1 : cocone kleene_chain_alt
     := Cocone kleene_chain_alt (F fixpoint_alt) 
            (fun i => 
-              F@(cocone_spoke (bilimit_cocone false nat_dirord kleene_chain_alt) i) ∘
+              F·(cocone_spoke (bilimit_cocone false nat_dirord kleene_chain_alt) i) ∘
               iter_hom i (S i) (le_S i i (le_refl i)))
            _.
   Next Obligation.
@@ -951,7 +947,7 @@ Section total_fixpoint.
     rewrite (@cat_assoc (EMBED false)).
     apply cat_respects; auto.
     apply Functor.compose.
-    rewrite (limset_spoke_commute false nat_dirord kleene_chain_alt 0 j Hij).
+    rewrite (limset_spoke_commute false nat_dirord kleene_chain_alt 0%nat j Hij).
     simpl. auto.
 
     simpl.
@@ -1020,7 +1016,7 @@ Section total_fixpoint.
   Qed.
 
   Definition fixpoint_embed : A ⇀ fixpoint_alt :=
-    limset_spoke false nat_dirord kleene_chain_alt 0.
+    limset_spoke false nat_dirord kleene_chain_alt 0%nat.
   
   Definition fixpoint_alt_iso : F fixpoint_alt ↔ fixpoint_alt :=
     Isomorphism (EMBED false) (F fixpoint_alt) fixpoint_alt

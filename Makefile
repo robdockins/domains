@@ -110,7 +110,8 @@ VFILES:=strict_utils.v\
   preord.v\
   categories.v\
   basics.v\
-  pairing.v
+  pairing.v\
+  notations.v
 
 -include $(addsuffix .d,$(VFILES))
 .SECONDARY: $(addsuffix .d,$(VFILES))

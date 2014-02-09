@@ -3,9 +3,6 @@
 Require Import String.
 Require Import List.
 
-Require Import atoms.
-Require Import permutations.
-
 Require Import basics.
 Require Import preord.
 Require Import categories.
@@ -36,9 +33,12 @@ Inductive ty :=
   | ty_arrow : ty -> ty -> ty.
 
 Delimit Scope ty_scope with ty.
+Notation "2" := ty_bool : ty_scope.
+Notation "x ⇒ y" := (ty_arrow (x)%ty (y)%ty) : ty_scope.
+Bind Scope ty_scope with ty.
 
-Notation "x ⇒ y" := (ty_arrow x y) : ty_scope.
-Local Open Scope ty.
+Delimit Scope ski_scope with ski.
+Open Scope ski_scope.
 
 (**  Terms are boolean constants, the standard combinators S, K and I,
      and an IF/THEN/ELSE combinator; and applications.
@@ -46,7 +46,7 @@ Local Open Scope ty.
 Inductive term : ty -> Type :=
 
   | tbool : forall b:bool,
-                term ty_bool
+                term 2
 
   | tapp : forall σ₁ σ₂,
                 term (σ₁ ⇒ σ₂) ->
@@ -63,8 +63,11 @@ Inductive term : ty -> Type :=
                 term ((σ₁ ⇒ σ₂ ⇒ σ₃) ⇒ (σ₁ ⇒ σ₂) ⇒ σ₁ ⇒ σ₃)
 
   | tIF : forall σ,
-                term (ty_bool ⇒ σ ⇒ σ ⇒ σ).
+                term (2 ⇒ σ ⇒ σ ⇒ σ).
 
+Arguments tapp [_ _] _ _.
+Notation "x • y" := (tapp x y) 
+  (at level 52, left associativity, format "x • y") : ski_scope.
 
 (**  The operational semantics is given in a big-step style, with the specification
      of redexes split out into a separate relation.
@@ -74,15 +77,15 @@ Inductive redex : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> term σ₁ -> te
   | redex_I : forall σ x,
                   redex _ _ (tI σ) x x
   | redex_K : forall σ₁ σ₂ x y,
-                  redex σ₂ σ₁ (tapp σ₁ (σ₂ ⇒ σ₁) (tK σ₁ σ₂) y) x y
+                  redex σ₂ σ₁ (tK σ₁ σ₂ • y) x y
   | redex_S : forall σ₁ σ₂ σ₃ f g x,
-                  redex _ _ (tapp _ _ (tapp _ _ (tS σ₁ σ₂ σ₃) f) g)
+                  redex _ _ (tS σ₁ σ₂ σ₃ • f • g)
                             x
-                            (tapp _ _ (tapp _ _ f x) (tapp _ _ g x))
+                            ((f•x)•(g•x))
   | redex_IFtrue : forall σ th el,
-                  redex _ _ (tapp _ _ (tapp _ _ (tIF σ) (tbool true)) th) el th
+                  redex _ _ (tIF σ • tbool true • th) el th
   | redex_IFfalse : forall σ th el,
-                  redex _ _ (tapp _ _ (tapp _ _ (tIF σ) (tbool false)) th) el el.
+                  redex _ _ (tIF σ • tbool false • th) el el.
 
 Inductive eval : forall τ, term τ -> term τ -> Prop :=
   | ebool : forall b, eval ty_bool (tbool b) (tbool b)
@@ -95,12 +98,12 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
              eval σ₁ m₂ n₂ ->
              redex σ₁ σ₂ n₁ n₂ r ->
              eval σ₂ r z ->
-             eval σ₂ (tapp σ₁ σ₂ m₁ m₂) z
+             eval σ₂ (m₁•m₂) z
   | eapp2 : forall σ₁ σ₂ m₁ m₂ n₁ n₂,
              eval (σ₁ ⇒ σ₂) m₁ n₁ ->
              eval σ₁ m₂ n₂ ->
              ~(exists r, redex σ₁ σ₂ n₁ n₂ r) ->
-             eval σ₂ (tapp σ₁ σ₂ m₁ m₂) (tapp σ₁ σ₂ n₁ n₂).
+             eval σ₂ (m₁•m₂) (n₁•n₂).
 
 (**  Types are interpreted as unpointed domains, using the discrete domain
      of booleans and the exponential in PLT.
@@ -108,50 +111,56 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
 Fixpoint tydom (τ:ty) : PLT :=
   match τ with
   | ty_bool => disc finbool
-  | ty_arrow τ₁ τ₂ => PLT.exp (tydom τ₁) (tydom τ₂)
+  | (τ₁ ⇒ τ₂)%ty => PLT.exp (tydom τ₁) (tydom τ₂)
   end.
+
 
 (**  The denotation of terms is given by a simple fixpoint on term structure.
      The denotation of each combinator is a straightforward interpretation of the
      usual lambda term into the operations of a cartesian closed category.
   *)
-Fixpoint denote (τ:ty) (m:term τ) : PLT.unit false → tydom τ :=
-  match m with
+
+Fixpoint denote (τ:ty) (m:term τ) : 1 → tydom τ :=
+  match m in term τ return 1 → tydom τ with
   | tbool b => disc_elem b
 
-  | tapp σ₁ σ₂ m₁ m₂ => PLT.app ∘ PLT.pair (denote (σ₁ ⇒ σ₂) m₁) (denote σ₁ m₂)
+  | tapp σ₁ σ₂ m₁ m₂ => apply ∘ 〈〚m₁〛, 〚m₂〛〉
 
-  | tI σ => PLT.curry PLT.pi2
+  | tI σ => Λ(π₂)
 
-  | tK σ₁ σ₂ => PLT.curry (PLT.curry (PLT.pi2 ∘ PLT.pi1))
+  | tK σ₁ σ₂ => Λ(Λ(π₂ ∘ π₁))
 
-  | tS σ₁ σ₂ σ₃ => PLT.curry (PLT.curry (PLT.curry (
-                     PLT.app ∘ PLT.pair
-                       (PLT.app ∘ PLT.pair (PLT.pi2 ∘ PLT.pi1 ∘ PLT.pi1) (PLT.pi2))
-                       (PLT.app ∘ PLT.pair (PLT.pi2 ∘ PLT.pi1) (PLT.pi2))
-                      )))
+  | tS σ₁ σ₂ σ₃ => Λ(Λ(Λ(
+                    apply ∘ 〈 apply ∘ 〈 π₂ ∘ π₁ ∘ π₁, π₂ 〉    
+                            , apply ∘ 〈 π₂ ∘ π₁, π₂ 〉
+                            〉
+                   )))
 
-  | tIF σ => PLT.curry (disc_cases (fun b:bool =>
-                 if b then PLT.curry (PLT.curry (PLT.pi2 ∘ PLT.pi1)) 
-                      else PLT.curry (PLT.curry (PLT.pi2))
+  | tIF σ => Λ (disc_cases (fun b:bool =>
+                 if b then Λ(Λ(π₂ ∘ π₁))
+                      else Λ(Λ(π₂))
              ))
-  end.
+  end
+
+ where "〚 m 〛" := (denote _ m) : ski_scope.
+
 
 (**  Every redex preserves the meaning of terms. *)
 Lemma redex_soundness : forall σ₁ σ₂ x y z,
   redex σ₁ σ₂ x y z ->
-  PLT.app ∘ PLT.pair (denote _ x) (denote _ y) ≈ denote _ z.
+  apply ∘ 〈〚x〛,〚y〛〉 ≈ 〚z〛.
 Proof.
   intros. case H; simpl.
   intros.
+
   rewrite PLT.curry_apply2.
-  rewrite pair_commute2. auto.
+  rewrite PLT.pair_commute2. auto.
   intros.
   rewrite PLT.curry_apply2.
   rewrite PLT.curry_apply3.
   rewrite <- (cat_assoc (PLT.PLT false) _ _ _ _ PLT.pi2).
-  rewrite pair_commute1.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2.
   auto.
   intros.
   rewrite PLT.curry_apply2.
@@ -166,18 +175,18 @@ Proof.
   rewrite (PLT.pair_compose_commute false).
   apply PLT.pair_eq.
   repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  rewrite pair_commute1.
-  rewrite pair_commute1.
-  rewrite pair_commute2. auto.
-  rewrite pair_commute2. auto.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2. auto.
+  rewrite PLT.pair_commute2. auto.
   rewrite <- (cat_assoc (PLT.PLT false)).
   apply cat_respects. auto.
   rewrite (PLT.pair_compose_commute false).
   apply PLT.pair_eq.
   repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  rewrite pair_commute1.
-  rewrite pair_commute2. auto.
-  rewrite pair_commute2. auto.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2. auto.
+  rewrite PLT.pair_commute2. auto.
 
   intros.
   rewrite PLT.curry_apply2.
@@ -185,8 +194,8 @@ Proof.
   rewrite PLT.curry_apply3.
   rewrite PLT.curry_apply3.
   rewrite <- (cat_assoc (PLT.PLT false)).
-  rewrite pair_commute1.  
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute1.  
+  rewrite PLT.pair_commute2.
   auto.
 
   intros.
@@ -194,13 +203,13 @@ Proof.
   rewrite disc_cases_elem.
   rewrite PLT.curry_apply3.
   rewrite PLT.curry_apply3.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute2.
   auto.
 Qed.
 
 (**  Evaluation preserves the denotation of terms. *)
 Theorem soundness : forall τ (m z:term τ),
-  eval τ m z -> denote τ m ≈ denote τ z.
+  eval τ m z -> 〚m〛 ≈ 〚z〛.
 Proof.
   intros. induction H; simpl; auto.
   rewrite IHeval1.
@@ -307,8 +316,8 @@ Qed.
 Lemma eval_app_congruence σ₁ σ₂ : forall x x' y y' z,
   (forall q, eval _ x q -> eval _ x' q) ->
   (forall q, eval _ y q -> eval _ y' q) ->
-  eval _ (tapp σ₁ σ₂ x y) z ->
-  eval _ (tapp σ₁ σ₂ x' y') z.
+  eval _ (@tapp σ₁ σ₂ x y) z ->
+  eval _ (@tapp σ₁ σ₂ x' y') z.
 Proof.
   intros.
   inv H1.
@@ -322,18 +331,17 @@ Qed.
 (**  Now we define the logical relation.  It is defined by induction
      on the structure of types, in a standard way.
   *)
-Fixpoint LR (τ:ty) : term τ -> (PLT.unit false → tydom τ) -> Prop :=
-  match τ as τ' return term τ' -> (PLT.unit false → tydom τ') -> Prop
+Fixpoint LR (τ:ty) : term τ -> (1 → tydom τ) -> Prop :=
+  match τ as τ' return term τ' -> (1 → tydom τ') -> Prop
   with
   | ty_bool => fun m h => exists b:bool, m = tbool b /\ h ≈ disc_elem b
   | ty_arrow σ₁ σ₂ => fun m h =>
         forall n h', 
           LR σ₁ n h' -> eval σ₁ n n ->
           exists z, 
-            eval _ (tapp σ₁ σ₂ m n) z /\
+            eval _ (m•n) z /\
             LR σ₂ z (PLT.app ∘ PLT.pair h h')
   end.
-
 
 Lemma LR_equiv τ : forall m h h',
   h ≈ h' -> LR τ m h -> LR τ m h'.
@@ -354,10 +362,10 @@ Qed.
      definitions allow us to apply an arbitrary number of
      arguments to a syntactic term and to the denotation of terms.
   *)
-Fixpoint lrtys (ts:list ty) (z:ty) :=
+Fixpoint lrtys (ts:list ty) (z:ty) : ty :=
   match ts with
   | nil => z
-  | t::ts' => t ⇒ (lrtys ts' z)
+  | t::ts' => (t ⇒ (lrtys ts' z))%ty
   end.
 
 Fixpoint lrsyn (ts:list ty) : Type :=
@@ -384,17 +392,17 @@ Fixpoint lrhyps (ls:list ty) : lrsyn ls -> lrsem ls -> Prop :=
 Fixpoint lrapp (ls:list ty) z : lrsyn ls -> term (lrtys ls z) -> term z :=
   match ls as ls' return lrsyn ls' -> term (lrtys ls' z) -> term z with
   | nil => fun _ m => m
-  | t::ts => fun xs m => lrapp ts _ (fst xs) (tapp _ _ m (snd xs))
+  | t::ts => fun xs m => lrapp ts _ (fst xs) (m • (snd xs))
   end.
 
 Fixpoint lrsemapp (ls:list ty) z :
-  lrsem ls -> (PLT.unit false → tydom (lrtys ls z)) -> (PLT.unit false → tydom z) :=
+  lrsem ls -> (PLT.unit false → tydom (lrtys ls z)) -> (1 → tydom z) :=
   match ls as ls' return
     lrsem ls' ->
-    (PLT.unit false → tydom (lrtys ls' z)) -> (PLT.unit false → tydom z)
+    (PLT.unit false → tydom (lrtys ls' z)) -> (1 → tydom z)
   with
   | nil => fun _ h => h
-  | t::ts => fun ys h => lrsemapp ts _ (fst ys) (PLT.app ∘ PLT.pair h (snd ys))
+  | t::ts => fun ys h => lrsemapp ts _ (fst ys) (apply ∘ 〈h,snd ys〉)
   end.
 
 
@@ -425,9 +433,6 @@ Proof.
 Qed.
 
 
-Arguments tapp [_ _] _ _.
-
-
 (**  This fact is important in the base cases of the fundamental lemma; it allows
      unwind a stack of applications.
   *)
@@ -447,7 +452,7 @@ Proof.
   destruct H0 as [?[??]].
   destruct (H1 x y) as [z1 [??]]; auto.
 
-  generalize (IHls τ (tapp z0 x) z1 xs ys (PLT.app ∘ PLT.pair h y)
+  generalize (IHls τ (tapp z0 x) z1 xs ys (apply ∘ 〈h,y〉)
      H4 H3 H5).
   intros [q [??]].
   exists q; split; auto.
@@ -461,7 +466,7 @@ Qed.
 (**  Now we prove that each of the base combinators stands
      in the logical relation with their denotations.
   *)
-Lemma LR_I σ : LR _ (tI σ) (denote _ (tI σ)).
+Lemma LR_I σ : LR _ (tI σ) 〚tI σ〛.
 Proof.
   simpl. intros.
   exists n. split.
@@ -469,10 +474,10 @@ Proof.
   apply eI. apply H0.
   apply redex_I. auto.
   revert H. apply LR_equiv. rewrite PLT.curry_apply2.
-  rewrite pair_commute2; auto.
+  rewrite PLT.pair_commute2; auto.
 Qed.
 
-Lemma LR_K σ₁ σ₂ : LR _ (tK σ₁ σ₂) (denote _ (tK σ₁ σ₂)).
+Lemma LR_K σ₁ σ₂ : LR _ (tK σ₁ σ₂) 〚tK σ₁ σ₂〛.
 Proof.
   simpl. intros.
 
@@ -490,12 +495,12 @@ Proof.
   rewrite PLT.curry_apply2.
   rewrite PLT.curry_apply3.
   rewrite <- (cat_assoc PLT).
-  rewrite pair_commute1.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2.
   auto.
 Qed.
 
-Lemma LR_S σ₁ σ₂ σ₃ : LR _ (tS σ₁ σ₂ σ₃) (denote _ (tS σ₁ σ₂ σ₃)).
+Lemma LR_S σ₁ σ₂ σ₃ : LR _ (tS σ₁ σ₂ σ₃) 〚tS σ₁ σ₂ σ₃〛.
 Proof.
   simpl; intros.
   exists (tapp (tS _ _ _) n). split.
@@ -544,21 +549,21 @@ Proof.
   apply PLT.pair_eq.
   rewrite <- (cat_assoc PLT).
   rewrite <- (cat_assoc PLT).
-  rewrite pair_commute1.
-  rewrite pair_commute1.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2.
   auto.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute2.
   auto.
   rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
   rewrite (PLT.pair_compose_commute false).
   apply PLT.pair_eq; auto.
   rewrite <- (cat_assoc PLT).
-  rewrite pair_commute1.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2.
   auto.
-  rewrite pair_commute2.
+  rewrite PLT.pair_commute2.
   auto.
 
   destruct (H1 n1 h'1) as [z0 [??]]; auto; clear H1.
@@ -578,7 +583,7 @@ Proof.
   revert H9. apply LR_equiv. auto.
 Qed.
 
-Lemma LR_IF σ : LR _ (tIF σ) (denote _ (tIF σ)).
+Lemma LR_IF σ : LR _ (tIF σ) 〚tIF σ〛.
 Proof.
   simpl; intros.  
   destruct H as [b [??]]. subst n.
@@ -605,9 +610,9 @@ Proof.
   rewrite disc_cases_elem.
   rewrite PLT.curry_apply3.
   rewrite PLT.curry_apply3.
-  repeat rewrite <- (cat_assoc (PLT.PLT false)).
-  repeat rewrite pair_commute1.
-  repeat rewrite pair_commute2.
+  repeat rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  rewrite PLT.pair_commute2.
   auto.    
 
   exists n0. split.
@@ -621,7 +626,7 @@ Proof.
   rewrite disc_cases_elem.
   rewrite PLT.curry_apply3.
   rewrite PLT.curry_apply3.
-  repeat rewrite pair_commute2.
+  rewrite PLT.pair_commute2.
   auto.    
 Qed.
 
@@ -634,7 +639,7 @@ Lemma fundamental_lemma : forall σ (n:term σ) ls τ m xs ys
   lrhyps ls xs ys ->
   exists z,
     eval _ (lrapp ls τ xs m) z /\
-    LR τ z (lrsemapp ls τ ys (denote _ m)).
+    LR τ z (lrsemapp ls τ ys 〚m〛).
 Proof.
   induction n; intros.
 
@@ -683,8 +688,7 @@ Proof.
   eapply LR_under_apply; eauto.
   apply Eqdep_dec.UIP_dec. decide equality.
 
-  exists (tI σ). split. apply eI.
-  apply LR_I.
+  exists (tI σ). split. apply eI. apply LR_I.
 
   (* K case *)
   cut (exists z,
@@ -699,8 +703,7 @@ Proof.
   eapply LR_under_apply; eauto.
   apply Eqdep_dec.UIP_dec. decide equality.
 
-  exists (tK _ _). split. apply eK.
-  apply LR_K.
+  exists (tK _ _). split. apply eK. apply LR_K.
 
   (* S case *)
   cut (exists z,
@@ -716,8 +719,7 @@ Proof.
   apply Eqdep_dec.UIP_dec. decide equality.
 
   exists (tS _ _ _).
-  split. simpl. apply eS.
-  apply LR_S.
+ split. simpl. apply eS. apply LR_S.
 
   (* IF case *)
   cut (exists z,
@@ -732,15 +734,14 @@ Proof.
   eapply LR_under_apply; eauto.
   apply Eqdep_dec.UIP_dec. decide equality.
 
-  exists (tIF σ). split. apply eIF.
-  apply LR_IF.
+  exists (tIF σ). split. apply eIF. apply LR_IF.
 Qed.
 
 (**  A simpified form of the fundamental lemma that follows
      from the inductively-strong one above.
   *)
 Lemma fundamental_lemma' : forall τ (m:term τ),
-  exists z, eval τ m z /\ LR τ z (denote _ m).
+  exists z, eval τ m z /\ LR τ z 〚 m 〛.
 Proof.
   intros.
   apply (fundamental_lemma _ m nil _ m tt tt 
@@ -778,7 +779,7 @@ Definition cxt_eq τ σ (m n:term σ):=
      are contextually equivalant in any boolean context.
   *)
 Theorem adequacy : forall τ (m n:term τ),
-  denote τ m ≈ denote τ n -> cxt_eq ty_bool τ m n.
+  〚m〛 ≈ 〚n〛 -> cxt_eq ty_bool τ m n.
 Proof.
   intros. intro.
   revert n m H.
