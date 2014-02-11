@@ -11,6 +11,102 @@ Require Import directed.
 Delimit Scope cpo_scope with cpo.
 Open Scope cpo_scope.
 
+Definition continuous (CL:color) (A B:preord) (f:A → B) :=
+  forall lub (XS:cl_eset CL A),
+    least_upper_bound lub XS ->
+    least_upper_bound (f lub) (image f XS).
+Arguments continuous CL [A B] f.
+
+Lemma continuous_sequence CL (A B C:preord)
+  (g:B → C) (f:A → B) :
+  continuous CL g -> continuous CL f -> continuous CL (g ∘ f).
+Proof.
+  repeat intro. 
+  cut (least_upper_bound (g (f lub)) (image g (image f XS))).
+  rewrite image_compose. auto.
+  apply H. apply H0. auto.
+Qed.
+
+Lemma continuous_equiv CL (A B:preord) (f f':A → B) :
+  f ≈ f' -> continuous CL f -> continuous CL f'.
+Proof.
+  unfold continuous. intros.
+  eapply least_upper_bound_morphism.
+  3: apply H0.
+  apply H. apply image_morphism.
+  split; intro x; destruct (H x); auto.
+  reflexivity. auto.
+Qed.
+
+Lemma continuous_pair CL (C A B:preord) (f:C → A) (g:C → B) :
+  continuous CL f -> continuous CL g -> continuous CL 〈f, g〉.
+Proof.
+  repeat intro. simpl.
+  destruct (H lub XS); auto.
+  destruct (H0 lub XS); auto.
+  split. red; intros.
+  apply image_axiom2 in H6. destruct H6 as [c [??]].
+  simpl in H7. rewrite H7. split; simpl.
+  apply Preord.axiom. apply H1. auto.
+  apply Preord.axiom. apply H1. auto.
+  intros. destruct b. split; simpl.
+  apply H3. red; intros.
+  apply image_axiom2 in H7. destruct H7 as [q [??]].
+  rewrite H8.
+  cut ((f q, g q) ≤ (c,c0)).
+  intros [??]; auto.
+  apply H6.
+  apply image_axiom1'. exists q. split; auto.
+  apply H5. red; intros.
+  apply image_axiom2 in H7. destruct H7 as [q [??]].
+  rewrite H8.
+  cut ((f q, g q) ≤ (c,c0)).
+  intros [??]; auto.
+  apply H6.
+  apply image_axiom1'. exists q. split; auto.
+Qed.
+
+Lemma continuous_pi1 CL (A B:preord) :
+  @continuous CL (A×B) A π₁.
+Proof.
+  repeat intro.
+  split; repeat intro.
+  apply image_axiom2 in H0. destruct H0 as [q [??]].
+  rewrite H1.
+  cut (q ≤ lub).
+  intros [??]; auto.  
+  apply H. auto.
+  destruct H.
+  destruct (H1 (b,snd lub)); auto.
+  red; intros.
+  split; simpl.
+  apply H0.  
+  apply image_axiom1'. exists x; auto.
+  cut (x ≤ lub). intros [??]; auto.
+  apply H; auto.
+Qed.
+
+Lemma continuous_pi2 CL (A B:preord) :
+  @continuous CL (A×B) B π₂.
+Proof.
+  repeat intro.
+  split; repeat intro.
+  apply image_axiom2 in H0. destruct H0 as [q [??]].
+  rewrite H1.
+  cut (q ≤ lub).
+  intros [??]; auto.  
+  apply H. auto.
+  destruct H.
+  destruct (H1 (fst lub,b)); auto.
+  red; intros.
+  split; simpl.
+  cut (x ≤ lub). intros [??]; auto.
+  apply H; auto.
+  apply H0.  
+  apply image_axiom1'. exists x; auto.
+Qed.
+
+
 (**  * Complete partial orders
 
      Here we define the category of colored CPOs.  We will mostly
@@ -54,10 +150,6 @@ Module CPO.
 
   Notation "∐ XS" := (@sup_op _ _ (XS)%set) : cpo_scope.
 
-  Definition continuous (CL:color) (A B:type CL) (f:ord A → ord B) :=
-    forall lub (XS:cl_eset CL (ord A)),
-      least_upper_bound lub XS ->
-      least_upper_bound (f lub) (image f XS).
 
   Lemma sup_is_lub : forall CL (A:type CL) (XS:cl_eset CL (ord A)),
     least_upper_bound (∐XS) XS.
@@ -66,7 +158,7 @@ Module CPO.
   Qed.
 
   Lemma continuous_sup : forall CL (A B:type CL) (f:ord A → ord B),
-    continuous CL A B f <->
+    continuous CL f <->
     forall (XS:cl_eset CL (ord A)), f (sup_op XS) ≤ sup_op (image f XS).
   Proof.
     intros. split; intros.
@@ -86,7 +178,7 @@ Module CPO.
   Qed.    
 
   Lemma continuous_sup' : forall CL (A B:type CL) (f:ord A → ord B),
-    continuous CL A B f <->
+    continuous CL f <->
     forall (XS:cl_eset CL (ord A)), f (sup_op XS) ≈ sup_op (image f XS).
   Proof.
     intros. rewrite continuous_sup.
@@ -103,7 +195,7 @@ Module CPO.
     ; mono : forall (a b:carrier A), 
                Preord.ord_op (ord A) a b ->
                Preord.ord_op (ord B) (map a) (map b)
-    ; cont : continuous CL A B (Preord.Hom _ _ map mono)
+    ; cont : continuous CL (Preord.Hom _ _ map mono)
     }.
   Arguments map [CL] [A] [B] h x.
   Arguments mono [CL] [A] [B] h a b _.
@@ -115,7 +207,7 @@ Module CPO.
 
   Program Definition build_hom {CL:color} (A B:type CL)
     (f:Preord.hom (ord A) (ord B))
-    (H:continuous CL A B f)
+    (H:continuous CL f)
     : hom CL A B
     := Hom CL A B (Preord.map _ _ f) _ _.
   Next Obligation.
@@ -469,7 +561,6 @@ Notation "∐ XS" := (@CPO.sup_op _ _ (XS)%set) : cpo_scope.
 Arguments CPO.axiom [CL A B] f X.
 Arguments CPO.mono [CL A B] h a b _.
 Arguments CPO.cont [CL A B] h lub XS _.
-Arguments CPO.continuous [CL A B] f.
 
 (**  Supremum is a monotone operation. *)
 Lemma sup_monotone : forall CL (A:CPO.type CL) (X X':cl_eset CL A),

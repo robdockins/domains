@@ -2,9 +2,7 @@
 
 Require Import String.
 Require Import List.
-
-Require Import atoms.
-Require Import permutations.
+Require Import Setoid.
 
 Require Import basics.
 Require Import preord.
@@ -54,6 +52,44 @@ Arguments strict_curry' [Γ A B] f.
 Definition semvalue (Γ:PLT) (A:∂PLT) (f:Γ → U A) :=
   forall g, exists a, (g,Some a) ∈ PLT.hom_rel f.
 Arguments semvalue [Γ A] f.
+
+Lemma semvalue_le : forall Γ A (f f':Γ → U A),
+  f ≤ f' -> semvalue f -> semvalue f'.
+Proof.
+  repeat intro.
+  destruct (H0 g). exists x.
+  apply H. auto.
+Qed.
+
+Lemma semvalue_equiv : forall Γ A (f f':Γ → U A),
+  f ≈ f' -> semvalue f -> semvalue f'.
+Proof.
+  intros Γ A f f' H. apply semvalue_le; auto.
+Qed.
+
+Add Parametric Morphism Γ A :
+  (@semvalue Γ A)
+  with signature (eq_op _) ==> iff
+    as semvalue_eq_morphism.
+Proof.
+  intros. split; apply semvalue_equiv; auto.
+Qed.
+
+Lemma eta_semvalue A B (f:A → B) :
+  semvalue (η ∘ f).
+Proof.
+  repeat intro.
+  destruct (PLT.hom_directed _ _ _ f g nil). hnf; auto.
+  hnf. intros. apply nil_elem in H. elim H.
+  destruct H. apply erel_image_elem in H0.
+  exists x. 
+  simpl NT.transform.
+  simpl. apply compose_elem.
+  apply PLT.hom_order.
+  exists x. split; auto.
+  apply adj_unit_rel_elem. auto.
+Qed.
+
 
 Lemma strict_curry_app2 D (Γ:PLT) (A B:∂PLT) 
   (f : Γ×U A → U B) (g : D → U A) (h:D → Γ)
@@ -250,7 +286,7 @@ Qed.
 Arguments postcompose [hf] A [B C] g.
 
 Lemma precompose_continuous hf (A B C:PLT.PLT hf) (f:A → B) :
-  CPO.continuous (precompose C f).
+  continuous (directed_hf_cl hf) (precompose C f).
 Proof.
   apply CPO.continuous_sup.
   repeat intro. destruct a as [a c].
@@ -275,7 +311,7 @@ Proof.
 Qed.
 
 Lemma postcompose_continuous hf (A B C:PLT.PLT hf) (g:B → C) :
-  CPO.continuous (postcompose A g).
+  continuous (directed_hf_cl hf) (postcompose A g).
 Proof.
   apply CPO.continuous_sup.
   repeat intro. destruct a as [a c].
@@ -318,7 +354,7 @@ Qed.
 Arguments pair_left [hf] A [B C] g.
 
 Lemma pair_right_continuous hf (A B C:PLT.PLT hf) (f:C → A) :
-  CPO.continuous (pair_right B f).
+  continuous (directed_hf_cl hf) (pair_right B f).
 Proof.
   apply CPO.continuous_sup.
   repeat intro. destruct a as [c [a b]].
@@ -342,7 +378,7 @@ Proof.
 Qed.
 
 Lemma pair_left_continuous hf (A B C:PLT.PLT hf) (g:C → B) :
-  CPO.continuous (pair_left A g).
+  continuous (directed_hf_cl hf) (pair_left A g).
 Proof.
   apply CPO.continuous_sup.
   repeat intro. destruct a as [c [a b]].
@@ -364,48 +400,6 @@ Proof.
   apply PLT.pair_hom_rel. split; auto.
   rewrite <- H2; auto.
 Qed.
-
-Lemma continuous_sequence hf (A B C:dcpo hf)
-  (g:Preord.hom B C) (f:Preord.hom A B) :
-  CPO.continuous g -> CPO.continuous f -> CPO.continuous (g ∘ f).
-Proof.
-  repeat intro. 
-  cut (least_upper_bound (g (f lub)) (image g (image f XS))).
-  intros [??]; split; repeat intro.
-  apply H2. apply image_axiom2 in H4.
-  destruct H4 as [q [??]]. simpl in H5.
-  rewrite H5.
-  apply image_axiom1'. exists (f q); split; auto.
-  apply image_axiom1'. exists q; split; auto.
-  apply H3. repeat intro.
-  apply H4.
-  apply image_axiom2 in H5.
-  destruct H5 as [y [??]].
-  apply image_axiom2 in H5.
-  destruct H5 as [y' [??]].
-  apply image_axiom1'. exists y'.
-  split; auto.
-  simpl.
-  rewrite H6.
-  rewrite H7. auto.
-
-  apply H. apply H0. auto.
-Qed.
-
-Lemma continuous_equiv hf (A B:dcpo hf) (f f':Preord.hom A B) :
-  f ≈ f' -> CPO.continuous f -> CPO.continuous f'.
-Proof.
-  unfold CPO.continuous. intros.
-  eapply least_upper_bound_morphism.
-  3: apply H0.
-  apply H. apply image_morphism.
-  split; auto. 
-  intro x. destruct (H x); auto.
-  intro x. destruct (H x); auto.
-  reflexivity.
-  auto.
-Qed.
-
 
 Section fixes.
   Variable Γ:PLT.
@@ -448,74 +442,6 @@ Section fixes.
 
 End fixes.
 
-
-Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :
-  (x,y,(x',y')) ∈ PLT.hom_rel (PLT.pair_map f g) <->
-  ((x,x') ∈ PLT.hom_rel f /\ (y,y') ∈ PLT.hom_rel g).
-Proof.
-  unfold PLT.pair_map.
-  split; intros.
-  rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂) (x,y) x' y') in H.
-  destruct H.
-  apply PLT.compose_hom_rel in H.
-  destruct H as [?[??]].
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [?[??]].
-  simpl in H. 
-  rewrite (pi1_rel_elem _ _ _ _ x y x0)  in H.
-  simpl in H0.
-  rewrite (pi2_rel_elem _ _ _ _ x y x1) in H0.
-  split.
-  revert H1. apply PLT.hom_order; auto.
-  revert H2. apply PLT.hom_order; auto.
-  rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂)).
-  destruct H.
-  split.
-  apply PLT.compose_hom_rel.
-  exists x. split; auto. simpl. apply pi1_rel_elem; auto.
-  apply PLT.compose_hom_rel.
-  exists y. split; auto. simpl. apply pi2_rel_elem; auto.
-Qed.
-
-
-Lemma semvalue_le : forall Γ A (f f':Γ → U A),
-  f ≤ f' -> semvalue f -> semvalue f'.
-Proof.
-  repeat intro.
-  destruct (H0 g). exists x.
-  apply H. auto.
-Qed.
-
-Lemma semvalue_equiv : forall Γ A (f f':Γ → U A),
-  f ≈ f' -> semvalue f -> semvalue f'.
-Proof.
-  intros Γ A f f' H. apply semvalue_le; auto.
-Qed.
-
-Require Import Setoid.
-
-Add Parametric Morphism Γ A :
-  (@semvalue Γ A)
-  with signature (eq_op _) ==> iff
-    as semvalue_eq_morphism.
-Proof.
-  intros. split; apply semvalue_equiv; auto.
-Qed.
-
-Lemma eta_semvalue A B (f:A → B) :
-  semvalue (η ∘ f).
-Proof.
-  repeat intro.
-  destruct (PLT.hom_directed _ _ _ f g nil). hnf; auto.
-  hnf. intros. apply nil_elem in H. elim H.
-  destruct H. apply erel_image_elem in H0.
-  exists x. 
-  simpl NT.transform.
-  simpl. apply compose_elem.
-  apply PLT.hom_order.
-  exists x. split; auto.
-  apply adj_unit_rel_elem. auto.
-Qed.
 
 Lemma strict_curry'_semvalue Γ A B f :
   semvalue (@strict_curry' Γ A B f).

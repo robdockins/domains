@@ -996,6 +996,34 @@ Proof.
   intros. apply PLT.curry_eq; auto.
 Qed.
 
+Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :
+  (x,y,(x',y')) ∈ PLT.hom_rel (PLT.pair_map f g) <->
+  ((x,x') ∈ PLT.hom_rel f /\ (y,y') ∈ PLT.hom_rel g).
+Proof.
+  unfold PLT.pair_map.
+  split; intros.
+  rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂) (x,y) x' y') in H.
+  destruct H.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [?[??]].
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [?[??]].
+  simpl in H. 
+  rewrite (pi1_rel_elem _ _ _ _ x y x0)  in H.
+  simpl in H0.
+  rewrite (pi2_rel_elem _ _ _ _ x y x1) in H0.
+  split.
+  revert H1. apply PLT.hom_order; auto.
+  revert H2. apply PLT.hom_order; auto.
+  rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂)).
+  destruct H.
+  split.
+  apply PLT.compose_hom_rel.
+  exists x. split; auto. simpl. apply pi1_rel_elem; auto.
+  apply PLT.compose_hom_rel.
+  exists y. split; auto. simpl. apply pi2_rel_elem; auto.
+Qed.
+
 
 Section plt_const.
   Variable hf:bool.
