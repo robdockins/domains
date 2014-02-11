@@ -454,7 +454,15 @@ Arguments iso_inv [C] [A] [B] i.
 Arguments iso_axiom1 [C] [A] [B] i.
 Arguments iso_axiom2 [C] [A] [B] i.
 
+Definition iso_hom' (C:category) (A B:C) (f:isomorphism C A B) : Comp.hom _ A B :=
+  iso_hom f.
+Definition iso_hom'' (C:category) (A B:ob C) (f:isomorphism C A B) : CAT_EQ C A B := 
+  iso_hom f.
+
 Coercion iso_hom : isomorphism >-> hom.
+Coercion iso_hom' : isomorphism >-> Comp.hom.
+Coercion iso_hom'' : isomorphism >-> Eq.carrier.
+
 Notation "A ↔ B" := (isomorphism _ A B) : category_hom_scope.
 
 Program Definition iso_eq (C:category) (A B:C) :=
@@ -524,6 +532,8 @@ Next Obligation.
   apply iso_axiom1.
 Qed.
 
+
+(*
 Canonical Structure ISO_EQ (C:category) A B
   := Eq.Pack (isomorphism C A B) (iso_eq C A B).
 Canonical Structure ISO_COMP (C:category)
@@ -531,10 +541,12 @@ Canonical Structure ISO_COMP (C:category)
 Canonical Structure ISO_CAT (C:category)
   := Category (ob C) (isomorphism C)
           (iso_eq C) (iso_comp_mixin C) (iso_cat_axioms C).
+*)
 Canonical Structure ISO_GROUPOID (C:category)
   := Groupoid (ob C) (isomorphism C)
           (iso_eq C) (iso_comp_mixin C)
           (iso_cat_axioms C) (iso_groupoid_mixin C).
+
 
 
 (**  Categories with terminal objects, which we call terminated categories.
