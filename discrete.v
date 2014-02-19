@@ -274,3 +274,43 @@ Next Obligation.
 Qed.
 
 Canonical Structure finbool.
+
+
+Lemma disc_cases_elem'
+     : forall (X : fintype) (A B C : PLT) 
+       (f : X -> A → B) (g: C → 1) (x : X) (h : C → A),
+       disc_cases f ∘ PLT.pair h (disc_elem x ∘ g) ≈ f x ∘ h.
+Proof.
+  split; intros a H. destruct a.
+  apply PLT.compose_hom_rel in H.
+  apply PLT.compose_hom_rel.
+  destruct H as [q [??]].
+  destruct q.
+  apply (mk_disc_cases_elem X _ _ f (fintype.fintype_list X)) in H0.
+  simpl in H.
+  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
+  apply PLT.compose_hom_rel in H1.
+  simpl in *.
+  destruct H1 as [q [??]].
+  apply single_axiom in H2.
+  exists c1. split; auto.
+  destruct H2 as [[??][??]]. simpl in *.
+  hnf in H3. subst c2. auto.
+  apply fintype.fintype_complete.
+  destruct a.
+  apply PLT.compose_hom_rel in H.
+  apply PLT.compose_hom_rel.
+  destruct H as [q [??]].
+  exists (q,x). split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt.
+  split.
+  destruct (PLT.hom_directed false _ _ g c nil); auto.
+  hnf; auto. hnf; intros. apply nil_elem in H1. elim H1.
+  destruct H1. apply erel_image_elem in H2. destruct x0. auto.
+  simpl. apply single_axiom. auto.
+  apply (mk_disc_cases_elem X _ _ f (fintype.fintype_list X)).
+  apply fintype.fintype_complete.
+  auto.   
+Qed.
