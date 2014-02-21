@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=strict_utils.v\
+VFILES:=finprod.v\
+  strict_utils.v\
   powerdom.v\
   skiy.v\
   ski.v\

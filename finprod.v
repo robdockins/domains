@@ -79,16 +79,15 @@ Section cast.
     cast y z H2 ∘ cast x y H1 ≈ cast x z (Logic.eq_trans H1 H2).
   Proof.
     split; hnf; simpl; intros.
-    destruct a. apply compose_elem in H.
-    2: apply (PLT.hom_order _ _ _ (cast x y H1)).
+    destruct a. apply PLT.compose_hom_rel in H.
     destruct H as [q [??]].
+    simpl in *.
     apply cast_rel_elem in H.
     apply cast_rel_elem in H0.
     apply cast_rel_elem.
     rewrite H0. revert H.
-    simpl in *. case H2. simpl. auto.
-    apply compose_elem.
-    apply (PLT.hom_order _ _ _ (cast x y H1)).
+    case H2. simpl. auto.
+    apply PLT.compose_hom_rel.
     destruct a. 
     apply cast_rel_elem in H.
     exists (eq_rect x F c y H1).
@@ -466,7 +465,7 @@ Section finprod.
 
   Definition proj_rel ls (i:I) : erel (finprod ls) (ty (lookup i ls)) :=
     esubset_dec
-      (ord ls × ty (lookup i ls))
+      (ord ls × ty (lookup i ls))%cat_ob
       (fun fx => (fst fx) i ≥ snd fx)
       (fun x => eff_ord_dec _ (PLT.effective (ty (lookup i ls))) _ _)
       (eprod (eff_enum _ (PLT.effective (finprod ls)))
@@ -504,10 +503,10 @@ Section finprod.
     auto.
   Qed.
 
-  Program Definition bind_rel ls i a : erel (ord ls × F a)
+  Program Definition bind_rel ls i a : erel (ord ls × F a)%cat_ob
                                             (ord ((i,a)::ls)) :=
     esubset_dec
-      ((ord ls × F a) × ord ((i,a)::ls))
+      ((ord ls × F a) × ord ((i,a)::ls))%cat_ob
       (fun q => match q with
                 ((f,x),f') =>
                 let g i' :=
@@ -648,20 +647,17 @@ Section finprod.
     Proof.
       simpl; intros. split; hnf; simpl; intros.
       destruct a0.
-      apply compose_elem in H.
-      2: apply (PLT.hom_order _ _ _ (bind ls i a)).
+      apply PLT.compose_hom_rel in H.
       destruct H as [q [??]]. simpl in *.
       destruct p.
       rewrite (bind_rel_elem ls i a f c0 q) in H.
       rewrite (proj_rel_elem ((i,a)::ls) i' q c) in H0.
       simpl in *.
-      apply compose_elem.
-      apply (PLT.hom_order _ _ _ PLT.pi1).
+      apply PLT.compose_hom_rel.
       simpl.
       exists f.
       split. apply pi1_rel_elem. auto.
-      apply compose_elem.
-      apply (PLT.hom_order _ _ _ (proj ls i')).
+      apply PLT.compose_hom_rel.
       simpl. exists (f i').
       split.
       rewrite (proj_rel_elem ls i' f (f i')). auto.
@@ -675,17 +671,14 @@ Section finprod.
       simpl. auto.
       
       destruct a0 as [[??]?].            
-      apply compose_elem in H.
-      2: apply (PLT.hom_order _ _ _ PLT.pi1).
+      apply PLT.compose_hom_rel in H.
       simpl in *.
       destruct H as [q [??]].
       apply (pi1_rel_elem _ _ _ _ f c q) in H.
-      apply compose_elem in H0.
-      2: apply (PLT.hom_order _ _ _ (proj ls i')).
+      apply PLT.compose_hom_rel in H0.
       destruct H0 as [q' [??]]. simpl in *.
       apply cast_rel_elem in H1.
-      apply compose_elem.
-      apply (PLT.hom_order _ _ _ (bind ls i a)).
+      apply PLT.compose_hom_rel.
       simpl.
       apply proj_rel_elem in H0.
       set (g i' :=
@@ -712,15 +705,13 @@ Section finprod.
       simpl.
       split; hnf; simpl; intros.
       destruct a0.
-      apply compose_elem in H.
-      2: apply (PLT.hom_order _ _ _ (bind ls i a)).
+      apply PLT.compose_hom_rel in H.
       destruct H as [y [??]].
       destruct p.
       rewrite (bind_rel_elem ls i a f c0 y) in H.
       simpl in *.
       rewrite (proj_rel_elem ((i,a)::ls) i y c) in H0.
-      apply compose_elem.
-      apply (PLT.hom_order _ _ _ PLT.pi2).
+      apply PLT.compose_hom_rel.
       simpl. exists c0.
       split.
       apply pi2_rel_elem. auto.
@@ -728,14 +719,12 @@ Section finprod.
       rewrite H0.
       rewrite (H i).
       unfold lookup_eq.
-      revert H. case (Idec i i). simpl; auto.
+      case (Idec i i). simpl; auto.
       intros. elim n; auto.
       
       destruct a0.            
-      apply compose_elem in H.
-      2: apply (PLT.hom_order _ _ _ (PLT.pi2)).
-      apply compose_elem.
-      apply (PLT.hom_order _ _ _ (bind ls i a)).
+      apply PLT.compose_hom_rel in H.
+      apply PLT.compose_hom_rel.
       destruct H as [q [??]].            
       rewrite (cast_rel_elem hf (option A) ty _ _ lookup_eq) in H0.
       simpl in *.

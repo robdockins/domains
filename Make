@@ -32,3 +32,4 @@ ski.v
 skiy.v
 powerdom.v
 strict_utils.v
+finprod.v
