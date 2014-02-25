@@ -218,8 +218,7 @@ Section PLT.
   Definition curry {C A B} (f:(prod C A) → B) : C → (exp A B) :=
     Hom C (exp A B)
       (curry_rel hf (ord A) (ord B) (ord C)
-        (effective A) (effective B) (effective C) (plotkin A) 
-        f (hom_order _ _ f))
+        (effective A) (effective B) (effective C) (plotkin A) f)
       (curry_rel_ordering hf (ord A) (ord B) (ord C)
         (effective A) (effective B) (effective C) (plotkin A) 
         f (hom_order _ _ f))
@@ -445,6 +444,7 @@ Section PLT.
   Proof.
     rewrite pair_map_eq.
     apply curry_apply.
+    apply PLT.hom_order.
     apply hom_directed. 
     apply plotkin.
   Qed.
@@ -486,10 +486,12 @@ Section PLT.
   Proof.
     repeat intro. destruct a as [c R].
     simpl in H0.
-    simpl. apply curry_rel_elem. intros.
-    apply H.
+    simpl. apply curry_rel_elem. 
+    apply PLT.hom_order.
+    intros. apply H.
     revert H0 a b H1.
     apply curry_rel_elem.
+    apply PLT.hom_order.
   Qed.
 
   Theorem curry_eq (C A B:ob) (f f':prod C A → B) :
@@ -582,6 +584,7 @@ Section PLT.
     app ∘ pair_map CURRY id ≈ f -> CURRY ≈ curry f.
   Proof.
     intro. apply (curry_universal hf); auto.
+    apply PLT.hom_order.
     apply (hom_directed _ _ f).
     apply plotkin.
     apply (hom_order _ _ CURRY).
@@ -798,18 +801,6 @@ Proof.
   apply PLT.hom_directed.
 Qed.
 
-Lemma plt_terminate_univ : forall (A:PLT) (f:A → 1),
-  f ≈ PLT.terminate false A.
-Proof.
-  intros. split.
-  apply PLT.terminate_le_univ.
-  hnf; simpl; intros.
-  destruct a.
-  destruct u.
-  destruct (PLT.hom_directed false _ _ f c nil); auto.
-  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
-  destruct H0. apply erel_image_elem in H1. destruct x. auto.
-Qed.
 
 Program Definition terminated_mixin
   := Terminated.Mixin (ob false) (hom false) 
@@ -1007,6 +998,19 @@ Add Parametric Morphism (hf:bool) (C A B:PLT.ob hf) :
      as plt_curry_morphism.
 Proof.
   intros. apply PLT.curry_eq; auto.
+Qed.
+
+Lemma plt_terminate_univ : forall (A:PLT) (f:A → 1),
+  f ≈ PLT.terminate false A.
+Proof.
+  intros. split.
+  apply PLT.terminate_le_univ.
+  hnf; simpl; intros.
+  destruct a.
+  destruct u.
+  destruct (PLT.hom_directed false _ _ f c nil); auto.
+  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
+  destruct H0. apply erel_image_elem in H1. destruct x. auto.
 Qed.
 
 Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :

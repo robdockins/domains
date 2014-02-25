@@ -1594,6 +1594,7 @@ Proof.
   apply pi1_rel_ordering.
 Qed.
 
+(*
 Program Definition const {A B:preord} (b:B) : A → B :=
   Preord.Hom A B (fun _ => b) _.
 Next Obligation. auto. Qed.
@@ -1627,6 +1628,7 @@ Next Obligation.
   eauto.
   split; auto.
 Qed.
+*)
 
 Lemma all_finset_setdec_elem : forall A P X a
   (HP:forall x y a, x ≈ y -> a ∈ P x -> a ∈ P y),
@@ -1676,67 +1678,23 @@ Section curry.
   Let Reff : effective_order ((C×A)×B) :=
     effective_prod (effective_prod HCeff HAeff) HBeff.
 
-  Definition curry_acceptable_decset (tuple: C × (joinable_rel_order hf A B)) :=
-    match tuple with
-    | (c,R') => 
-        all_finset_setdec (A×B) 
-             (fun ab => inset_decset ((C×A)×B) Reff R
-                        (((c,fst ab),snd ab):((C×A)×B))) (proj1_sig R')
-    end.
 
-  Program Definition  curry_acceptable_semidec : semidec curry_acceptable
-    := Semidec _ _ curry_acceptable_decset _ _.
-  Next Obligation.
-    unfold curry_acceptable; intros.
-    destruct x; destruct y. intros.
-    destruct H. destruct H; destruct H2. simpl in *.
-    destruct ab as [a b].
-    destruct (H4 a b) as [p [q [?[??]]]]; auto.
-    generalize (H0 (p,q) H5). simpl.
-    apply HR; auto.
-    split; auto.
-  Qed.
-  Next Obligation.
-    intros. split; intros.
-    destruct a as [c R'].
-    red. intros [a b]. simpl; intros.
-    unfold curry_acceptable_decset in H.
-    rewrite all_finset_setdec_elem in H.
-    apply H in H0.
-    simpl in H0.
-    unfold inset_decset in H0.
-    apply image_axiom2 in H0.
-    destruct H0 as [y [??]].
-    apply esubset_dec_elem in H0.
-    destruct H0.
-    rewrite <- H2 in H0.
-    auto.
-    intros. eauto.
-    intros.
-    apply in_semidec_obligation_2 in H2.
-    apply in_semidec_obligation_2.
-    apply member_eq with (c,fst x0, snd x0); auto.
-    destruct H1 as [[??][??]]; split; split; simpl; auto; split; auto.
+  Definition inset_decset (A:preord) (HA:effective_order A) (X:eset A) (x:A) 
+    : eset unitpo :=
+    image (const tt) (esubset_dec _ _
+      (PREORD_EQ_DEC _ (OrdDec _ (eff_ord_dec _ HA)) x) X).
 
-    unfold curry_acceptable_decset.
-    destruct a as [c R'].
-    rewrite all_finset_setdec_elem.
-    intros [a b] ?.
-    unfold inset_decset.
-    destruct x.
-    simpl fst. simpl snd.
-    change tt with (const tt # ((c,a,b):((C×A)×B))).
-    apply image_axiom1.
-    apply esubset_dec_elem.
-    intros. eauto.
-    split; auto.
-    red in H.
-    apply H in H0. simpl in H0. auto.
-    clear; intros.
-    apply in_semidec_obligation_2 in H0.
-    apply in_semidec_obligation_2.
-    apply member_eq with (c,fst x, snd x); auto.
-    destruct H as [[??][??]]; split; split; simpl; auto; split; auto.
+  Lemma curry_acceptable_semidec : 
+    forall x, semidec (curry_acceptable x).
+  Proof.
+    intro x. destruct x as [c R']. unfold curry_acceptable.
+    apply all_finset_semidec.
+    intros. eapply member_eq. 2: apply H0.
+    destruct H. destruct H. destruct H1.
+    split; split; auto. split; auto. split; auto.
+    intros. apply semidec_in.
+    constructor.
+    apply (eff_ord_dec _ Reff).
   Qed.
 
   Definition curry_rel : erel C (joinable_rel_order hf A B) :=
@@ -1752,8 +1710,29 @@ Section curry.
     apply esubset_elem in H. destruct H.
     red in H1.
     apply H1 in H0. auto.
+    unfold curry_acceptable.
+    intros. destruct a0. destruct b0.
+    intros. 
+    destruct H1 as [[??][??]]. simpl in *.
+    destruct ab; simpl in *.
+    destruct (H6 c4 c5) as [p [q [?[??]]]]; auto.
+    apply H2 in H7. simpl in H7.
+    revert H7. apply HR; auto.
+    split; auto.
+
     unfold curry_rel.
-    apply esubset_elem. split.
+    apply esubset_elem.
+    unfold curry_acceptable.
+    intros. destruct a. destruct b.
+    intros. 
+    destruct H0 as [[??][??]]. simpl in *.
+    destruct ab; simpl in *.
+    destruct (H5 c4 c5) as [p [q [?[??]]]]; auto.
+    apply H1 in H6. simpl in H6.
+    revert H6. apply HR; auto.
+    split; auto.
+
+    split; auto.
     apply eprod_elem.
     split; apply eff_complete.
     red; simpl; intros.

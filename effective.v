@@ -286,51 +286,44 @@ Qed.
     module tree means it can't go in esets.v.  Maybe semidec
     should get split out into a separate file?
   *)
-Lemma semidec_ex (A B:preord) P
+Lemma semidec_ex (A B:preord) (P:A -> B -> Prop)
+  (Hok : forall a b c, b ≈ c -> P a b -> P a c)
   (HB:effective_order B) :
-  @semidec (A×B) (fun ab => P (fst ab) (snd ab)) ->
-  @semidec A (fun a => @ex B (P a)).
+  (forall ab, semidec (P (fst ab) (snd ab))) ->
+  (forall a, semidec (@ex B (P a))).
 Proof.
   intros.
-  destruct X.
-  apply Semidec with (fun a n =>
+  apply Semidec with (fun n =>
     let (p,q) := pairing.unpairing n in
        match eff_enum B HB p with
        | None => None
-       | Some b => decset (a,b) q
+       | Some b => decset _ (X (a,b)) q
        end).
-  intros.
-  destruct H0. exists x0.
-  apply (decset_prop_ok (x,x0) (y,x0)); auto.
-  split; split; auto.
-  simpl; intros. split; intros.
+  split; simpl; intros.
   destruct H as [n ?].
   case_eq (pairing.unpairing n); intros.
   rewrite H0 in H.
   destruct (eff_enum B HB n0); intros.
-  case_eq (decset (a,c) n1); intros.
+  case_eq (decset (P a c) (X (a,c)) n1); intros.
   rewrite H1 in H.
-  assert (c0 ∈ decset (a,c)).
-  exists n1. rewrite H1; auto.
-  apply decset_correct in H2.
-  simpl in H2. eauto.
+  exists c.
+  rewrite <- (decset_correct _ (X (a,c))). simpl.
+  hnf; simpl. exists n1. rewrite H1. auto.
   rewrite H1 in H. elim H. elim H.
-  destruct H as [b ?].
-  generalize (eff_complete B HB b).
+
+  destruct H.
+  generalize (eff_complete B HB x).
   intros [p ?].
   case_eq (eff_enum B HB p); intros.
   rewrite H1 in H0.
   assert (P a c).
-  apply (decset_prop_ok (a,b) (a,c)); auto.
-  split; split; auto.
-  assert (tt ∈ decset (a,c)).
-  apply decset_correct. simpl; auto.
-  destruct H3 as [q ?].
+  apply Hok with x; auto.
+  rewrite <- (decset_correct _ (X (a,c))) in H2.
+  destruct H2 as [q ?].
+  simpl in *.
   exists (pairing.pairing (p,q)).
   rewrite pairing.unpairing_pairing.
-  destruct (eff_enum B HB p); auto.
-  inversion H1; subst.
-  destruct (decset (a,c) q); intros; auto.
-  discriminate.
+  rewrite H1.
+  destruct (decset (P a c) (X (a,c)) q); auto.
   rewrite H1 in H0. elim H0.
 Qed.

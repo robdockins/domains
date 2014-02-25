@@ -617,61 +617,45 @@ Qed.
 (**  A predicate is semidecidable if its truth is equal
      to the inhabitedness of an enumerable set.
   *)
-Record semidec {A:preord} (P:A -> Prop) :=
+Record semidec (P:Prop) :=
   Semidec
-  { decset : A -> eset unitpo
-  ; decset_prop_ok : forall x y:A, x ≈ y -> P x -> P y
-  ; decset_correct : forall x a, x ∈ (decset a) <-> P a
+  { decset : eset unitpo
+  ; decset_correct : tt ∈ decset <-> P
   }.
 
 (**  Decidable predicates are semidecidable.
   *)
-Program Definition dec_semidec (A:preord) (P:A->Prop)
-  (HP:forall x y, x ≈ y -> P x -> P y)
-  (Hdec : forall a, {P a}+{~P a}) :
+Program Definition dec_semidec (P:Prop)
+  (Hdec : {P}+{~P}) :
   semidec P :=
-  Semidec _ _ (fun a => if Hdec a then single tt else ∅) _ _.
-Next Obligation.
-  intros. eapply HP; eauto.
-Qed.
+  Semidec _ (if Hdec then single tt else ∅) _.
 Next Obligation.
   intros.
-  destruct (Hdec a).
-  intuition. apply single_axiom. destruct x; auto.
+  destruct Hdec.
+  intuition. apply single_axiom. auto.
   intuition.
   apply empty_elem in H. elim H.
 Qed.
 
-Program Definition semidec_true (A:preord) : semidec (fun _:A => True)
-  := Semidec _ _ (fun x => single tt) _ _.
-Next Obligation.
-  intros; auto.
-Qed.
+Program Definition semidec_true : semidec True
+  := Semidec _ (single tt) _.
 Next Obligation.
   intros; split; auto.
   intro. 
   apply single_axiom. 
-  destruct x; auto.
+  auto.
 Qed.
 
-Program Definition semidec_false (A:preord) : semidec (fun _:A => False)
-  := Semidec _ _ (fun x => ∅) _ _.
-Next Obligation.
-  intros; auto.
-Qed.
+Program Definition semidec_false : semidec False
+  := Semidec _ ∅ _.
 Next Obligation.
   intuition.
   apply empty_elem in H. auto.
 Qed.
 
-Program Definition semidec_disj (A:preord) (P Q:A ->Prop) (HP:semidec P) (HQ:semidec Q)
-  : semidec (fun x => P x \/ Q x)
-  := Semidec _ _ (fun x => union2 (decset P HP x) (decset Q HQ x)) _ _.
-Next Obligation.
-  intuition.
-  left. eapply (decset_prop_ok P HP); eauto.
-  right. eapply (decset_prop_ok Q HQ); eauto.
-Qed.
+Program Definition semidec_disj (P Q:Prop) (HP:semidec P) (HQ:semidec Q)
+  : semidec (P \/ Q)
+  := Semidec _ (union2 (decset P HP) (decset Q HQ)) _.
 Next Obligation.
   intuition.
   apply union2_elem in H.
@@ -684,15 +668,10 @@ Next Obligation.
   right. apply decset_correct. auto.
 Qed.
 
-Program Definition semidec_conj (A:preord) (P Q:A -> Prop) (HP:semidec P) (HQ:semidec Q) 
-  : semidec (fun x => P x /\ Q x)
-  := Semidec _ _ (fun x => intersection (PREORD_EQ_DEC _ unitpo_dec) 
-                             (decset P HP x) (decset Q HQ x)) _ _.
-Next Obligation.
-  intros. destruct H0; split.
-  eapply decset_prop_ok; eauto.
-  eapply decset_prop_ok; eauto.
-Qed.
+Program Definition semidec_conj (P Q:Prop) (HP:semidec P) (HQ:semidec Q) 
+  : semidec (P /\ Q)
+  := Semidec _ (intersection (PREORD_EQ_DEC _ unitpo_dec) 
+                     (decset P HP) (decset Q HQ)) _.
 Next Obligation.
   intros; split; intros.
   apply intersection_elem in H.
@@ -703,17 +682,15 @@ Next Obligation.
   split; apply decset_correct; auto.
 Qed.
 
-Lemma semidec_iff (A:preord) (P Q:A -> Prop)  :
-  (forall x:A, P x <-> Q x) ->
+Lemma semidec_iff (P Q:Prop)  :
+  (P <-> Q) ->
   semidec P -> semidec Q.
 Proof.
   intros.
   destruct X.
   apply Semidec with decset0.
   intros.
-  apply H. apply (decset_prop_ok0 x); auto.
-  apply H; auto.
-  intros. rewrite <- H. apply decset_correct0.
+  rewrite decset_correct0. auto.
 Qed.
 
 Program Definition const {A B:preord} (x:B) : A → B :=
@@ -722,27 +699,26 @@ Next Obligation.
   intros; auto.
 Qed.
 
-
-Lemma semidec_in (A:preord) (HA:ord_dec A) (X:eset A) :
-  semidec (fun x => x ∈ X).
+Lemma semidec_in (A:preord) (HA:ord_dec A) (X:eset A) x :
+  semidec (x ∈ X).
 Proof.
-  apply Semidec with (fun x => image (const tt) 
+  apply Semidec with (image (const tt) 
     (intersection (PREORD_EQ_DEC A HA) X (eset.esingle A x))).
-  intros. rewrite <- H; auto.
-  intros. split; intro.
+  split; intros.
   apply image_axiom2 in H.
   destruct H as [y [??]].
   apply intersection_elem in H.
   destruct H.
   apply single_axiom in H1. rewrite <- H1. auto.
   apply image_axiom1'.
-  exists a. split.
-  destruct x; simpl; auto.
+  exists x. split.
+  simpl. auto.
   apply intersection_elem.
   split; auto.
   apply single_axiom. auto.
 Qed.
 
+(*
 Lemma semidec_in_finset (A B:preord) (HA:ord_dec A) (X:finset A) f :
   (forall b b':B, b ≤ b' -> f b ≤ f b') ->
   semidec (fun x:B => f x ∈ X).
@@ -752,6 +728,7 @@ Proof.
   intros. apply member_eq with (f x); auto.
   intro. apply finset_dec. auto.
 Qed.
+*)
 
 Fixpoint all_finset_setdec
   (A:preord) (DECSET:A -> eset unitpo) (X:finset A) : eset unitpo :=
@@ -761,36 +738,32 @@ Fixpoint all_finset_setdec
                 (DECSET x) (all_finset_setdec A DECSET xs)
   end.
 
-Program Definition all_finset_semidec {A:preord} (P:A -> Prop) (H:semidec P)
-  : semidec (fun X:finset A => forall a:A, a ∈ X -> P a)
-  := Semidec _ _ (all_finset_setdec A (decset P H)) _ _.
+Program Definition all_finset_semidec {A:preord} (P:A -> Prop) 
+  (Hok : forall a b, a ≈ b -> P a -> P b)
+  (H:forall a, semidec (P a)) (X:finset A)
+  : semidec (forall a:A, a ∈ X -> P a)
+  := Semidec _ (all_finset_setdec A (fun a => decset (P a) (H a)) X) _.
 Next Obligation.
-  intros. apply H1. rewrite H0. auto.
-Qed.
-Next Obligation.
-  intros. induction a.
+  intros. induction X.
   simpl; intuition.
-  destruct H1 as [?[??]]. elim H1.
-  apply single_axiom. destruct x; auto.
+  apply nil_elem in H1. elim H1.
+  apply single_axiom. auto.
   split. intros.
   simpl all_finset_setdec in H0.
   apply intersection_elem in H0.
   destruct H0.
-  rewrite IHa in H2.
-  destruct H1 as [q [??]].
-  simpl in H1; destruct H1; subst.
+  rewrite IHX in H2.
+  apply cons_elem in H1. destruct H1.
   apply decset_correct in H0.
-  apply decset_prop_ok with q; auto.
+  apply Hok with a; auto.
   apply H2; auto.
-  exists q; split; auto.
   intros.
   simpl. apply intersection_elem.
   split.
   apply decset_correct.
-  apply H0. exists a. split; simpl; auto.
-  apply IHa.
-  intros. apply H0.
-  destruct H1 as [q[??]]. exists q; split; simpl; auto.
+  apply H0. apply cons_elem; auto.
+  apply IHX.
+  intros. apply H0. apply cons_elem; auto.
 Qed.
 
 Fixpoint ex_finset_setdec
@@ -800,50 +773,47 @@ Fixpoint ex_finset_setdec
   | x::xs => union2 (DECSET x) (ex_finset_setdec A DECSET xs)
   end.
 
-Program Definition ex_finset_semidec {A:preord} (P:A -> Prop) (H:semidec P)
-  : semidec (fun X:finset A => exists a:A, a ∈ X /\ P a)
-  := Semidec _ _ (ex_finset_setdec A (decset P H)) _ _.
+Program Definition ex_finset_semidec {A:preord} (P:A -> Prop) 
+  (Hok:forall a b, a ≈ b -> P a -> P b)
+  (H:forall a, semidec (P a))
+  (X:finset A)
+  : semidec (exists a:A, a ∈ X /\ P a)
+  := Semidec _ (ex_finset_setdec A (fun a => decset (P a) (H a)) X) _.
 Next Obligation.
-  intros.
-  destruct H1 as [a [??]]. exists a; split; auto.
-  rewrite <- H0; auto.
-Qed.
-Next Obligation.
-  intros. induction a.
+  intros. induction X.
   split; simpl; intros.
   apply empty_elem in H0. elim H0.
-  destruct H0 as [a [??]]. destruct H0 as [?[??]]. elim H0.
+  destruct H0 as [a [??]]. apply nil_elem in H0. elim H0.
   split; simpl; intros.
   apply union2_elem in H0.
   destruct H0.
   apply decset_correct in H0.
-  exists a. split; auto.
-  exists a; split; simpl; auto.
-  rewrite IHa in H0.
+  exists a. split; auto. apply cons_elem; auto.
+  rewrite IHX in H0.
   destruct H0 as [b [??]].
   exists b. split; auto.
-  destruct H0 as [q [??]].
-  exists q; split; simpl; auto.
-  destruct H0 as [b [??]].
+  apply cons_elem; auto.
   destruct H0 as [q[??]].
-  destruct H0; subst.
+  apply cons_elem in H0. destruct H0.
   apply union2_elem.
   left. apply decset_correct; auto.
-  apply decset_prop_ok with b; auto.
+  apply Hok with q; auto.
   apply union2_elem.
-  right. apply IHa.
-  exists b. split; auto.
+  right. apply IHX.
   exists q. split; auto.
 Qed.
 
 Definition eimage' (A B:preord) (f:A -> B) (P:eset A) : eset B :=
   fun n => match P n with None => None | Some x => Some (f x) end.
 
-Program Definition esubset {A:preord} (P:A -> Prop) (H:semidec P) (X:eset A) :=
+Program Definition esubset {A:preord} (P:A -> Prop) 
+  (H:forall a, semidec (P a)) (X:eset A) :=
   eset.eunion A 
-    (eimage' _ _ (fun x => eimage' _ _ (fun _ => x) (decset P H x)) X).
+    (eimage' _ _ (fun x => eimage' _ _ (fun _ => x) (decset (P x) (H x))) X).
 
-Lemma esubset_elem (A:preord) (P:A->Prop) (dec:semidec P) X x :
+Lemma esubset_elem (A:preord) (P:A->Prop) (dec:forall a, semidec (P a)) 
+  (Hok:forall a b, a ≈ b -> P a -> P b)
+  X x :
   x ∈ esubset P dec X <-> (x ∈ X /\ P x).
 Proof.
   split; intros.
@@ -858,13 +828,14 @@ Proof.
   intros.
   apply H in H0.
   destruct H0 as [m ?].
-  case_eq (decset P dec c m); intros.
+  case_eq (decset (P c) (dec c) m); intros.
   rewrite H4 in H0.
   split.
   exists n. rewrite H1. auto.
-  apply decset_prop_ok with c; auto.
-  apply (decset_correct _ dec) with c0.
-  exists m. rewrite H4. auto.
+  apply Hok with c; auto.
+  apply (decset_correct _ (dec c)).
+  exists m. rewrite H4; auto.
+  destruct c0; auto.
   rewrite H4 in H0. elim H0.
   rewrite H1 in H. elim H.
 
@@ -873,7 +844,7 @@ Proof.
   apply union_axiom.
   exists
    ((fun x0 : A =>
-     eimage' unitpo A (fun _ : unitpo => x0) (decset P dec x0)) x).
+     eimage' unitpo A (fun _ : unitpo => x0) (decset (P x0) (dec x0))) x).
   split.
   red; simpl. red.
   unfold eimage'. simpl.
@@ -882,35 +853,35 @@ Proof.
   destruct (X n); auto.
   split; simpl; intros; red; simpl; intros.
   destruct H1 as [m ?]. simpl in H1.
-  case_eq (decset P dec x m); intros.
+  case_eq (decset (P x) (dec x) m); intros.
   rewrite H2 in H1.
   assert (P x).
-  apply (decset_correct _ dec) with c0.
-  exists m. rewrite H2. auto.
+  apply (decset_correct _ (dec x)).
+  exists m. rewrite H2. destruct c0; auto.
   assert (P c).
-  apply decset_prop_ok with x; auto.
-  rewrite <- (decset_correct _ dec tt c) in H4.
+  apply Hok with x; auto.
+  rewrite <- (decset_correct _ (dec c)) in H4.
   destruct H4 as [p ?].
-  exists p. destruct (decset P dec c p); auto.
+  exists p. destruct (decset (P c) (dec c) p); auto.
   rewrite H1; auto.
   rewrite H2 in H1. elim H1.
   destruct H1 as [m ?].
-  case_eq (decset P dec c m); intros.
+  case_eq (decset (P c) (dec c) m); intros.
   rewrite H2 in H1.
   assert (P c).
-  rewrite <- (decset_correct _ dec c0 c).
-  exists m. rewrite H2. auto.
+  rewrite <- (decset_correct _ (dec c)).
+  exists m. rewrite H2. destruct c0; auto.
   assert (P x).
-  apply decset_prop_ok with c; auto.
-  rewrite <- (decset_correct _ dec tt x) in H4.
+  apply Hok with c; auto.
+  rewrite <- (decset_correct _ (dec x)) in H4.
   destruct H4 as [p ?].
-  exists p. destruct (decset P dec x p); auto.
+  exists p. destruct (decset (P x) (dec x) p); auto.
   rewrite H1; auto.
   rewrite H2 in H1. elim H1.
 
-  rewrite <- (decset_correct _ dec tt x) in H0.
+  rewrite <- (decset_correct _ (dec x)) in H0.
   destruct H0 as [n ?].
-  case_eq (decset P dec x n); intros.
+  case_eq (decset _ (dec x) n); intros.
   rewrite H1 in H0.
   exists n.
   unfold eimage'.
