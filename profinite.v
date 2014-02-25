@@ -798,6 +798,19 @@ Proof.
   apply PLT.hom_directed.
 Qed.
 
+Lemma plt_terminate_univ : forall (A:PLT) (f:A → 1),
+  f ≈ PLT.terminate false A.
+Proof.
+  intros. split.
+  apply PLT.terminate_le_univ.
+  hnf; simpl; intros.
+  destruct a.
+  destruct u.
+  destruct (PLT.hom_directed false _ _ f c nil); auto.
+  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
+  destruct H0. apply erel_image_elem in H1. destruct x. auto.
+Qed.
+
 Program Definition terminated_mixin
   := Terminated.Mixin (ob false) (hom false) 
        (hom_eq_mixin false)
