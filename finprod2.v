@@ -1049,59 +1049,182 @@ Module finprod (FI:FINPROD_INPUT).
     red; simpl; auto.
   Qed.
 
+  Definition finprod_codom_weaken avd z i i'
+    (x:finprod_codom avd z i) : finprod_codom (i'::avd) z i :=
+    match x with
+    | codom_avoid H => @codom_avoid (i'::avd) z i (or_intror H)
+    | codom_elem H x =>
+        match Idec i' i with
+        | left Hi  => @codom_avoid (i'::avd) z i (or_introl Hi)
+        | right Hn => @codom_elem (i'::avd) z i (or_ind Hn H) x
+        end
+    end.
+
+  Definition ord_weaken avd i a ls
+    (x:ord avd ((i,a)::ls)) : ord (i::avd) ls :=
+    
+    fun i' =>
+      match Idec i i' as Hi return
+        finprod_codom avd (if Hi then Some a else lookup i' ls) i' ->
+        finprod_codom (i::avd) (lookup i' ls) i'
+      with
+      | left H  => fun _ => @codom_avoid (i::avd) _ i' (or_introl H)
+      | right H => finprod_codom_weaken avd _ _ _
+      end (x i').
+
+  Program Definition finprod_univ_rel 
+      (ls:list (I*A))
+      (avd:list I)
+      (X:PLT)
+      (f:forall i, ~In i avd -> X → ty (lookup i ls))
+      (Hf : forall i H1 H2, f i H1 ≈ f i H2) :=
+      esubset
+        (fun q : (PLT.ord X × ord avd ls)%cat_ob =>
+          forall i Hnin, exists h,
+               (fst q, h) ∈ PLT.hom_rel (f i Hnin) /\
+               snd q i ≤ @codom_elem avd (lookup i ls) i Hnin h)
+        _
+        (eprod (eff_enum _ (PLT.effective X))
+               (eff_enum _ (PLT.effective (finprod ls avd)))).
+  Next Obligation.
+    intros.
+    revert avd X f Hf a.
+    induction ls; intros.
+    apply dec_semidec.
+    left. intros. exists tt.
+    split.
+    destruct (PLT.hom_directed _ _ _ (f i Hnin) (fst a) nil).
+    red; auto.
+    red; intros. apply nil_elem in H. elim H.
+    destruct H. apply erel_image_elem in H0.
+    destruct x; auto.
+    destruct (snd a i). contradiction.
+    hnf; auto.
+
+    destruct a as [i a].
+    destruct a0 as [x g]. simpl.
+    rename ls into l.
+    set (f' i' (Hnin:~In i' (i::avd)) :=
+        match Idec i i' as Hi return
+          X → ty (if Hi then Some a else lookup i' l) ->
+          X → ty (lookup i' l)
+        with
+        | left H  => fun _ => False_rect _ (Hnin (or_introl H))
+        | right _ => fun x => x
+        end (f i' (fun H => Hnin (or_intror H)))).
+
+    cut (semidec
+        ((forall (Hnin:~In i avd), exists h,
+          (x,h) ∈ PLT.hom_rel (f i Hnin) /\ g i ≤ codom_elem Hnin h)
+        /\
+        (forall i' (Hnin :~In i' (i::avd)),
+          exists h:ty (lookup i' l),
+            (x,h) ∈ PLT.hom_rel (f' i' Hnin) /\ 
+            (ord_weaken _ _ _ _ g i' ≤ codom_elem Hnin h)))).
+      apply semidec_iff.
+      split; intros. destruct H.
+      pose (Idec i i0). destruct s.
+      subst i0.
+      apply H. clear H.
+      generalize (H0 i0); clear H0. simpl.
+      unfold f'.
+      unfold ord_weaken. simpl.
+      generalize (f i0). generalize (g i0). simpl.
+      destruct (Idec i i0). contradiction.
+      intros. 
+      destruct (H (or_ind n Hnin)) as [h' [??]].
+      exists h'. split; auto.
+      unfold finprod_codom_weaken in H1.
+      destruct f0.
+      elim H1.
+      destruct (Idec i i0). elim H1. auto.
+      
+    split; intros.
+    apply (H i Hnin).
+    generalize (H i' (fun H => Hnin (or_intror H))).
+    unfold f', ord_weaken. simpl.
+    unfold finprod_codom_weaken.
+    generalize (f i'). generalize (g i'). simpl.
+    destruct (Idec i i').
+    subst i'. elim Hnin; simpl; auto.
+    intros.
+    destruct H0 as [h' [??]]. exists h'. split; auto.
+    destruct f0; simpl. elim H1. auto.
+    apply semidec_conj.
+    
+    cut (forall (Hnin:~In i avd),
+        semidec 
+         (exists h : ty (lookup i ((i, a) :: l)),
+          (x, h) ∈ PLT.hom_rel (f i Hnin) /\ g i ≤ codom_elem Hnin h)).
+
+        intros.
+        destruct (In_dec Idec i avd).
+        apply semidec_iff with True.
+        split; intros. contradiction. auto.
+        apply semidec_true.     
+
+        apply (Semidec _ (decset _ (X0 n))).
+        split; intro. apply decset_correct in H.
+        intro. destruct H as [h [??]]; exists h; split; auto.
+        destruct (Hf i n Hnin). apply H1; auto.
+        apply decset_correct.
+        destruct (H n) as [h [??]]. exists h; split; auto.
+
+    intro.
+    apply (semidec_ex _ _
+        (fun (_:unit) h =>
+          (x, h) ∈ PLT.hom_rel (f i Hnin) /\ g i ≤ codom_elem Hnin h)).
+    intros. destruct H0; split; auto.
+    apply member_eq with (x,b); auto.
+    destruct H; split; split; auto.
+    rewrite H1.
+    destruct H; auto.
+    apply PLT.effective.
+    intros [??]. simpl.
+    apply semidec_conj.
+    apply semidec_in.
+    constructor. apply eff_ord_dec.
+    apply effective_prod; apply PLT.effective.
+    apply dec_semidec. 
+    apply eff_ord_dec.
+    apply codom_eff. exact tt.
+    
+    refine (IHls (i::avd) X f' _ (x,ord_weaken avd i a l g)).
+    unfold f'; simpl; intros.
+    generalize (Hf i0).
+    generalize (f i0).
+    simpl. destruct (Idec i i0); simpl; auto.
+    elim H1; simpl; auto.
+  Qed.
 
   Section finprod_univ_rel.
     Variable ls:list (I*A).
     Variable avd:list I.
     Variable X:PLT.
     Variable f:forall i, ~In i avd -> X → ty (lookup i ls).
+    Variable Hf : forall i H1 H2, f i H1 ≈ f i H2.
 
-    Definition finprod_univ_rel : erel (PLT.ord X) (ord avd ls).
-     revert ls avd X f. admit.
-    Qed.
-(*
-  Program Definition finprod_univ_rel ls avd X 
-    (f:forall i, ~In i avd -> X → ty (lookup i ls)) :=
-      esubset_dec
-        (PLT.ord X × ord avd ls)%cat_ob
-        (fun q =>
-          forall i Hnin, exists h,
-               (fst q, h) ∈ PLT.hom_rel (f i Hnin) /\
-               snd q i ≤ @codom_elem avd (lookup i ls) i Hnin h)
-        _
-        (eprod (eff_enum _ (PLT.effective X))
-               (eff_enum _ (PLT.effective (finprod ls nil)))).
-    Next Obligation.
-    Admitted. (* pretty sure this is incorrect, need to use semidec  *)
-      induction ls; simpl; intros.
-      left. intros. exists tt.
-      split.
-      destruct (PLT.hom_directed _ _ _ (f i Hnin) (fst x) nil). red; auto.
-      red; intros. apply nil_elem in H. elim H.
-      destruct H.
-      apply erel_image_elem in H0. destruct x0; auto.
-      destruct (snd x i). contradiction. hnf. auto.
-      
-      destruct a as [i a].
-      destruct x as [x g]. simpl.
-      set (f' i' (Hi':~In i' (i::avd)) :=
-        match Idec i i' as Hi return
-          PLT.hom X (ty (if Hi then Some a else lookup i' ls)) ->
-          PLT.hom X (ty (lookup i' ls))
-        with
-        | left H  => fun _ => False_rect _ (Hi' (or_introl H))
-        | right H => fun x => x
-        end (f i' (fun H => Hi' (or_intror H)))).
-      destruct (IHls (i::avd) X f' (x, f_tl i a ls avd g)).
-      
-    Admitted.
-*)
+    Let finprod_univ_rel := finprod_univ_rel ls avd X f Hf.
 
     Lemma finprod_univ_rel_elem : forall x g,
       (x,g) ∈ finprod_univ_rel <->
-      forall i Hnin, exists h, (x,h) ∈ PLT.hom_rel (f i Hnin) /\ 
+      forall i Hnin, exists h, (x,h) ∈ PLT.hom_rel (f i Hnin) /\
         g i ≤ @codom_elem avd (lookup i ls) i Hnin h.
-    Admitted.
+    Proof.
+      intros. unfold finprod_univ_rel.
+      unfold finprod.finprod_univ_rel.
+      rewrite esubset_elem.
+      split; intros.
+      destruct H. auto.
+      split; auto.
+      apply eprod_elem; split; apply eff_complete.
+      intros. destruct (H0 i Hnin) as [h [??]].
+      exists h; split; auto.
+      apply member_eq with (fst a, h); auto.
+      destruct H as [[??][??]]; split; split; auto.
+      rewrite <- H2.
+      destruct H as [[??][??]]; auto.
+    Qed.
 
     Program Definition finprod_univ : X → finprod ls avd
       := PLT.Hom false X (finprod ls avd) finprod_univ_rel _ _.
@@ -1115,8 +1238,130 @@ Module finprod (FI:FINPROD_INPUT).
       rewrite (H0 i); auto.
     Qed.
     Next Obligation.      
-      repeat intro.
-    Admitted.
+      intro. red; intros.
+      assert (Hdec : forall i (Hi:~In i avd) x0,
+            {(forall m : finprod ls avd, m ∈ M -> m i ≤ codom_elem Hi x0)} +
+            {~ (forall m : finprod ls avd, m ∈ M -> m i ≤ codom_elem Hi x0)}).
+        intros.
+        destruct (finset_find_dec' _ (fun m:finprod ls avd => m i ≤ codom_elem Hi x0)) with M.
+        intros. destruct H0. rewrite (H2 i). auto.
+        intros. apply eff_ord_dec. apply codom_eff.
+        destruct s. right. intro.
+        destruct a. apply H2; auto.
+        auto.
+       
+      assert (forall i (H:~In i avd),
+        einhabited
+          (esubset_dec _ 
+            (fun r => forall m, m ∈ M -> m i ≤ codom_elem H r)
+            (Hdec i H)
+          (erel_image X (ty (lookup i ls))
+           (OrdDec _ (eff_ord_dec X (PLT.effective X)))
+           (PLT.hom_rel (f i H)) x))).
+
+      intros. apply member_inhabited.
+      set (q (m:finprod ls avd) := codom_out avd (lookup i ls) i H0 (m i)).
+      destruct (PLT.hom_directed _ _ _ (f i H0) x (map q M)) as [a [??]]. red; auto.
+      red; intros. 
+      destruct H1 as [a' [??]]. rewrite H2.
+      apply in_map_iff in H1.
+      destruct H1 as [a'' [??]]. subst a'.
+      unfold q.
+      apply erel_image_elem.
+      assert (a'' ∈ M).
+      exists a''; split; auto.
+      apply H in H1. apply erel_image_elem in H1.
+      rewrite finprod_univ_rel_elem in H1.
+      destruct (H1 i H0) as [h [??]].
+      revert H4. apply PLT.hom_order; auto.
+      destruct (a'' i). elim H5.
+      simpl. auto.
+      exists a.
+      apply esubset_dec_elem.
+      intros. generalize (H4 m H5).
+      destruct H3.
+      destruct (m i); auto.
+      simpl; intros.
+      red; simpl. transitivity x0; auto.
+      split; auto.
+      intros.
+      destruct H3 as [?[??]].
+      destruct H4.
+      rewrite (H4 i).
+      assert (q x0 ≤ a).
+      apply H1.
+      exists (q x0). split; auto.
+      apply in_map. auto.
+      unfold q in H6.
+      destruct (x0 i). contradiction.
+      auto.
+
+      set (g i :=
+        match In_dec Idec i avd with
+        | left Hin => @codom_avoid avd _ i Hin
+        | right Hnin => @codom_elem avd _ i Hnin (choose _ _ (H0 i Hnin))
+        end).
+      exists g.
+      split.
+      hnf; intros.
+      unfold g. intro i'.
+      generalize H1; intros.
+      apply H in H1.
+      apply erel_image_elem in H1.
+      rewrite finprod_univ_rel_elem in H1.
+      destruct (in_dec Idec i' avd).
+      destruct (x0 i'). hnf; auto.
+      contradiction.
+      unfold choose.
+      match goal with [ |- context[ (find_inhabitant ?A ?B ?C) ] ] =>
+        destruct (find_inhabitant A B C)
+      end; simpl.
+      destruct s as [?[??]].
+      assert (x1 ∈ 
+        (esubset_dec (ty (lookup i' ls))
+         (fun r : ty (lookup i' ls) =>
+          forall m : finprod ls avd, m ∈ M -> m i' ≤ codom_elem n r)
+         (Hdec i' n)
+         (erel_image X (ty (lookup i' ls))
+            {| orddec := eff_ord_dec X (PLT.effective X) |}
+            (PLT.hom_rel (f i' n)) x))).
+      exists x2. rewrite H3. auto.
+      rewrite esubset_dec_elem in H5.
+      destruct H5. apply erel_image_elem in H5.
+      apply H6. auto.
+      intros. generalize (H7 m H8).
+      destruct H6.
+      destruct (m i'); auto.
+      intros. red; simpl. transitivity x3; auto.
+
+      apply erel_image_elem.
+      rewrite finprod_univ_rel_elem.
+      intros. unfold g.
+      destruct (in_dec Idec i avd). contradiction.
+      exists (choose _ _ (H0 i n)).
+      split.
+      2: red; simpl; auto.
+      unfold choose.
+      destruct (find_inhabitant  _ _ (H0 i n)); simpl.
+      destruct s as [?[??]].
+      assert (x0 ∈ 
+        (esubset_dec (ty (lookup i ls))
+         (fun r : ty (lookup i ls) =>
+          forall m : finprod ls avd, m ∈ M -> m i ≤ codom_elem n r)
+         (Hdec i n)
+         (erel_image X (ty (lookup i ls))
+            {| orddec := eff_ord_dec X (PLT.effective X) |}
+            (PLT.hom_rel (f i n)) x))).
+      exists x1. rewrite H1. auto.
+      rewrite esubset_dec_elem in H3.
+      destruct H3. apply erel_image_elem in H3.
+      destruct (Hf i n Hnin). apply H5; auto.
+      intros. generalize (H5 m H6).
+      destruct H4.
+      destruct (m i); auto.
+      intros. red; simpl.
+      transitivity x2; auto.
+    Qed.
 
     Lemma finprod_univ_commute : forall i Hnin,
       proj ls avd i Hnin ∘ finprod_univ ≈ f i Hnin.
@@ -1137,7 +1382,48 @@ Module finprod (FI:FINPROD_INPUT).
 
       assert (exists g:finprod_elem avd ls, g i = @codom_elem avd (lookup i ls) i Hnin c0
         /\ forall i' Hnin', (c,codom_out avd _ i' Hnin' (g i')) ∈ PLT.hom_rel (f i' Hnin')).
-admit.
+
+        assert (exists g':finprod_elem avd ls,
+          forall i' Hnin', (c,codom_out avd _ i' Hnin' (g' i')) ∈ PLT.hom_rel (f i' Hnin')).
+
+          assert (forall i' (Hnin':~In i' avd),
+            einhabited (erel_image X (ty (lookup i' ls))
+              {| orddec := eff_ord_dec X (PLT.effective X) |}
+              (PLT.hom_rel (f i' Hnin')) c)).
+          intros. apply member_inhabited.
+          destruct (PLT.hom_directed _ _ _ (f i' Hnin') c nil) as [q [??]]; auto.
+          red; auto.
+          red; intros. apply nil_elem in H0. elim H0.
+          exists q; auto.
+
+          set (g i :=
+            match In_dec Idec i avd with
+              | left Hin => @codom_avoid avd _ i Hin
+              | right Hnin => @codom_elem avd _ i Hnin (choose _ _ (H0 i Hnin))
+            end).
+          exists g. unfold g; simpl; intros.
+          destruct (in_dec Idec i' avd). contradiction.
+          simpl. 
+          generalize (choose_elem _ _ (H0 i' n)).
+          intros. apply erel_image_elem in H1.
+          destruct (Hf i' n Hnin').
+          apply H2; auto.
+
+        destruct H0 as [g' ?].
+        exists (fun i' =>
+          match Idec i i' with
+          | left H => 
+               eq_rect i (fun i => finprod_codom avd (lookup i ls) i) (codom_elem Hnin c0) i' H
+          | right _ => g' i'
+          end).
+        split.
+        destruct (Idec i i).
+        replace e with (Logic.eq_refl i). simpl. auto.
+        apply (Eqdep_dec.UIP_dec Idec). elim n; auto.
+        intros.
+        destruct (Idec i i'); auto.
+        subst i'. simpl.
+        destruct (Hf i Hnin Hnin'); auto.
 
       destruct H0 as [g [??]]. exists g.
       split; simpl.
