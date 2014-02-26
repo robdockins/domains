@@ -357,36 +357,33 @@ Section exp_functor.
       (eprod (eff_enum A (PLT.effective A)) (eff_enum C (PLT.effective C))).
   Next Obligation.
     intros.
-    apply semidec_ex. apply PLT.effective.
-    apply semidec_ex. apply PLT.effective.
+    apply (semidec_ex _ _
+      (fun a b => exists d, (b,d) ∈ y /\ b ≤ f (fst a) /\ g (snd a) ≤ d)).
+    intros. destruct H0 as [d [?[??]]]. exists d; split; auto.
+    apply member_eq with (b,d); auto.
+    destruct H; split; split; auto.
+    split; auto.
+    rewrite <- H; auto.
+    apply (@PLT.effective _ B).
+    intros.
+    destruct ab. simpl.
+    apply (semidec_ex _ _
+      (fun (_:unit) d => (c0, d) ∈ y /\ c0 ≤ f (fst c) /\ g (snd c) ≤ d)).
+    intros. intuition.
+    apply member_eq with (c0,b); auto.
+    destruct H; split; split; auto.
+    rewrite <- H; auto.
+    apply PLT.effective.
+    intros [??].
     apply semidec_conj.
-    apply semidec_in_finset.
+    apply dec_semidec. apply finset_dec.
     apply (OrdDec _ (eff_ord_dec _ (effective_prod (PLT.effective B) (PLT.effective D)))).
-    simpl. intros.
-    split; simpl.
-    destruct H as [[??]?]; auto.
-    destruct H as [[??]?]; auto.
     apply semidec_conj.
     apply dec_semidec; simpl; intros.
-    apply (use_ord H0).
-    destruct H as [[??][??]]; auto.
-    destruct H2. auto.
-    apply embed_mono.
-    destruct H as [[??][??]]; auto.
-    destruct H.
-    destruct H; auto.
-    apply eff_ord_dec. apply PLT.effective.
+    apply (eff_ord_dec _ (PLT.effective B)).
     apply dec_semidec; simpl; intros.
-    apply (use_ord H0).
-    apply embed_mono.
-    destruct H.
-    destruct H1.
-    destruct H1.
-    destruct H1. auto.
-    destruct H.
-    destruct H.
-    auto.
-    apply eff_ord_dec. apply PLT.effective.
+    apply (eff_ord_dec _ (PLT.effective D)).
+    exact tt.
   Qed.
 
   Lemma unimage_jrel_order (y:joinable_relation hf B D) :
@@ -400,7 +397,14 @@ Section exp_functor.
     apply esubset_elem in H1.
     destruct H1.
     apply esubset_elem.
-    split.
+    intros. destruct H4 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H5. apply embed_mono.
+    destruct H3 as [[??][??]]; auto.
+    rewrite <- H6.
+    apply embed_mono.
+    destruct H3 as [[??][??]]; auto.
+    split; auto.
     apply eprod_elem; split; apply eff_complete.
     destruct H2 as [b [d [?[??]]]].
     exists b. exists d. simpl; split; auto.
@@ -410,6 +414,13 @@ Section exp_functor.
     apply embed_mono; auto.
     transitivity (g y0); auto.
     apply embed_mono; auto.
+    intros. destruct H3 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H4. apply embed_mono.
+    destruct H2 as [[??][??]]; auto.
+    rewrite <- H5.
+    apply embed_mono.
+    destruct H2 as [[??][??]]; auto.
   Qed.    
 
   Lemma unimage_jrel_directed (y:joinable_relation hf B D) :
@@ -441,6 +452,15 @@ Section exp_functor.
     exists x'.
     apply erel_image_elem.
     apply esubset_elem.
+    
+    intros. destruct H6 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H7. apply embed_mono.
+    destruct H5 as [[??][??]]; auto.
+    rewrite <- H8.
+    apply embed_mono.
+    destruct H5 as [[??][??]]; auto.
+
     split.
     apply eprod_elem; split; apply eff_complete.
     exists q. exists x. split; simpl; auto.
@@ -485,10 +505,36 @@ Section exp_functor.
     exists z. split; auto. split; auto.
     apply erel_image_elem.
     apply esubset_elem.
+
+    intros. destruct H13 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H14. apply embed_mono.
+    destruct H12 as [[??][??]]; auto.
+    rewrite <- H15.
+    apply embed_mono.
+    destruct H12 as [[??][??]]; auto.
+
     split.
     apply eprod_elem; split; apply eff_complete.
     exists m. exists n. split; simpl; auto.
+
+    intros. destruct H2 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H3. apply embed_mono.
+    destruct H1 as [[??][??]]; auto.
+    rewrite <- H4.
+    apply embed_mono.
+    destruct H1 as [[??][??]]; auto.
+
+    intros. destruct H2 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H3. apply embed_mono.
+    destruct H1 as [[??][??]]; auto.
+    rewrite <- H4.
+    apply embed_mono.
+    destruct H1 as [[??][??]]; auto.
   Qed.
+
 
   Program Definition exp_fmap : PLT.exp A C ⇀ PLT.exp B D :=
     Embedding hf (PLT.exp A C) (PLT.exp B D) exp_fmap_func _ _ _ _.
@@ -562,6 +608,14 @@ Section exp_functor.
     split.
     rewrite <- H5. auto.
     rewrite <- H6. auto.
+
+    intros. destruct H8 as [?[?[?[??]]]].
+    exists x0. exists x1. intuition.
+    rewrite H9. apply embed_mono.
+    destruct H7 as [[??][??]]; auto.
+    rewrite <- H10.
+    apply embed_mono.
+    destruct H7 as [[??][??]]; auto.
   Qed.
   Next Obligation.
     intros.
@@ -583,6 +637,15 @@ Section exp_functor.
     hnf; intros.    
     apply app_elem in H2. destruct H2.
     apply esubset_elem.
+
+    intros. destruct H4 as [?[?[?[??]]]].
+    exists x. exists x0. intuition.
+    rewrite H5. apply embed_mono.
+    destruct H3 as [[??][??]]; auto.
+    rewrite <- H6.
+    apply embed_mono.
+    destruct H3 as [[??][??]]; auto.
+
     destruct a0 as [p q].
     split. apply eprod_elem; split; apply eff_complete.
     destruct (H (f p) (g q)) as [m [n [?[??]]]].
@@ -594,6 +657,15 @@ Section exp_functor.
     destruct b; simpl in *.
     apply map_rel_in. auto.
     apply esubset_elem.
+
+    intros. destruct H7 as [?[?[?[??]]]].
+    exists x. exists x0. intuition.
+    rewrite H8. apply embed_mono.
+    destruct H6 as [[??][??]]; auto.
+    rewrite <- H9.
+    apply embed_mono.
+    destruct H6 as [[??][??]]; auto.
+
     split.
     apply eprod_elem; split; apply eff_complete.
     exists m. exists n. split; auto.
@@ -612,6 +684,14 @@ Section exp_functor.
     split.
     rewrite H9; auto.  
     rewrite <- H10; auto.
+
+    intros. destruct H9 as [?[?[?[??]]]].
+    exists x. exists x0. intuition.
+    rewrite H10. apply embed_mono.
+    destruct H8 as [[??][??]]; auto.
+    rewrite <- H11.
+    apply embed_mono.
+    destruct H8 as [[??][??]]; auto.
 
     split; hnf; simpl; intros.
     assert ((a0,b0) ∈ X) .

@@ -361,14 +361,15 @@ Section ep_pairs.
     Section embed_func.
       Variable x:X.
 
-      Lemma ep_semidec : semidec (fun y => (x,y) ∈ PLT.hom_rel e /\ (y,x) ∈ PLT.hom_rel p).
+      Lemma ep_semidec : forall y, semidec ((x,y) ∈ PLT.hom_rel e /\ (y,x) ∈ PLT.hom_rel p).
       Proof.
+        intro.
         apply semidec_conj.
-        apply semidec_iff with (fun y => y ∈ erel_image (PLT.ord X) (PLT.ord Y) (PLT.dec X) 
+        apply semidec_iff with (y ∈ erel_image (PLT.ord X) (PLT.ord Y) (PLT.dec X) 
           (PLT.hom_rel e) x).
         intros. apply erel_image_elem.
         apply semidec_in. apply PLT.dec.
-        apply semidec_iff with (fun y => y ∈ erel_inv_image (PLT.ord Y) (PLT.ord X) (PLT.dec X) 
+        apply semidec_iff with (y ∈ erel_inv_image (PLT.ord Y) (PLT.ord X) (PLT.dec X) 
           (PLT.hom_rel p) x).
         intros. apply erel_inv_image_elem.
         apply semidec_in. apply PLT.dec.
@@ -391,6 +392,11 @@ Section ep_pairs.
         destruct H0 as [y [??]].
         exists y. unfold embed_image.
         apply esubset_elem.
+        intros. destruct H3; split.
+        apply member_eq with (x,a); auto.
+        destruct H2; split; split; auto.
+        apply member_eq with (a,x); auto.
+        destruct H2; split; split; auto.
         split.
         apply eff_complete.
         split; auto.
@@ -422,6 +428,16 @@ Section ep_pairs.
       apply PLT.compose_hom_rel; auto.
       exists a. split; auto.
       apply PLT.hom_order with y' b; auto.
+      intros. destruct H1; split.
+      apply member_eq with (b,a0); auto.
+      destruct H0; split; split; auto.
+      apply member_eq with (a0,b); auto.
+      destruct H2; split; split; auto.
+      intros. destruct H1; split.
+      apply member_eq with (a,a0); auto.
+      destruct H0; split; split; auto.
+      apply member_eq with (a0,a); auto.
+      destruct H2; split; split; auto.
     Qed.
 
     Lemma embed_func_reflects : forall x x',
@@ -444,6 +460,16 @@ Section ep_pairs.
       simpl. apply PLT.compose_hom_rel.
       exists y'. intuition.
       apply PLT.hom_order with y x; auto.
+      intros. destruct H1; split.
+      apply member_eq with (x',a); auto.
+      destruct H0; split; split; auto.
+      apply member_eq with (a,x'); auto.
+      destruct H2; split; split; auto.
+      intros. destruct H1; split.
+      apply member_eq with (x,a); auto.
+      destruct H0; split; split; auto.
+      apply member_eq with (a,x); auto.
+      destruct H2; split; split; auto.
     Qed.
 
     Lemma embed_func_directed0 : forall y,
@@ -474,6 +500,11 @@ Section ep_pairs.
       apply ep_ident0.
       simpl. apply PLT.compose_hom_rel.
       exists x; auto.
+      intros. destruct H3; split.
+      apply member_eq with (x,a); auto.
+      destruct H2; split; split; auto.
+      apply member_eq with (a,x); auto.
+      destruct H2; split; split; auto.
     Qed.
 
     Lemma embed_func_directed2 : forall y, forall a b,
@@ -524,10 +555,26 @@ Section ep_pairs.
       simpl.
       apply PLT.compose_hom_rel.
       exists q. split; auto.
+
+      intros. destruct H10. split.
+      apply member_eq with (q,a0); auto.
+      destruct H9; split; split; auto.
+      apply member_eq with (a0,q); auto.
+      destruct H9; split; split; auto.
       split; apply H7; auto.
       apply cons_elem; auto.
       apply cons_elem; right.
       apply cons_elem; auto.
+      intros. destruct H2. split.
+      apply member_eq with (b,a0); auto.
+      destruct H1; split; split; auto.
+      apply member_eq with (a0,b); auto.
+      destruct H1; split; split; auto.
+      intros. destruct H2. split.
+      apply member_eq with (a,a0); auto.
+      destruct H1; split; split; auto.
+      apply member_eq with (a0,a); auto.
+      destruct H1; split; split; auto.
     Qed.
 
     Definition ep_embedding : embedding hf X Y :=
@@ -711,6 +758,14 @@ Section ep_pairs.
     apply esubset_elem in m.
     destruct m as [?[??]].
     apply PLT.hom_order with c x; auto.
+
+    intros.
+    destruct H1. split.
+    apply member_eq with (c,a); auto.
+    destruct H0; split; split; auto.
+    apply member_eq with (a,c); auto.
+    destruct H0; split; split; auto.
+
     destruct a.
     apply embed_rel_elem.
     simpl. unfold choose'.
@@ -725,6 +780,13 @@ Section ep_pairs.
     apply ep_ident0. simpl.
     apply PLT.compose_hom_rel.
     eauto.
+
+    intros.
+    destruct H1. split.
+    apply member_eq with (c,a); auto.
+    destruct H0; split; split; auto.
+    apply member_eq with (a,c); auto.
+    destruct H0; split; split; auto.
   Qed.
 
   Lemma embed_ep_roundtrip2 : forall X Y (e : X ⇀ Y),
@@ -743,6 +805,13 @@ Section ep_pairs.
     apply embed_rel_elem in H1.
     apply project_rel_elem in H2.
     simpl in *; auto.
+
+    intros. destruct H0; split.
+    apply member_eq with (x,a); auto.
+    destruct H; split; split; auto.
+    apply member_eq with (a,x); auto.
+    destruct H; split; split; auto.
+
     unfold choose'.
     match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
       destruct (find_inhabitant' A X Y); simpl in *
@@ -753,6 +822,12 @@ Section ep_pairs.
     simpl in *.
     apply embed_rel_elem in H1.
     auto.
+
+    intros. destruct H0; split.
+    apply member_eq with (x,a); auto.
+    destruct H; split; split; auto.
+    apply member_eq with (a,x); auto.
+    destruct H; split; split; auto.
   Qed.
 End ep_pairs.
 
