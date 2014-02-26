@@ -141,8 +141,96 @@ Module Type FINPROD_INPUT.
   Parameter F: A -> PLT.
 End FINPROD_INPUT.
 
-Module finprod (FI:FINPROD_INPUT).
-  Import FI.
+Module Type FINPROD.
+  Include FINPROD_INPUT.
+
+  Fixpoint lookup (i:I) (l:list (I*A)) : option A :=
+    match l with
+    | nil => None
+    | (i',a)::l' =>
+         match Idec i' i with
+         | left Hi => Some a
+         | right _ => lookup i l'
+         end
+    end.
+  
+  Lemma lookup_eq : forall i i' a ls,
+    i = i' ->
+    Some a = if Idec i i' then Some a else lookup i' ls.
+  Proof.
+    intros.
+    destruct (Idec i i'). reflexivity.
+    elim n. auto.
+  Defined.
+  
+  Lemma lookup_neq : forall i i' a ls,
+    i <> i' ->
+    lookup i' ls = if Idec i i' then Some a else lookup i' ls.
+  Proof.
+    intros.
+    destruct (Idec i i'). elim H; auto.
+    auto.
+  Defined.
+
+  Definition ty (a:option A) : PLT := maybe 1 F a.
+
+  Parameter finprod : list (I*A) -> PLT.
+  Parameter proj : forall ls i, finprod ls → ty (lookup i ls).
+  Parameter mk_finprod : forall ls (X:PLT), (forall i, X → ty (lookup i ls)) -> X → finprod ls.
+  
+  Definition bind ls i a : finprod ls × F a → finprod ((i,a)::ls) :=
+   mk_finprod ((i,a)::ls) (finprod ls × F a)
+   (fun i' => 
+     match Idec i i' as Hi return
+       (finprod ls × F a) → ty (if Hi then Some a else lookup i' ls)
+     with
+     | left _  => π₂
+     | right _ => proj ls i' ∘ π₁
+     end).
+  
+  Lemma unbind_lemma ls i i' : lookup i ls = None -> i = i' -> None = lookup i' ls.
+  Proof.
+    intuition; subst; auto.
+  Defined.
+
+  Definition unbind ls i a (Hi:lookup i ls = None) : 
+    finprod ((i,a)::ls) → finprod ls :=
+
+    mk_finprod ls (finprod ((i,a)::ls))
+     (fun i' =>
+       match Idec i i' as Hi return
+         ty (if Hi then Some a else lookup i' ls) → ty (lookup i' ls)
+       with
+       | left H => cast ty (unbind_lemma ls i i' Hi H) ∘ PLT.terminate _ _ 
+       | right _ => id
+       end ∘ proj ((i,a)::ls) i').
+
+  Axiom finprod_proj_commute : forall ls i X f,
+    proj ls i ∘ mk_finprod ls X f ≈ f i.
+
+  Axiom finprod_universal : forall ls X f (z:X → finprod ls),
+    (forall i, proj ls i ∘ z ≈ f i) -> z ≈ mk_finprod ls X f.
+
+  Axiom bind_unbind : forall ls i a Hi,
+    unbind ls i a Hi ∘ bind ls i a ≈ π₁.
+
+  Axiom proj_bind_neq : forall i a i' ls (Hneq:i <> i'),
+    proj ((i,a)::ls) i' ∘ bind ls i a 
+      ≈ cast ty (lookup_neq i i' a ls Hneq) ∘ proj ls i' ∘ π₁.
+
+  Axiom proj_bind_eq : forall i a i' ls (Heq:i = i'),
+    proj ((i,a)::ls) i' ∘ bind ls i a 
+      ≈ cast ty (lookup_eq i i' a ls Heq) ∘ π₂.
+
+End FINPROD.
+
+
+Module finprod (FI:FINPROD_INPUT) 
+   : FINPROD with Definition I := FI.I
+             with Definition Idec := FI.Idec
+             with Definition A := FI.A
+             with Definition F := FI.F.
+  Include FI.
 
   Fixpoint lookup (i:I) (l:list (I*A)) : option A :=
     match l with
@@ -186,12 +274,13 @@ Module finprod (FI:FINPROD_INPUT).
 
   Definition ty (a:option A) : PLT := maybe 1 F a.
 
+  Module internals.
+
   Inductive finprod_codom (avd:list I) z i :=
     | codom_avoid : In i avd -> finprod_codom avd z i
     | codom_elem : ~In i avd -> ty z -> finprod_codom avd z i.
   Arguments codom_avoid [avd z i] H.
   Arguments codom_elem [avd z i] H x.
-
 
   Definition finprod_elem (avd:list I) ls := 
     forall i, finprod_codom avd (lookup i ls) i.
@@ -218,41 +307,6 @@ Module finprod (FI:FINPROD_INPUT).
 
   Canonical Structure codom avd z i := 
     Preord.Pack (finprod_codom avd z i) (finprod_codom_ord_mixin avd z i).
-
-
-
-(*
-  Definition finprod_codom_weaken avd z i i'
-    (x:finprod_codom avd z i) : finprod_codom (i'::avd) z i :=
-    match x with
-    | codom_avoid H => @codom_avoid (i'::avd) z i (or_intror H)
-    | codom_elem H x =>
-        match Idec i' i with
-        | left Hi => @codom_avoid (i'::avd) z i (or_introl Hi)
-        | right Hn => @codom_elem (i'::avd) z i (or_ind Hn H) x
-        end
-    end.
-
-  Definition finprod_codom_strengthen avd z i i' (Hi:i' <> i)
-    (x:finprod_codom (i'::avd) z i) : finprod_codom avd z i :=
-    match x with
-    | codom_avoid H => @codom_avoid avd z i
-            (or_ind (fun H' => False_rect _ (Hi H')) (fun x => x) H)
-    | codom_elem H x => @codom_elem avd z i (fun H' => H (or_intror H')) x
-    end.
-
-  Lemma codom_str_wk avd z i i' (Hi:i' <> i) (x:codom avd z i) :
-    x ≈ finprod_codom_strengthen avd z i i' Hi (finprod_codom_weaken avd z i i' x).
-  Proof.
-    hnf; simpl. unfold Preord.ord_op; simpl.
-    unfold finprod_codom_ord. simpl.
-    unfold finprod_codom_strengthen.
-    unfold finprod_codom_weaken.
-    destruct x; auto.
-    destruct (Idec i' i). contradiction.
-    split; auto.
-  Qed.
-*)
 
   Definition codom_enum avd z i (n:N) : option (finprod_codom avd z i) :=
     match In_dec Idec i avd with
@@ -1212,7 +1266,7 @@ Module finprod (FI:FINPROD_INPUT).
         g i ≤ @codom_elem avd (lookup i ls) i Hnin h.
     Proof.
       intros. unfold finprod_univ_rel.
-      unfold finprod.finprod_univ_rel.
+      unfold internals.finprod_univ_rel.
       rewrite esubset_elem.
       split; intros.
       destruct H. auto.
@@ -1527,17 +1581,48 @@ Module finprod (FI:FINPROD_INPUT).
    Qed.        
 
   End finprod_univ_rel.
+  End internals.
 
-  Definition bind ls avd i a : 
-    (PLT.prod (finprod ls avd) (F a)) → finprod ((i,a)::ls) avd :=
+  Definition finprod ls := internals.finprod ls nil.
+  Definition proj ls i := internals.proj ls nil i (fun H => H).
+  Definition mk_finprod ls X (f:forall i, X → ty (lookup i ls)) : X → finprod ls := 
+    internals.finprod_univ ls nil X (fun i _ => f i) (fun i H1 H2 => eq_refl _ _).
 
-   finprod_univ ((i,a)::ls) avd (PLT.prod (finprod ls avd) (F a))
-   (fun i' Hi' => 
+  Lemma finprod_proj_commute : forall ls i X f,
+    proj ls i ∘ mk_finprod ls X f ≈ f i.
+  Proof.
+    intros. apply internals.finprod_univ_commute.
+  Qed.
+
+  Lemma finprod_universal : forall ls X f (z:X → finprod ls),
+    (forall i, proj ls i ∘ z ≈ f i) -> z ≈ mk_finprod ls X f.
+  Proof.
+    intros. apply internals.finprod_univ_axiom.
+    intros. rewrite <- (H i).
+    apply cat_respects; auto.
+    split; simpl.
+    hnf; intros.
+    destruct a. simpl in H0.
+    rewrite internals.proj_rel_elem in H0.
+    simpl.
+    rewrite internals.proj_rel_elem.
+    destruct (c i); auto.
+    hnf; intros.
+    destruct a. simpl in H0.
+    rewrite internals.proj_rel_elem in H0.
+    simpl.
+    rewrite internals.proj_rel_elem.
+    destruct (c i); auto.
+  Qed.    
+
+  Definition bind ls i a : finprod ls × F a → finprod ((i,a)::ls) :=
+   mk_finprod ((i,a)::ls) (finprod ls × F a)
+   (fun i' => 
      match Idec i i' as Hi return
-       (PLT.prod (finprod ls avd) (F a)) → ty (if Hi then Some a else lookup i' ls)
+       (finprod ls × F a) → ty (if Hi then Some a else lookup i' ls)
      with
      | left _  => π₂
-     | right _ => proj ls avd i' Hi' ∘ π₁
+     | right _ => proj ls i' ∘ π₁
      end).
   
   Lemma unbind_lemma ls i i' : lookup i ls = None -> i = i' -> None = lookup i' ls.
@@ -1545,36 +1630,36 @@ Module finprod (FI:FINPROD_INPUT).
     intuition; subst; auto.
   Defined.
 
-  Definition unbind ls avd i a (Hi:lookup i ls = None) : 
-    finprod ((i,a)::ls) avd → finprod ls avd :=
+  Definition unbind ls i a (Hi:lookup i ls = None) : 
+    finprod ((i,a)::ls) → finprod ls :=
 
-    finprod_univ ls avd (finprod ((i,a)::ls) avd)
-     (fun i' Hi' =>
+    mk_finprod ls (finprod ((i,a)::ls))
+     (fun i' =>
        match Idec i i' as Hi return
          ty (if Hi then Some a else lookup i' ls) → ty (lookup i' ls)
        with
        | left H => cast ty (unbind_lemma ls i i' Hi H) ∘ PLT.terminate _ _ 
        | right _ => id
-       end ∘ proj ((i,a)::ls) avd i' Hi').
+       end ∘ proj ((i,a)::ls) i').
 
-  Lemma bind_unbind ls avd i a Hi :
-    unbind ls avd i a Hi ∘ bind ls avd i a ≈ π₁.
+  Lemma bind_unbind ls i a Hi :
+    unbind ls i a Hi ∘ bind ls i a ≈ π₁.
   Proof.
-    transitivity (finprod_univ ls avd (PLT.prod (finprod ls avd) (F a))
-      (fun i' Hi' => proj ls avd i' Hi' ∘ π₁)).
-    apply finprod_univ_axiom.
+    transitivity (mk_finprod ls (PLT.prod (finprod ls) (F a))
+      (fun i' => proj ls i' ∘ π₁)).
+    apply finprod_universal.
     intros. rewrite (cat_assoc PLT).
     unfold unbind.
-    rewrite finprod_univ_commute.
+    rewrite (finprod_proj_commute ls i0).
     rewrite <- cat_assoc.
     unfold bind.
-    rewrite (finprod_univ_commute ((i,a)::ls) avd _ _ i0).
+    rewrite (finprod_proj_commute ((i,a)::ls) i0).
     destruct (Idec i i0).
     subst i0.
     unfold unbind_lemma; simpl.
     unfold eq_ind_r. simpl.
     cut (cast ty Hi ∘ cast ty (eq_sym Hi) ∘ PLT.terminate false (F a) ∘ π₂ 
-      ≈ cast ty Hi ∘ proj ls avd i Hi0 ∘ π₁).
+      ≈ cast ty Hi ∘ proj ls i ∘ π₁).
     intros.
     rewrite (cast_iso2 _ _ ty _ _ Hi) in H.
     rewrite (cat_ident2 PLT) in H; auto.    
@@ -1590,16 +1675,16 @@ Module finprod (FI:FINPROD_INPUT).
 
     rewrite (cat_ident2 PLT). auto.
 
-    symmetry. apply finprod_univ_axiom.
+    symmetry. apply finprod_universal.
     intros. auto.
   Qed.
 
-  Lemma proj_bind_neq i a i' ls avd Hi (Hneq:i <> i') :
-    proj ((i,a)::ls) avd i' Hi ∘ bind ls avd i a 
-      ≈ cast ty (lookup_neq i i' a ls Hneq) ∘ proj ls avd i' Hi ∘ π₁.
+  Lemma proj_bind_neq i a i' ls (Hneq:i <> i') :
+    proj ((i,a)::ls) i' ∘ bind ls i a 
+      ≈ cast ty (lookup_neq i i' a ls Hneq) ∘ proj ls i' ∘ π₁.
   Proof.
     unfold bind.
-    rewrite finprod_univ_commute.
+    rewrite finprod_proj_commute.
     unfold lookup_neq. simpl.
     destruct (Idec i i').
     contradiction.
@@ -1607,12 +1692,12 @@ Module finprod (FI:FINPROD_INPUT).
     auto.
   Qed.
 
-  Lemma proj_bind_eq i a i' ls avd Hi (Heq:i = i') :
-    proj ((i,a)::ls) avd i' Hi ∘ bind ls avd i a 
+  Lemma proj_bind_eq i a i' ls (Heq:i = i') :
+    proj ((i,a)::ls) i' ∘ bind ls i a 
       ≈ cast ty (lookup_eq i i' a ls Heq) ∘ π₂.
   Proof.
     unfold bind.
-    rewrite finprod_univ_commute.
+    rewrite finprod_proj_commute.
     unfold lookup_eq. simpl.
     destruct (Idec i i').
     rewrite cast_refl. rewrite (cat_ident2 PLT). auto.
