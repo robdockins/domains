@@ -57,8 +57,23 @@ Canonical Structure env_supported :=
   Supported env env_supp.
 
 
+Fixpoint tydom (τ:ty) : PLT :=
+  match τ with
+  | ty_bool => disc finbool
+  | (τ₁ ⇒ τ₂)%ty => tydom τ₁ ⇒ tydom τ₂
+  end.
+
+Module env_input <: FINPROD_INPUT.
+  Definition I := string.
+  Definition Idec := string_dec.
+  Definition A := ty.
+  Definition F := tydom.    
+End env_input.
+
+Module ENV := finprod(env_input).
+
 Definition inenv (Γ:env) (x:atom) (σ:ty) :=
-  finprod.lookup atom string_dec ty x Γ = Some σ.
+  ENV.lookup x Γ = Some σ.
 
 Inductive rawterm : Type :=
   | rawvar : atom -> rawterm
@@ -101,12 +116,12 @@ Proof.
   destruct a as [y a].
   unfold inenv in *.
   simpl in *.
-  destruct (string_dec x y).
+  destruct (ENV.Idec y x).
   subst x.
-  destruct (string_dec (p y) (p y)).
+  destruct (ENV.Idec (p y) (p y)).
   auto.
   elim n; auto.
-  destruct (string_dec (p x) (p y)).
+  destruct (ENV.Idec (p y) (p x)).
   apply Perm.f_inj in e. elim n; auto.
   apply IHΓ; auto.
 Defined.
@@ -164,7 +179,7 @@ Lemma env_incl_wk (Γ₁ Γ₂:env) y σ :
 Proof.
   unfold env_incl. unfold inenv.
   simpl; repeat intro.
-  destruct (string_dec x y); auto.
+  destruct (ENV.Idec y x); auto.
 Qed.
 
 Fixpoint term_wk (Γ₁ Γ₂:env) (σ:ty)
@@ -191,15 +206,15 @@ Lemma weaken_fresh
 Proof.
   intros.
   unfold inenv. simpl. intros.
-  destruct (string_dec x x').
+  destruct (ENV.Idec x' x).
   assert (x' ∈ (‖Γ'‖)).
-  rewrite <- e.
+  rewrite e.
   revert H1. clear e. 
   induction Γ'; simpl in *; intuition.
   discriminate.
   destruct a. 
   hnf in H1. simpl in H1.
-  destruct (string_dec x s).
+  destruct (ENV.Idec s x).
   apply cons_elem; simpl; auto. left. subst s; auto.
   apply cons_elem; right; auto.
   apply IHΓ'.
@@ -219,7 +234,7 @@ Definition extend_map Γ Γ'
   varmap ((x,σ)::Γ) Γ'.
 Proof.
   red. unfold inenv. simpl; intros.
-  destruct (string_dec a x). subst a.
+  destruct (ENV.Idec x a). subst a.
   injection H. intro. subst σ. exact m.
   exact (VAR a τ H).
 Defined.
@@ -236,7 +251,7 @@ Definition weaken_map Γ Γ'
 Program Definition newestvar Γ x σ : term ((x,σ)::Γ) σ := tvar _ x σ _.
 Next Obligation.
   intros. hnf; simpl.
-  destruct (string_dec x x); auto. elim n; auto.
+  destruct (ENV.Idec x x); auto. elim n; auto.
 Defined.
 
 Definition shift_vars Γ Γ' x x' σ
@@ -379,7 +394,7 @@ Proof.
   inv H.
   hnf in H. simpl in H.
   destruct a.
-  destruct (string_dec x c). inv H.
+  destruct (ENV.Idec c x). inv H.
   apply vcong_here; auto.
   apply vcong_there; auto.
 Qed.
@@ -458,7 +473,7 @@ Proof.
   unfold shift_vars', shift_vars, extend_map, weaken_map.
   hnf in IN. simpl in IN.
   revert IN.
-  destruct (string_dec a x); simpl; intros.
+  destruct (ENV.Idec x a); simpl; intros.
   subst a. inv IN.
   replace IN with (Logic.eq_refl (Some σ)). simpl.
   unfold eq_rect_r. simpl.
@@ -523,7 +538,7 @@ Proof.
   unfold extend_map. simpl. unfold weaken_map. simpl.
   unfold newestvar. simpl. unfold newestvar_obligation_1. simpl.
   generalize Ha1 Ha2. unfold inenv; simpl.
-  destruct (string_dec a x); simpl.
+  destruct (ENV.Idec x a); simpl.
   subst a. intros.
   inv Ha0. unfold eq_rect_r.
   replace Ha0 with (Logic.eq_refl (Some σ)).
@@ -546,7 +561,7 @@ Proof.
     rewrite H1.
     set (q := fresh [Γ,Γ₂]).
     simpl in q. fold q.
-    destruct (string_dec x0 q).
+    destruct (ENV.Idec q x0).
     subst q.
     elimtype False.
 admit.
@@ -593,7 +608,7 @@ Proof.
   simpl.
   unfold inenv in *. simpl in *.
   unfold extend_map.
-  destruct (string_dec a x).
+  destruct (ENV.Idec x a).
   unfold eq_rect_r. simpl.
   subst a. inv IN.
   replace IN with (Logic.eq_refl (Some σ)).
@@ -601,7 +616,7 @@ Proof.
   set (q := (fresh_atom (‖Γ‖ ++ ‖Γ₂‖ ++ nil))).
   simpl in *. fold q.
   unfold newestvar_obligation_1.
-  destruct (string_dec q q).
+  destruct (ENV.Idec q q).
   simpl. unfold newestvar. simpl.
   apply acong_var.
   apply vcong_here; auto.
@@ -614,7 +629,7 @@ Proof.
   unfold inenv in *. simpl in *.
   revert Ha2.
   simpl in *. fold q1. fold q2.  
-  destruct (string_dec a0 q1).
+  destruct (ENV.Idec q1 a0).
   subst a0.
   elimtype False.
   revert Ha1.
@@ -649,17 +664,10 @@ Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
  where "m ⇓ z" := (eval _ _ m z)
   and "m ↓" := (eval _ _ m m).
 
-Fixpoint tydom (τ:ty) : PLT :=
-  match τ with
-  | ty_bool => disc finbool
-  | (τ₁ ⇒ τ₂)%ty => tydom τ₁ ⇒ tydom τ₂
-  end.
-
-Notation cxt := (finprod.finprod false string string_dec ty tydom).
-Notation castty := (cast (finprod.ty false ty tydom)).
-Notation bind := (finprod.bind false string string_dec ty tydom).
-Notation proj := (finprod.proj false string string_dec ty tydom).
-Notation lookup := (finprod.lookup string string_dec ty).
+Notation cxt := ENV.finprod.
+Notation castty := (cast ENV.ty).
+Notation proj := ENV.proj.
+Notation bind := ENV.bind.
 
 Definition dom (Γ:env) (τ:ty) : Type := cxt Γ → tydom τ.
 
@@ -671,20 +679,6 @@ Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
   | tlam x σ₁ σ₂ m' => Λ(〚m'〛 ∘ bind Γ x σ₁)
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
-
-(* FIXME: move to profinite.v *)
-Lemma plt_terminate_univ : forall (A:PLT) (f:A → 1),
-  f ≈ PLT.terminate false A.
-Proof.
-  intros. split.
-  apply PLT.terminate_le_univ.
-  hnf; simpl; intros.
-  destruct a.
-  destruct u.
-  destruct (PLT.hom_directed false _ _ f c nil); auto.
-  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
-  destruct H0. apply erel_image_elem in H1. destruct x. auto.
-Qed.
 
 Lemma alpha_cong_denote (Γ₁ Γ₂:env) τ (m:term Γ₁ τ) (n:term Γ₂ τ) :
   alpha_cong Γ₁ Γ₂ τ m n -> 
@@ -721,14 +715,14 @@ Proof.
   intros. inv H1.
   do 2 rewrite <- (cat_assoc PLT).
   rewrite (cat_assoc PLT _ _ _ _ (proj ((a,σ₁)::Γ) a)).
-  rewrite (finprod.proj_bind false).
+  rewrite (ENV.proj_bind_eq _ _ _ _ (refl_equal a)).
   rewrite <- (cat_assoc PLT).
   unfold PLT.pair_map.
   rewrite PLT.pair_commute2.
   rewrite (cat_ident2 PLT).
   symmetry.  
   rewrite (cat_assoc PLT _ _ _ _ (proj ((b,σ₁)::Γ') b)).
-  rewrite (finprod.proj_bind false).
+  rewrite (ENV.proj_bind_eq _ _ _ _ (refl_equal b)).
   rewrite <- (cat_assoc PLT).
   rewrite PLT.pair_commute2.
   do 2 rewrite (cat_assoc PLT).
@@ -739,8 +733,7 @@ Proof.
   etransitivity.
   apply cast_compose.
 
-  generalize (Logic.eq_trans (finprod.lookup_eq string string_dec ty Γ a σ₁) IN1).
-  generalize (Logic.eq_trans (finprod.lookup_eq string string_dec ty Γ' b σ₁) IN2).
+  match goal with [ |- castty ?X ≈ castty ?Y ] => generalize X Y end.
   hnf in IN1. simpl in *.
   destruct (string_dec a a).
   inv IN1. intros.
@@ -750,15 +743,13 @@ Proof.
 
   do 2 rewrite <- (cat_assoc PLT).
   rewrite (cat_assoc PLT _ _ _ _ (proj ((x₁,σ₁)::Γ) a)).
-  rewrite (finprod.proj_bind_neq false); auto.
-  instantiate (1:=H9).
+  rewrite (ENV.proj_bind_neq x₁ σ₁ a Γ H9); auto.
   unfold PLT.pair_map.
   rewrite <- (cat_assoc PLT).
   rewrite PLT.pair_commute1.
   symmetry.
   rewrite (cat_assoc PLT _ _ _ _ (proj ((x₂,σ₁)::Γ') b)).
-  rewrite (finprod.proj_bind_neq false); auto.
-  instantiate (1:=H10).
+  rewrite (ENV.proj_bind_neq x₂ σ₁ b Γ' H10); auto.
   rewrite <- (cat_assoc PLT).
   rewrite PLT.pair_commute1.
   repeat rewrite (cat_assoc PLT).
@@ -778,40 +769,227 @@ Proof.
   intros. inv H0.
 Qed.
 
-Definition varmap_denote (Γ Γ':env) (VAR:varmap Γ Γ') : cxt Γ' → cxt Γ.
-Admitted.  
+
+Definition varmap_denote (Γ Γ':env) (VAR:varmap Γ Γ') 
+  : cxt Γ' → cxt Γ
+  := ENV.mk_finprod Γ (cxt Γ') 
+      (fun i => match ENV.lookup i Γ as a return
+                  ENV.lookup i Γ = a -> cxt Γ' → ENV.ty a
+                with
+                | None => fun H => PLT.terminate _ _
+                | Some a => fun H =>〚VAR i a H〛
+                end refl_equal).
+
+Definition weaken_denote (Γ Γ':env) (Hwk:forall a τ, inenv Γ a τ -> inenv Γ' a τ) 
+  : cxt Γ' → cxt Γ
+  := ENV.mk_finprod Γ (cxt Γ')
+      (fun i => match ENV.lookup i Γ as a return 
+                  ENV.lookup i Γ = a -> ENV.ty (ENV.lookup i Γ') → ENV.ty a
+                with
+                | None => fun H => PLT.terminate _ _
+                | Some a => fun H => castty (Hwk i a H)
+                end refl_equal ∘ proj Γ' i).
 
 Lemma varmap_extend_bind Γ Γ' 
  (VAR:varmap Γ Γ') x σ (m:term Γ' σ) :
 
- varmap_denote _ _ (extend_map Γ Γ' VAR x σ m) ≈
- bind Γ x σ ∘ 〈 varmap_denote _ _ VAR, 〚m〛〉.
-Admitted.
+  varmap_denote _ _ (extend_map Γ Γ' VAR x σ m) ≈
+  bind Γ x σ ∘ 〈 varmap_denote _ _ VAR, 〚m〛〉.
+Proof.
+  symmetry. unfold varmap_denote at 2.
+  apply ENV.finprod_universal. intros.
+  rewrite (cat_assoc PLT).
+  pose (string_dec x i). destruct s.
+  subst i.
+  rewrite (ENV.proj_bind_eq x σ x Γ refl_equal).
+  simpl. unfold ENV.lookup_eq.
+  simpl.
+  unfold extend_map. simpl.
+  destruct (ENV.Idec x x). simpl.
+  unfold eq_rect_r. simpl.
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite PLT.pair_commute2. auto.
+  elim n; auto.
+  rewrite (ENV.proj_bind_neq x σ i Γ n).
+  unfold ENV.lookup_neq. simpl.
+  unfold extend_map; simpl.
+  destruct (ENV.Idec x i).
+  contradiction.
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  unfold varmap_denote.
+  rewrite ENV.finprod_proj_commute.
+  auto.
+Qed.
 
-Lemma varmap_var_id Γ :
-  varmap_denote Γ Γ (tvar Γ) ≈ id.
-Admitted.
+Lemma mk_finprod_compose_commute ls X Y f (h:X → Y) :
+  ENV.mk_finprod ls Y f ∘ h ≈
+  ENV.mk_finprod ls X (fun i => f i ∘ h).
+Proof.
+  apply ENV.finprod_universal. intros.
+  rewrite (cat_assoc PLT).
+  rewrite ENV.finprod_proj_commute. auto.
+Qed.
 
-Definition unbind : forall (Γ:env) x' σ (Hx:x' ∉ ‖Γ‖),
-  cxt ((x',σ)::Γ) → cxt Γ.
-Admitted.
+Lemma weaken_term_denote Γ a m : forall Γ' H,
+  〚m〛 ∘ weaken_denote Γ Γ' H  ≈〚 term_wk Γ Γ' a m H 〛.
+Proof.
+  induction m; simpl; intros.
+  unfold weaken_denote.
+  rewrite <- (cat_assoc PLT).
+  rewrite ENV.finprod_proj_commute.
+  generalize (Logic.eq_refl (ENV.lookup x Γ)).
+  generalize (H x σ i).
+  revert i. unfold inenv.
+  pattern (ENV.lookup x Γ) at 1 3 4 5 6 7 .
+  case (ENV.lookup x Γ); intros.
+  inv i. 
+  rewrite (cat_assoc PLT). apply cat_respects; auto.
+  replace i with (refl_equal (Some σ)).
+  rewrite cast_refl. rewrite (cat_ident2 PLT).
+  generalize (H x σ e). generalize i0.
+  unfold inenv. rewrite i0.
+  intros. 
+  replace i2 with (refl_equal (Some σ)).
+  replace i1 with (refl_equal (Some σ)). auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  discriminate.
+  rewrite <- (cat_assoc PLT). apply cat_respects; auto.
+  apply plt_terminate_univ.
+  rewrite <- (cat_assoc PLT). apply cat_respects; auto.
+  rewrite (PLT.pair_compose_commute false).
+  apply PLT.pair_eq.
+  apply IHm1; auto.
+  apply IHm2; auto.
+  rewrite PLT.curry_compose_commute.
+  apply PLT.curry_eq.
+  rewrite <- IHm.
+  do 2 rewrite <- (cat_assoc PLT). apply cat_respects; auto.
 
-Lemma unbind_bind Γ x σ Hx :
-  unbind Γ x σ Hx ∘ bind Γ x σ ≈ π₁.
-Admitted.
+  symmetry.
+  unfold weaken_denote at 1.
+  rewrite mk_finprod_compose_commute.
+  symmetry. apply ENV.finprod_universal.
+  intros.
+  rewrite (cat_assoc PLT).
+  unfold bind.
+  rewrite ENV.finprod_proj_commute.
+  symmetry.
+  rewrite <- (cat_assoc PLT).
+  rewrite ENV.finprod_proj_commute. simpl.
+  generalize (env_incl_wk Γ Γ' x σ₁ H i).
+  unfold env_incl. simpl. unfold inenv. simpl.
+  destruct (ENV.Idec x i).
+  intros.
+  unfold PLT.pair_map.
+  rewrite (cat_ident2 PLT).
+  symmetry. etransitivity. apply PLT.pair_commute2.
+  replace (i0 σ₁ Logic.eq_refl) with (refl_equal (Some σ₁)).
+  rewrite cast_refl. rewrite (cat_ident2 PLT); auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+
+  symmetry.
+  unfold PLT.pair_map.
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  rewrite (cat_assoc PLT).
+  unfold weaken_denote.
+  rewrite ENV.finprod_proj_commute.  
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  match goal with [ |- _ ?X ≈ _ ] => generalize X end.
+  pattern (ENV.lookup i Γ) at 2 3 4 8.
+  case (ENV.lookup i Γ); auto.
+  intros.
+  generalize (H i a e) (i0 a e).
+  unfold inenv.
+  case (ENV.lookup i Γ'); intros.
+  inv i1.
+  replace i1 with (refl_equal (Some a)).
+  replace e0 with (refl_equal (Some a)).
+  auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  discriminate.  
+Qed.
 
 Lemma weaken_map_denote Γ Γ'
   (VAR:varmap Γ Γ')
-  x' σ (Hx1:x' ∉ ‖Γ‖) (Hx2:x' ∉ ‖Γ'‖) :
+  x' σ (Hx1:x' ∉ ‖Γ‖) (Hx2:x' ∉ ‖Γ'‖) Hx' :
   varmap_denote _ _ (weaken_map Γ Γ' VAR x' σ Hx1 Hx2)
   ≈
-  varmap_denote _ _ VAR ∘ unbind Γ' x' σ Hx2.
-Admitted.
+  varmap_denote _ _ VAR ∘ ENV.unbind Γ' x' σ Hx'.
+Proof.
+  symmetry. apply ENV.finprod_universal. intros.
+  rewrite (cat_assoc PLT).
+  unfold varmap_denote.
+  rewrite (ENV.finprod_proj_commute).
+  unfold weaken_map; simpl.
+  generalize (Logic.eq_refl (ENV.lookup i Γ)).
+  generalize (weaken_fresh Γ Γ' σ x' Hx1 Hx2).
+  simpl.
+  pattern (ENV.lookup i Γ) at 2 3 4 5 9.
+  case (ENV.lookup i Γ); intros.
+  2: apply plt_terminate_univ.
+  rewrite <- weaken_term_denote.
+  apply cat_respects. auto.
+  apply ENV.finprod_universal.
+  intros. 
+
+  unfold ENV.unbind.  
+  rewrite ENV.finprod_proj_commute.
+  symmetry.
+  match goal with [ |- _ ≈ _ ∘ ?X ] => set (p := X) end.
+  simpl in *.
+  set (p' := proj ((x',σ)::Γ') i1). 
+  change p' with p. clear p'.
+  generalize p; clear p.
+  simpl.
+  unfold ENV.unbind_lemma. simpl.
+  unfold eq_ind_r. simpl.
+  generalize (i0 i1).
+  unfold inenv. simpl.
+  pattern (ENV.Idec x' i1).
+  destruct (ENV.Idec x' i1). subst i1.
+  simpl. rewrite Hx'.
+  intros.
+  apply cat_respects; auto.
+  symmetry. apply plt_terminate_univ.
+
+  generalize (Logic.eq_refl (ENV.lookup i1 Γ')).
+  destruct (ENV.lookup i1 Γ'); intros.
+  replace (i2 a0 e0) with (refl_equal (Some a0)).
+  rewrite cast_refl. auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply cat_respects; auto.
+  symmetry. apply plt_terminate_univ.
+Qed.
+
 
 Lemma varmap_denote_proj Γ Γ' (VAR:varmap Γ Γ') x σ i :
   〚 VAR x σ i 〛 ≈ castty i ∘ proj Γ x ∘ varmap_denote Γ Γ' VAR.
-Admitted.
-
+Proof.
+  unfold varmap_denote.
+  rewrite <- (cat_assoc PLT).
+  rewrite ENV.finprod_proj_commute.
+  red in i. 
+  generalize (Logic.eq_refl (ENV.lookup x Γ)).
+  generalize i at 2.
+  pattern (ENV.lookup x Γ) at 1 3 4 5 6.
+  case (ENV.lookup x Γ). intros.
+  inv i0.
+  rewrite cast_dec_id.
+  rewrite (cat_ident2 PLT).
+  replace e with i. auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  decide equality. decide equality.
+  intros. rewrite i in e. discriminate.
+Qed.
 
 Lemma term_subst_soundness Γ τ m : forall Γ' (VAR:varmap Γ Γ'),
   〚 term_subst Γ Γ' τ VAR m 〛 ≈ 〚m〛 ∘ varmap_denote Γ Γ' VAR.
@@ -834,6 +1012,7 @@ Proof.
   rewrite <- (cat_assoc PLT).
   rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
+
   unfold shift_vars'.
   unfold shift_vars.
   rewrite varmap_extend_bind.
@@ -842,13 +1021,15 @@ Proof.
   rewrite (PLT.pair_compose_commute false).
   unfold PLT.pair_map.
   apply PLT.pair_eq.
+
   rewrite weaken_map_denote.
   rewrite <- (cat_assoc PLT).
-  rewrite unbind_bind. auto.
+  rewrite ENV.bind_unbind. auto.
+
   simpl denote.
   rewrite <- (cat_assoc PLT).
-  generalize (finprod.proj_bind false string string_dec ty tydom
-    Γ' (fresh_atom (‖Γ‖++‖Γ'‖++nil)) σ₁).
+  generalize (ENV.proj_bind_eq
+    (fresh_atom (‖Γ‖++‖Γ'‖++nil)) σ₁ (fresh_atom (‖Γ‖++‖Γ'‖++nil)) Γ' Logic.refl_equal).
   simpl. intros. 
   etransitivity. apply cat_respects. reflexivity.
   apply H.
@@ -859,15 +1040,57 @@ Proof.
   end.
   intros.
   etransitivity. apply cat_respects. 
-  apply (cast_compose false _ (finprod.ty false ty tydom) _ _ _ e i).
+  apply (cast_compose false _ (ENV.ty) _ _ _ e i).
   reflexivity.
   etransitivity. apply cat_respects. 
-  refine (cast_dec_id false _ (finprod.ty false ty tydom) _
+  refine (cast_dec_id false _ (ENV.ty) _
     (Some σ₁) (Logic.eq_trans e i)).
   decide equality. decide equality.
   reflexivity.
   auto.
+  Grab Existential Variables.
+  simpl.
+  set (q := fresh [Γ,Γ']). simpl in q. fold q.
+  cut (q ∉ ‖Γ'‖).
+  clearbody q. clear. induction Γ'; simpl; intros; auto.
+  destruct a. simpl in *.
+  destruct (ENV.Idec c q). subst q.
+  elim H. apply cons_elem. simpl; auto.
+  apply IHΓ'. intro. apply H. apply cons_elem; auto.
+  unfold q. apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem. right.
+  apply app_elem. auto.
 Qed.  
+
+Lemma varmap_var_id Γ :
+  varmap_denote Γ Γ (tvar Γ) ≈ id.
+Proof.
+  symmetry. unfold varmap_denote.
+  apply ENV.finprod_universal.
+  intros.
+  rewrite (cat_ident1 PLT). simpl.
+  generalize (proj Γ i).
+  destruct (ENV.lookup i Γ); intros.
+  rewrite cast_refl. rewrite (cat_ident2 PLT); auto.
+  apply plt_terminate_univ.
+Qed.
+
+Lemma varmap_compose_denote Γ₁ Γ₂ Γ₃ f g :
+  varmap_denote _ _  (varmap_compose Γ₁ Γ₂ Γ₃ f g) ≈
+  varmap_denote _ _ g ∘ varmap_denote _ _ f.
+Proof.
+  symmetry. apply ENV.finprod_universal.
+  intros.
+  rewrite (cat_assoc PLT).
+  unfold varmap_denote at 1.
+  rewrite ENV.finprod_proj_commute.
+  generalize (Logic.eq_refl (ENV.lookup i Γ₁)).
+  pattern (ENV.lookup i Γ₁) at 2 3 4 5 9.
+  case (ENV.lookup i Γ₁); intros.
+  2: apply plt_terminate_univ.
+  unfold varmap_compose.
+  symmetry. apply term_subst_soundness.
+Qed.
 
 Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
    〚 n₁ 〛 ∘ bind Γ x σ₁ ∘ 〈id, 〚 n₂ 〛〉 ≈ 〚 subst Γ σ₂ σ₁ x n₁ n₂ 〛.
@@ -894,6 +1117,7 @@ Proof.
   apply subst_soundness.
 Qed.
 
+Print Assumptions soundness.
 
 (**  Now we move on to the more difficult adequacy proof.
      For this we will first need a variety of technical results
