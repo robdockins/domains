@@ -1041,6 +1041,27 @@ Proof.
   exists y. split; auto. simpl. apply pi2_rel_elem; auto.
 Qed.
 
+Lemma terminate_le_cancel (hf:bool) (A B:PLT.PLT hf) (f g:1 → B) (a:A) :
+  f ∘ PLT.terminate hf A ≤ g ∘ PLT.terminate hf A ->
+  f ≤ g.
+Proof.
+  repeat intro.
+  destruct a0. destruct c.
+  assert ((a,c0) ∈ PLT.hom_rel (f ∘ PLT.terminate hf A)).
+  apply PLT.compose_hom_rel. exists tt. split; auto.
+  apply eprod_elem. split; apply eff_complete.
+  apply H in H1.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [[] [??]]. auto.
+Qed.
+
+Lemma terminate_cancel (hf:bool) (A B:PLT.PLT hf) (f g:1 → B) (a:A) :
+  f ∘ PLT.terminate hf A ≈ g ∘ PLT.terminate hf A ->
+  f ≈ g.
+Proof.
+  intros. destruct H; split; eapply terminate_le_cancel; eauto.
+Qed.
+
 
 Section plt_const.
   Variable hf:bool.
@@ -1235,3 +1256,4 @@ Proof.
   simpl in H4. apply ident_elem in H4.
   exists c0; auto.
 Qed.
+

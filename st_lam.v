@@ -35,19 +35,11 @@ Bind Scope ty_scope with ty.
 Delimit Scope lam_scope with lam.
 Open Scope lam_scope.
 
-Definition env := list (atom * ty).
-
-Definition env_supp (Γ:env) := map (@fst atom ty) Γ.
-
-Canonical Structure env_supported :=
-  Supported env env_supp.
-
 Fixpoint tydom (τ:ty) : PLT :=
   match τ with
   | ty_bool => disc finbool
   | (τ₁ ⇒ τ₂)%ty => tydom τ₁ ⇒ tydom τ₂
   end.
-
 
 Module env_input <: FINPROD_INPUT.
   Definition I := string.
@@ -56,8 +48,14 @@ Module env_input <: FINPROD_INPUT.
   Definition F := tydom.    
 End env_input.
 
-
 Module ENV := finprod.finprod(env_input).
+
+Definition env := list (atom * ty).
+
+Definition env_supp (Γ:env) := map (@fst atom ty) Γ.
+
+Canonical Structure env_supported :=
+  Supported env env_supp.
 
 Definition inenv (Γ:env) (x:atom) (σ:ty) :=
   ENV.lookup x Γ = Some σ.
@@ -267,6 +265,7 @@ Program Definition subst (Γ:env) (τ₁ τ₂:ty) (a:atom)
 
   term_subst ((a,τ₂)::Γ) Γ τ₁ (extend_map Γ Γ (tvar Γ) a τ₂ z) m.
 
+(*
 Program Definition term1 :=
   tlam (("x",ty_bool)::nil) "y" ty_bool ty_bool
     (tvar (("y",ty_bool)::("x",ty_bool)::nil) "x" ty_bool (Logic.refl_equal _)).
@@ -306,7 +305,7 @@ Eval vm_compute in (raw _ _ term4').
 Eval vm_compute in (raw _ _ term5).
 Eval vm_compute in (raw _ _ term6).
 Eval vm_compute in (raw _ _ term6').
-
+*)
 
 (**  Syntactic types have decicable equality, which
      implies injectivity for dependent pairs with
@@ -536,16 +535,6 @@ Proof.
   auto.
 Qed.
 
-(* FIXME move *)
-Lemma mk_finprod_compose_commute ls X Y f (h:X → Y) :
-  ENV.mk_finprod ls Y f ∘ h ≈
-  ENV.mk_finprod ls X (fun i => f i ∘ h).
-Proof.
-  apply ENV.finprod_universal. intros.
-  rewrite (cat_assoc PLT).
-  rewrite (ENV.finprod_proj_commute ls). auto.
-Qed.
-
 Lemma weaken_term_denote Γ a m : forall Γ' H,
   〚m〛 ∘ weaken_denote Γ Γ' H  ≈〚 term_wk Γ Γ' a m H 〛.
 Proof.
@@ -585,7 +574,7 @@ Proof.
 
   symmetry.
   unfold weaken_denote at 1.
-  rewrite mk_finprod_compose_commute.
+  rewrite ENV.mk_finprod_compose_commute.
   symmetry. apply ENV.finprod_universal.
   intros.
   rewrite (cat_assoc PLT).
@@ -1436,6 +1425,7 @@ Qed.
 
 Lemma subst_weaken_alpha Γ Γ' σ
   (x:term Γ σ) (y:term Γ' σ) :
+
   alpha_cong Γ Γ' σ x y ->
 
   forall Γ₁ Γ₂ (VAR:varmap Γ₁ Γ₂) H,
@@ -1783,28 +1773,6 @@ Fixpoint plug τ Γ σ (C:context τ Γ σ) : term Γ σ -> term nil τ :=
 Definition cxt_eq τ Γ σ (m n:term Γ σ):=
   forall (C:context τ Γ σ) (z:term nil τ),
     eval nil τ (plug τ Γ σ C m) z <-> eval nil τ (plug τ Γ σ C n) z.
-
-(* FIXME, move this *)
-Lemma terminate_le_cancel (hf:bool) (A B:PLT.PLT hf) (f g:1 → B) (a:A) :
-  f ∘ PLT.terminate hf A ≤ g ∘ PLT.terminate hf A ->
-  f ≤ g.
-Proof.
-  repeat intro.
-  destruct a0. destruct c.
-  assert ((a,c0) ∈ PLT.hom_rel (f ∘ PLT.terminate hf A)).
-  apply PLT.compose_hom_rel. exists tt. split; auto.
-  apply eprod_elem. split; apply eff_complete.
-  apply H in H1.
-  apply PLT.compose_hom_rel in H1.
-  destruct H1 as [[] [??]]. auto.
-Qed.
-
-Lemma terminate_cancel (hf:bool) (A B:PLT.PLT hf) (f g:1 → B) (a:A) :
-  f ∘ PLT.terminate hf A ≈ g ∘ PLT.terminate hf A ->
-  f ≈ g.
-Proof.
-  intros. destruct H; split; eapply terminate_le_cancel; eauto.
-Qed.
 
 (**  Adequacy means that terms with equivalant denotations
      are contextually equivalant in any boolean context.

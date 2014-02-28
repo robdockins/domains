@@ -225,6 +225,10 @@ Module Type FINPROD.
     proj ((i,a)::ls) i' ∘ bind ls i a 
       ≈ cast ty (lookup_eq i i' a ls Heq) ∘ π₂.
 
+  Axiom mk_finprod_compose_commute : forall ls X Y f (h:X → Y),
+    mk_finprod ls Y f ∘ h ≈
+    mk_finprod ls X (fun i => f i ∘ h).
+
 End FINPROD.
 
 
@@ -1701,6 +1705,15 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     destruct (Idec i i').
     rewrite cast_refl. rewrite (cat_ident2 PLT). auto.
     contradiction.
+  Qed.
+
+  Lemma mk_finprod_compose_commute ls X Y f (h:X → Y) :
+    mk_finprod ls Y f ∘ h ≈
+    mk_finprod ls X (fun i => f i ∘ h).
+  Proof.
+    apply finprod_universal. intros.
+    rewrite (cat_assoc PLT).
+    rewrite (finprod_proj_commute ls). auto.
   Qed.
 
 End finprod.
