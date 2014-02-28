@@ -135,14 +135,17 @@ Arguments maybe [A B] b f x.
 
 
 Module Type FINPROD_INPUT.
-  Parameter I:Type.
-  Parameter Idec : forall (x y:I), {x=y}+{x<>y}.
-  Parameter A:Type.
-  Parameter F: A -> PLT.
+  Parameter Inline I:Type.
+  Parameter Inline Idec : forall (x y:I), {x=y}+{x<>y}.
+  Parameter Inline A:Type.
+  Parameter Inline F: A -> PLT.
 End FINPROD_INPUT.
 
 Module Type FINPROD.
-  Include FINPROD_INPUT.
+  Parameter Inline I:Type.
+  Parameter Inline Idec : forall (x y:I), {x=y}+{x<>y}.
+  Parameter Inline A:Type.
+  Parameter Inline F: A -> PLT.
 
   Fixpoint lookup (i:I) (l:list (I*A)) : option A :=
     match l with
@@ -225,11 +228,7 @@ Module Type FINPROD.
 End FINPROD.
 
 
-Module finprod (FI:FINPROD_INPUT) 
-   : FINPROD with Definition I := FI.I
-             with Definition Idec := FI.Idec
-             with Definition A := FI.A
-             with Definition F := FI.F.
+Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Include FI.
 
   Fixpoint lookup (i:I) (l:list (I*A)) : option A :=
