@@ -33,3 +33,4 @@ skiy.v
 powerdom.v
 strict_utils.v
 finprod.v
+st_lam.v

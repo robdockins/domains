@@ -1012,6 +1012,69 @@ Proof.
   apply PLT.pair_eq; auto.
 Qed.
 
+Lemma varcong_inenv1 Γ₁ Γ₂ a b :
+  var_cong Γ₁ Γ₂ a b -> exists τ, inenv Γ₁ a τ.
+Proof.
+  intro H. induction H. unfold inenv.
+  simpl. destruct (string_dec x₁ y₁); eauto. contradiction.
+  unfold inenv. simpl.
+  destruct (string_dec x₁ y₁); eauto.
+Qed.
+
+Lemma varcong_inenv2 Γ₁ Γ₂ a b :
+  var_cong Γ₁ Γ₂ a b -> exists τ, inenv Γ₂ b τ.
+Proof.
+  intro H. induction H. unfold inenv.
+  simpl. destruct (string_dec x₂ y₂); eauto. contradiction.
+  unfold inenv. simpl.
+  destruct (string_dec x₂ y₂); eauto.
+Qed.
+
+Lemma varcong_eq Γ₁ Γ₂ a b :
+  var_cong Γ₁ Γ₂ a b -> Γ₁ = Γ₂ -> a = b.
+Proof.
+  intro H. induction H; simpl; intros.
+  inv H1; auto. inv H2; auto.
+Qed.  
+
+Lemma inenv_varcong Γ a τ :
+  inenv Γ a τ -> var_cong Γ Γ a a.
+Proof.
+  unfold inenv.
+  induction Γ; simpl; intros.
+  discriminate. destruct a0.
+  destruct (string_dec c a). subst.
+  apply vcong_here; auto.
+  apply vcong_there; auto.
+Qed.
+
+Lemma env_supp_inenv Γ a :
+  a ∈ ‖Γ‖ <-> exists τ, inenv Γ a τ.
+Proof.
+  induction Γ; simpl; split; intros.
+  apply nil_elem in H. elim H.
+  destruct H. inv H.
+  unfold Support.support in H. simpl in H.
+  unfold inenv. simpl. destruct a0.
+  simpl in H.
+  destruct (string_dec c a); eauto.
+  apply cons_elem in H. destruct H.
+  apply atom_strong_eq in H.
+  elim n; auto.  
+  apply IHΓ in H.
+  auto.
+  unfold inenv in H.
+  simpl in H.
+  destruct a0.
+  destruct (string_dec c a).
+  unfold Support.support. simpl.
+  apply cons_elem; auto.
+  left; auto. subst c; auto.
+  apply IHΓ in H.
+  unfold Support.support. simpl.
+  apply cons_elem; auto.
+Qed.  
+
 Lemma term_subst_cong : forall Γ τ (m:term Γ τ) Γ' (n:term Γ' τ) Γ₁ Γ₂
   (VAR1 : varmap Γ Γ₁) (VAR2 : varmap Γ' Γ₂),
   
@@ -1057,8 +1120,16 @@ Proof.
   apply alpha_cong_wk; auto.
   intros.
   apply vcong_there; auto.
-admit.
-admit.
+  apply varcong_inenv1 in H2.
+  apply env_supp_inenv in H2.
+  intro. subst a. revert H2.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem; right. apply app_elem; auto.
+  apply varcong_inenv2 in H2.
+  apply env_supp_inenv in H2.
+  intro. subst b. revert H2.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem; right. apply app_elem; auto.
   apply H. inv H1. elim n; auto. auto.
   auto.
 Qed.
@@ -1207,7 +1278,11 @@ Proof.
     subst q.
     elimtype False.
     clear -H1 e.
-admit.
+    assert (x0 ∈ ‖Γ₂‖).
+    apply env_supp_inenv. eauto.
+    subst x0. revert H.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem. right. apply app_elem; auto.
     auto.
 
   apply alpha_eq_trans with
@@ -1219,24 +1294,46 @@ admit.
   intros.
  apply vcong_there; auto.
   clear -H2.
-admit.
+  intro.
+  apply varcong_inenv1 in H2.
+  apply env_supp_inenv in H2. subst a0.  revert H2.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem. right. apply app_elem; auto.
   clear -H2 H₁.
-admit.  
+    intro.
+    apply varcong_inenv2 in H2.
+    assert (exists τ, inenv Γ₂ b τ).
+    destruct H2; eauto.
+    apply env_supp_inenv in H0. subst b. revert H0.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem. right. apply app_elem; auto.
   clear -H₁ H2.
-admit.
+    assert (a0 = b).
+    apply varcong_eq in H2; auto.
+    subst a0.
+    apply varcong_inenv1 in H2.
+    destruct H2. apply H₁ in H.
+    eapply inenv_varcong; eauto.
 
   apply alpha_eq_refl.
   apply alpha_cong_wk.
   intros.
   apply vcong_there.
   clear -H2.
-admit.
+    intro.
+    apply varcong_inenv1 in H2.
+    apply env_supp_inenv in H2. subst a0. revert H2.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem. right. apply app_elem; auto.
   clear -H2.
-admit.
+    intro.
+    apply varcong_inenv2 in H2.
+    apply env_supp_inenv in H2. subst b. revert H2.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem. right. apply app_elem; auto.
   auto.
   apply H.
 Qed.
-
 
 Lemma compose_term_subst : forall Γ₁ τ (m:term Γ₁ τ),
   forall (Γ₂ Γ₃:env) (g:varmap Γ₂ Γ₃) (f:varmap Γ₁ Γ₂),
@@ -1295,7 +1392,7 @@ Proof.
   assert (a1 = a2).
   inv H; auto.
   clear -H9.
-admit.
+  apply varcong_eq in H9; auto.
   subst a2.
   replace IN2 with IN1.
 
@@ -1308,14 +1405,27 @@ admit.
   destruct (string_dec q1 a).
   subst a.
   elimtype False.
-  revert Ha1. unfold q1.
-admit.
+  
+  assert (q1 ∈ ‖Γ₂‖).
+  apply env_supp_inenv. eauto.
+  revert H1. unfold q1.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem. right. apply app_elem; auto.
   intros.
   apply alpha_cong_wk.
   intros. apply vcong_there; auto.
-admit.
+    intro.
+    apply varcong_inenv1 in H1.
+    apply env_supp_inenv in H1. subst a0.
+    revert H1. apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem; auto. right. apply app_elem; auto.
   unfold q2.
-admit.
+    intro.
+    apply varcong_inenv2 in H1.
+    apply env_supp_inenv in H1. subst b.
+    revert H1. apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem; auto. right. apply app_elem; auto.
+
   replace Ha2 with Ha1.
   apply alpha_eq_refl.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
@@ -1366,7 +1476,12 @@ Proof.
   apply acong_var.
   apply vcong_there; auto.
   clear -H₁. intro.
-admit.
+  assert (x₁0 ∈ ‖Γ₂‖).
+  apply env_supp_inenv. eauto.
+  subst x₁0. revert H0.
+  apply fresh_atom_is_fresh'.
+  red; intros.
+  apply app_elem. right. apply app_elem; auto.
 Qed.
 
 Lemma subst_alpha_ident Γ Γ' σ
