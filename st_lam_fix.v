@@ -68,6 +68,7 @@ Inductive rawterm : Type :=
   | rawbool : bool -> rawterm
   | rawapp : rawterm -> rawterm -> rawterm
   | rawif : rawterm -> rawterm -> rawterm -> rawterm
+  | rawfix : atom -> rawterm -> rawterm
   | rawlam : atom -> ty -> rawterm -> rawterm.
 
 Inductive term (Γ:env) : ty -> Type :=
@@ -87,7 +88,10 @@ Inductive term (Γ:env) : ty -> Type :=
                 term Γ σ
   | tlam : forall x σ₁ σ₂,
                 term ((x,σ₁)::Γ) σ₂ ->
-                term Γ (σ₁ ⇒ σ₂).
+                term Γ (σ₁ ⇒ σ₂)
+  | tfix : forall x σ,
+                term ((x,σ)::Γ) σ ->
+                term Γ σ.
 
 Arguments tapp [_ _ _] _ _.
 Notation "x • y" := (tapp x y) 
@@ -132,6 +136,10 @@ Inductive alpha_cong : forall Γ Γ' (τ:ty), term Γ τ -> term Γ' τ -> Prop 
                   alpha_cong Γ Γ' σ z1 z2 ->
                   alpha_cong Γ Γ' σ (tif Γ σ x1 y1 z1) (tif Γ' σ x2 y2 z2)
   
+  | acong_fix : forall (Γ Γ':env) (x₁ x₂:atom) σ m₁ m₂,
+                  alpha_cong ((x₁,σ)::Γ) ((x₂,σ)::Γ') σ m₁ m₂ ->
+                  alpha_cong Γ Γ' σ (tfix Γ x₁ σ m₁) (tfix Γ' x₂ σ m₂)
+
   | acong_lam : forall (Γ Γ':env) (x₁ x₂:atom) σ₁ σ₂ m₁ m₂,
                   alpha_cong ((x₁,σ₁)::Γ) ((x₂,σ₁)::Γ') σ₂ m₁ m₂ ->
                   alpha_cong Γ Γ' (σ₁ ⇒ σ₂) (tlam Γ x₁ σ₁ σ₂ m₁) (tlam Γ' x₂ σ₁ σ₂ m₂).
@@ -143,6 +151,7 @@ Fixpoint raw (Γ:env) (τ:ty) (m:term Γ τ) : rawterm :=
   | tapp σ₁ σ₂ t1 t2 => rawapp (raw Γ (σ₁ ⇒ σ₂) t1) (raw Γ σ₁ t2)
   | tif σ x y z => rawif (raw Γ ty_bool x) (raw Γ σ y) (raw Γ σ z)
   | tlam x σ₁ σ₂ m' => rawlam x σ₁ (raw ((x,σ₁)::Γ) σ₂ m')
+  | tfix x σ m' => rawfix x (raw ((x,σ)::Γ) σ m')
   end.
 
 Definition env_incl (Γ₁ Γ₂:env) :=
@@ -171,6 +180,11 @@ Fixpoint term_wk (Γ₁ Γ₂:env) (σ:ty)
         tif Γ₂ σ (term_wk Γ₁ Γ₂ ty_bool x H)
                  (term_wk Γ₁ Γ₂ σ y H)
                  (term_wk Γ₁ Γ₂ σ z H)
+  | tfix x σ m' =>
+        tfix Γ₂ x σ
+          (term_wk ((x,σ)::Γ₁) ((x,σ)::Γ₂) σ m'
+             (env_incl_wk Γ₁ Γ₂ x σ H))
+
   | tlam x σ₁ σ₂ m' =>
         tlam Γ₂ x σ₁ σ₂ 
             (term_wk ((x,σ₁)::Γ₁) ((x,σ₁)::Γ₂) σ₂ m'
@@ -179,7 +193,7 @@ Fixpoint term_wk (Γ₁ Γ₂:env) (σ:ty)
 
 Lemma weaken_fresh
   (Γ Γ' : env) (σ: ty) x' :
-  x' ∉ ‖Γ‖ -> x' ∉ ‖Γ'‖ -> 
+  x' ∉ ‖Γ'‖ -> 
   forall (x : atom) (τ : ty),
     inenv Γ' x τ -> inenv ((x', σ) :: Γ') x τ.
 Proof.
@@ -188,20 +202,20 @@ Proof.
   destruct (string_dec x' x).
   assert (x' ∈ (‖Γ'‖)).
   rewrite e.
-  revert H1. clear e. 
+  revert H0. clear e. 
   induction Γ'; simpl in *; intuition.
   discriminate.
   destruct a. 
-  hnf in H1. simpl in H1.
+  hnf in H0. simpl in H0.
   destruct (string_dec s x).
   apply cons_elem; simpl; auto. left. subst s; auto.
   apply cons_elem; right; auto.
   apply IHΓ'.
   intro.
-  apply H0.
+  apply H.
   apply cons_elem. right; auto.
   auto.
-  elim H0; auto.
+  elim H; auto.
   auto.
 Qed.
 
@@ -220,12 +234,12 @@ Defined.
 
 Definition weaken_map Γ Γ'
   (VAR:varmap Γ Γ')
-  x' σ (Hx1:x' ∉ ‖Γ‖) (Hx2:x' ∉ ‖Γ'‖) :
+  x' σ (Hx:x' ∉ ‖Γ'‖) :
   varmap Γ ((x',σ)::Γ')
 
   := fun a τ H => 
        term_wk Γ' ((x', σ) :: Γ') τ (VAR a τ H) 
-          (weaken_fresh Γ Γ' σ x' Hx1 Hx2).
+          (weaken_fresh Γ Γ' σ x' Hx).
 
 Program Definition newestvar Γ x σ : term ((x,σ)::Γ) σ := tvar _ x σ _.
 Next Obligation.
@@ -234,28 +248,24 @@ Next Obligation.
 Defined.
 
 Definition shift_vars Γ Γ' x x' σ
-  (Hx1:x' ∉ ‖Γ‖) (Hx2:x' ∉ ‖Γ'‖)
+  (Hx:x' ∉ ‖Γ'‖)
   (VAR:varmap Γ Γ')
   : varmap ((x,σ)::Γ) ((x',σ)::Γ')
 
   := extend_map Γ ((x', σ) :: Γ')
-      (weaken_map Γ Γ' VAR x' σ Hx1 Hx2) 
+      (weaken_map Γ Γ' VAR x' σ Hx) 
        x σ (newestvar Γ' x' σ).
 
 Lemma shift_vars' : forall Γ Γ' x σ,
-  let x' := fresh[ Γ, Γ' ] in
+  let x' := fresh[ Γ' ] in
     varmap Γ Γ' ->
     varmap ((x,σ)::Γ) ((x',σ)::Γ').
 Proof.
   intros.
-  refine (shift_vars Γ Γ' x x' σ _ _ X).
-
-  apply fresh_atom_is_fresh'.
-  simpl. red; intros. apply app_elem. auto.
+  refine (shift_vars Γ Γ' x x' σ _ X).
 
   apply fresh_atom_is_fresh'.
   simpl. red; intros.
-  apply app_elem. right.
   apply app_elem. auto.
 Defined.
 
@@ -275,8 +285,14 @@ Fixpoint term_subst
       tif Γ' σ (term_subst Γ Γ' ty_bool VAR x)
             (term_subst Γ Γ' σ VAR y)
             (term_subst Γ Γ' σ VAR z)
+  | tfix x σ m' =>
+      let x' := fresh[ Γ' ] in
+      tfix Γ' x' σ
+          (term_subst ((x,σ)::Γ) ((x',σ)::Γ') σ
+            (shift_vars' Γ Γ' x σ VAR)
+            m')
   | tlam x σ₁ σ₂ m' =>
-      let x' := fresh[ Γ, Γ' ] in
+      let x' := fresh[ Γ' ] in
       tlam Γ' x' σ₁ σ₂
           (term_subst ((x,σ₁)::Γ) ((x',σ₁)::Γ') σ₂
             (shift_vars' Γ Γ' x σ₁ VAR) 
@@ -375,9 +391,6 @@ Reserved Notation "m ⇓ z" (at level 82, left associativity).
 Reserved Notation "m ↓" (at level 82, left associativity).
 
 Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
-(*  | evar : forall x τ IN,
-               tvar Γ x τ IN ↓
-*)
   | ebool : forall b,
                tbool Γ b ↓
   | eif : forall σ x y z b q,
@@ -386,6 +399,9 @@ Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
                (tif Γ σ x y z) ⇓ q
   | elam : forall x σ₁ σ₂ m,
                tlam Γ x σ₁ σ₂ m ↓
+  | efix : forall x σ m z,
+               subst Γ σ σ x m (tfix Γ x σ m) ⇓ z ->
+               tfix Γ x σ m ⇓ z
   | eapp : forall x σ₁ σ₂ m₁ m₂ n₁ n₂ z,
                m₁ ⇓ (tlam Γ x σ₁ σ₂ n₁) ->
                m₂ ⇓ n₂ ->
@@ -408,6 +424,7 @@ Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
   | tif σ x y z => 
       flat_cases' (fun b:bool => if b then 〚y〛 else 〚z〛) ∘ 〈 id, 〚x〛 〉
   | tapp σ₁ σ₂ m₁ m₂ => strict_app' ∘ 〈 〚m₁〛, 〚m₂〛 〉
+  | tfix x σ m' => fixes (cxt Γ) (tydom σ) (Λ(〚m'〛 ∘ bind Γ x σ))
   | tlam x σ₁ σ₂ m' => strict_curry' (〚m'〛 ∘ bind Γ x σ₁)
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
@@ -417,8 +434,6 @@ Lemma alpha_cong_denote (Γ₁ Γ₂:env) τ (m:term Γ₁ τ) (n:term Γ₂ τ)
 
   forall A
     (h₁:A → cxt Γ₁) (h₂:A → cxt Γ₂),
-
-
 
   (forall a b τ (IN1:inenv Γ₁ a τ) (IN2:inenv Γ₂ b τ),
     var_cong Γ₁ Γ₂ a b ->
@@ -468,6 +483,9 @@ Proof.
 
   simpl; intros.
 
+admit. (* fixes commutes with compose, etc *)
+
+  simpl; intros.
   do 2 rewrite strict_curry_compose_commute'.
   apply strict_curry'_eq.
   do 2 rewrite <- (cat_assoc PLT).
@@ -517,7 +535,7 @@ Proof.
   rewrite (cast_compose false).  
   rewrite (cast_compose false).  
   symmetry. apply H0. auto.
-Qed.  
+Qed.
 
 Lemma alpha_cong_denote' Γ τ (m:term Γ τ) (n:term Γ τ) :
   alpha_cong Γ Γ τ m n -> 〚m〛 ≈ 〚n〛.
@@ -690,12 +708,14 @@ Proof.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   discriminate.  
+
+admit. (* something about fixes *)
 Qed.
 
 Lemma weaken_map_denote Γ Γ'
   (VAR:varmap Γ Γ')
-  x' σ (Hx1:x' ∉ ‖Γ‖) (Hx2:x' ∉ ‖Γ'‖) Hx' :
-  varmap_denote _ _ (weaken_map Γ Γ' VAR x' σ Hx1 Hx2)
+  x' σ (Hx:x' ∉ ‖Γ'‖) Hx' :
+  varmap_denote _ _ (weaken_map Γ Γ' VAR x' σ Hx)
   ≈
   varmap_denote _ _ VAR ∘ ENV.unbind Γ' x' σ Hx'.
 Proof.
@@ -705,7 +725,7 @@ Proof.
   rewrite (ENV.finprod_proj_commute Γ).
   unfold weaken_map; simpl.
   generalize (Logic.eq_refl (ENV.lookup i Γ)).
-  generalize (weaken_fresh Γ Γ' σ x' Hx1 Hx2).
+  generalize (weaken_fresh Γ Γ' σ x' Hx).
   simpl.
   pattern (ENV.lookup i Γ) at 2 3 4 5 9.
   case (ENV.lookup i Γ); intros.
@@ -814,7 +834,7 @@ Proof.
   simpl denote.
   rewrite <- (cat_assoc PLT).
   generalize (ENV.proj_bind_eq
-    (fresh_atom (‖Γ‖++‖Γ'‖++nil)) σ₁ (fresh_atom (‖Γ‖++‖Γ'‖++nil)) Γ' Logic.refl_equal).
+    (fresh_atom (‖Γ'‖++nil)) σ₁ (fresh_atom (‖Γ'‖++nil)) Γ' Logic.refl_equal).
   simpl. intros. 
   etransitivity. apply cat_respects. reflexivity.
   apply H.
@@ -833,9 +853,12 @@ Proof.
   decide equality. decide equality.
   reflexivity.
   auto.
+
+admit. (* fixes *)
+
 Grab Existential Variables.
   simpl.
-  set (q := fresh [Γ,Γ']). simpl in q. fold q.
+  set (q := fresh [Γ']). simpl in q. fold q.
   cut (q ∉ ‖Γ'‖).
   clearbody q. clear. induction Γ'; simpl; intros; auto.
   destruct a. simpl in *.
@@ -843,8 +866,7 @@ Grab Existential Variables.
   elim H. apply cons_elem. simpl; auto.
   apply IHΓ'. intro. apply H. apply cons_elem; auto.
   unfold q. apply fresh_atom_is_fresh'.
-  red; intros. apply app_elem. right.
-  apply app_elem. auto.
+  red; intros. apply app_elem. auto.
 Qed.  
 
 Lemma varmap_var_id Γ :
@@ -877,7 +899,6 @@ Proof.
   symmetry. apply term_subst_soundness.
 Qed.
 
-
 Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
    〚 n₁ 〛 ∘ bind Γ x σ₁ ∘ 〈id, 〚 n₂ 〛〉 ≈ 〚 subst Γ σ₂ σ₁ x n₁ n₂ 〛.
 Proof.
@@ -909,6 +930,12 @@ Proof.
   rewrite flat_cases_elem'.
   rewrite (cat_ident1 PLT).
   destruct b; auto.
+
+  rewrite fixes_unroll.
+  rewrite PLT.curry_apply2.
+  rewrite <- IHeval.
+  apply (subst_soundness Γ x σ σ m (tfix Γ x σ m)).
+
   rewrite IHeval1.
   rewrite IHeval2.
   rewrite <- IHeval3.
@@ -965,6 +992,7 @@ Proof.
   apply acong_app; auto.
   apply acong_if; auto.
   apply acong_lam; auto.
+  apply acong_fix; auto.
 Qed.
 
 Lemma alpha_eq_sym Γ₁ Γ₂ τ m n :
@@ -976,6 +1004,7 @@ Proof.
   apply acong_bool.
   apply acong_app; auto.
   apply acong_if; auto.
+  apply acong_fix; auto.
   apply acong_lam; auto.
 Qed.
 
@@ -992,6 +1021,7 @@ Proof.
   apply acong_app; eauto.
   apply acong_if; eauto.
   apply acong_lam; eauto.
+  apply acong_fix; eauto.
 Qed.
 
 Lemma alpha_cong_wk : forall (Γm Γn Γm' Γn':env) τ m n H₁ H₂,
@@ -1006,6 +1036,11 @@ Proof.
   apply acong_bool.
   apply acong_app; auto.
   apply acong_if; auto.
+  apply acong_fix. apply IHalpha_cong.
+  intros. inv H1.
+  apply vcong_here; auto.
+  apply vcong_there; auto.
+
   apply acong_lam. apply IHalpha_cong.
   intros. inv H1.
   apply vcong_here; auto.
@@ -1025,6 +1060,7 @@ Proof.
   auto.
   apply elam.
   auto.
+  auto.
 Qed.
 
 Lemma eval_eq Γ τ x y1 y2 :
@@ -1040,6 +1076,9 @@ Proof.
   inv H2.
   apply IHeval2; auto.
   intros. inv H. auto.
+
+  intros. inv H0.
+  apply IHeval; auto.
 
   intros. inv H2.
   apply IHeval1 in H8.
@@ -1057,7 +1096,7 @@ Proof.
   eapply eval_value; eauto.
 Qed.
 
-
+(*
 Lemma eval_app_congruence Γ σ₁ σ₂ : forall x x' y y' z,
   (forall q, eval _ _ x q -> eval _ _ x' q) ->
   (forall q, eval _ _ y q -> eval _ _ y' q) ->
@@ -1070,7 +1109,7 @@ Proof.
   apply H0 in H8.
   eapply eapp; eauto.
 Qed.
-
+*)
 
 
 (**  Now we define the logical relation.  It is defined by induction
@@ -1222,14 +1261,16 @@ Proof.
   apply env_supp_inenv in H2.
   intro. subst a. revert H2.
   apply fresh_atom_is_fresh'.
-  red; intros. apply app_elem; right. apply app_elem; auto.
+  red; intros. apply app_elem; auto.
   apply varcong_inenv2 in H2.
   apply env_supp_inenv in H2.
   intro. subst b. revert H2.
   apply fresh_atom_is_fresh'.
-  red; intros. apply app_elem; right. apply app_elem; auto.
+  red; intros. apply app_elem; auto.
   apply H. inv H1. elim n; auto. auto.
   auto.
+
+  admit. (* fix case *)
 Qed.
 
 
@@ -1255,6 +1296,8 @@ Proof.
   inv H. exists (tlam Γ' x₂ σ₁ σ₂ m₂).
   split. apply elam.
   apply acong_lam. auto.
+admit. (* fix case *)
+
   inv H2.
   destruct (IHeval1 Γ' n₁0 H8) as [z1' [??]].
   destruct (IHeval2 Γ' n₂0 H11) as [z2' [??]].
@@ -1294,6 +1337,8 @@ Proof.
   intro H. induction H; intros; try discriminate.
   eapply IHeval2; eauto.
   subst z.
+  eapply IHeval; eauto.
+  subst z.
   eapply IHeval3; eauto.
 Qed.
 
@@ -1302,6 +1347,19 @@ Lemma if_not_value Γ σ (x y:term Γ σ) :
 Proof.
   intro H. induction H; intros; try discriminate.
   eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
+
+Lemma fix_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall x m, y = tfix Γ x σ m -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
   subst z.
   eapply IHeval3; eauto.
 Qed.
@@ -1315,6 +1373,7 @@ Proof.
   inv H1.
   eapply app_not_value in H9; eauto. elim H9.
   eapply if_not_value in H2. elim H2. eauto.
+  eapply fix_not_value in H0. elim H0. eauto.
   apply elam.
 Qed.  
 
@@ -1324,6 +1383,7 @@ Proof.
   intros until m; induction m; simpl; intros; auto.
   f_equal.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  f_equal; auto.
   f_equal; auto.
   f_equal; auto.
   f_equal; auto.
@@ -1342,6 +1402,8 @@ Proof.
   apply IHm1.
   apply IHm2.
   apply IHm3.
+  f_equal.
+  apply IHm.
   f_equal.
   apply IHm.
 Qed.
@@ -1392,11 +1454,11 @@ Proof.
     (term_wk _ _ _ _ ?Q2) ] =>
     generalize Q1 Q2; intros
   end.
-  assert (forall x τ, inenv Γ₂ x τ -> inenv ((fresh[Γ,Γ₂],σ₁)::Γ₂) x τ).
+  assert (forall x τ, inenv Γ₂ x τ -> inenv ((fresh[Γ₂],σ₁)::Γ₂) x τ).
     intros.
     hnf. hnf in H1. simpl. simpl in H1.
     rewrite H1.
-    set (q := fresh [Γ,Γ₂]).
+    set (q := fresh [Γ₂]).
     simpl in q. fold q.
     destruct (string_dec q x0).
     subst q.
@@ -1406,12 +1468,12 @@ Proof.
     apply env_supp_inenv. eauto.
     subst x0. revert H.
     apply fresh_atom_is_fresh'.
-    red; intros. apply app_elem. right. apply app_elem; auto.
+    red; intros. apply app_elem. auto.
     auto.
 
   apply alpha_eq_trans with
-    ((fresh [Γ,Γ₂],σ₁)::Γ₂) 
-    (term_wk Γ₂ ((fresh [Γ,Γ₂],σ₁)::Γ₂) σ
+    ((fresh [Γ₂],σ₁)::Γ₂) 
+    (term_wk Γ₂ ((fresh [Γ₂],σ₁)::Γ₂) σ
       (term_wk Γ₁ Γ₂ σ (VAR1 a σ Ha0) H₁) H1).
   rewrite term_wk_compose'.
   apply alpha_cong_wk.
@@ -1422,7 +1484,7 @@ Proof.
   apply varcong_inenv1 in H2.
   apply env_supp_inenv in H2. subst a0.  revert H2.
   apply fresh_atom_is_fresh'.
-  red; intros. apply app_elem. right. apply app_elem; auto.
+  red; intros. apply app_elem. auto.
   clear -H2 H₁.
     intro.
     apply varcong_inenv2 in H2.
@@ -1430,7 +1492,7 @@ Proof.
     destruct H2; eauto.
     apply env_supp_inenv in H0. subst b. revert H0.
     apply fresh_atom_is_fresh'.
-    red; intros. apply app_elem. right. apply app_elem; auto.
+    red; intros. apply app_elem. auto.
   clear -H₁ H2.
     assert (a0 = b).
     apply varcong_eq in H2; auto.
@@ -1448,15 +1510,17 @@ Proof.
     apply varcong_inenv1 in H2.
     apply env_supp_inenv in H2. subst a0. revert H2.
     apply fresh_atom_is_fresh'.
-    red; intros. apply app_elem. right. apply app_elem; auto.
+    red; intros. apply app_elem; auto.
   clear -H2.
     intro.
     apply varcong_inenv2 in H2.
     apply env_supp_inenv in H2. subst b. revert H2.
     apply fresh_atom_is_fresh'.
-    red; intros. apply app_elem. right. apply app_elem; auto.
+    red; intros. apply app_elem; auto.
   auto.
   apply H.
+
+  admit. (* fix case *)
 Qed.
 
 Lemma compose_term_subst : forall Γ₁ τ (m:term Γ₁ τ),
@@ -1496,7 +1560,7 @@ Proof.
   simpl.
   unfold weaken_map; simpl.
   
-  set (q := (fresh_atom (‖Γ‖ ++ ‖Γ₂‖ ++ nil))).
+  set (q := (fresh_atom (‖Γ₂‖ ++ nil))).
   simpl in *. fold q.
   destruct (string_dec q q). simpl.
   apply acong_var.
@@ -1522,8 +1586,8 @@ Proof.
   replace IN2 with IN1.
 
   apply term_subst_wk_cong. simpl. intros.
-  set (q1 := fresh [ Γ, Γ₂ ]). 
-  set (q2 := fresh [ Γ₂, Γ₃ ]).
+  set (q1 := fresh [ Γ₂ ]). 
+  set (q2 := fresh [ Γ₃ ]).
   unfold inenv in *. simpl in *.
   revert Ha2.
   simpl in *. fold q1. fold q2.  
@@ -1535,7 +1599,7 @@ Proof.
   apply env_supp_inenv. eauto.
   revert H1. unfold q1.
   apply fresh_atom_is_fresh'.
-  red; intros. apply app_elem. right. apply app_elem; auto.
+  red; intros. apply app_elem; auto.
   intros.
   apply alpha_cong_wk.
   intros. apply vcong_there; auto.
@@ -1543,19 +1607,21 @@ Proof.
     apply varcong_inenv1 in H1.
     apply env_supp_inenv in H1. subst a0.
     revert H1. apply fresh_atom_is_fresh'.
-    red; intros. apply app_elem; auto. right. apply app_elem; auto.
+    red; intros. apply app_elem; auto.
   unfold q2.
     intro.
     apply varcong_inenv2 in H1.
     apply env_supp_inenv in H1. subst b.
     revert H1. apply fresh_atom_is_fresh'.
-    red; intros. apply app_elem; auto. right. apply app_elem; auto.
+    red; intros. apply app_elem; auto.
 
   replace Ha2 with Ha1.
   apply alpha_eq_refl.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   apply alpha_eq_refl.
+
+  admit. (* fix case *)
 Qed.  
 
 
@@ -1576,6 +1642,7 @@ Proof.
   apply acong_bool.
   apply acong_app; auto.
   apply acong_if; auto.
+admit. (* fix case *)
   apply acong_lam; auto.
   apply IHalpha_cong. intros.
   unfold shift_vars'.
@@ -1608,7 +1675,7 @@ Proof.
   subst x₁0. revert H0.
   apply fresh_atom_is_fresh'.
   red; intros.
-  apply app_elem. right. apply app_elem; auto.
+  apply app_elem; auto.
 Qed.
 
 Lemma subst_alpha_ident Γ Γ' σ
@@ -1637,14 +1704,14 @@ Lemma extend_shift_alpha : forall
   (σ : ty)
   (IN1 : inenv ((x, σ₁) :: Γ) a1 σ)
   (IN2 : inenv ((x, σ₁) :: Γ) a2 σ)
-  (x':atom) Hx1 Hx2,
+  (x':atom) Hx,
 
    var_cong ((x, σ₁) :: Γ) ((x, σ₁) :: Γ) a1 a2 ->
 
    alpha_cong nil nil σ
      (varmap_compose ((x, σ₁) :: Γ) ((x', σ₁) :: nil) nil
         (extend_map nil nil (tvar nil) x' σ₁ n)
-        (shift_vars Γ nil x x' σ₁ Hx1 Hx2 VAR) a1 σ IN1)
+        (shift_vars Γ nil x x' σ₁ Hx VAR) a1 σ IN1)
      (extend_map Γ nil VAR x σ₁ n a2 σ IN2).
 Proof.
   intros.
@@ -1893,8 +1960,8 @@ Proof.
 
   assert (alpha_cong _ _ _ 
     (term_subst ((x, σ₁) :: Γ) nil σ₂ VAR' m)
-    (subst nil σ₂ σ₁ (fresh [Γ]) 
-      (term_subst ((x, σ₁) :: Γ) ((fresh_atom (‖Γ‖ ++ nil), σ₁) :: nil) σ₂
+    (subst nil σ₂ σ₁ (fresh_atom nil) 
+      (term_subst ((x, σ₁) :: Γ) ((fresh_atom nil, σ₁) :: nil) σ₂
              (shift_vars' Γ nil x σ₁ VAR) m)
       n)).
     unfold VAR'.
@@ -1919,6 +1986,8 @@ Proof.
   unfold VARh'.
   rewrite (cat_assoc PLT). auto.
   auto.
+
+  admit. (* fix case *)
 Qed.
 
 (**  A simpified form of the fundamental lemma that follows
@@ -1964,6 +2033,10 @@ Inductive context τ : env -> ty -> Type :=
                     term Γ (σ₁ ⇒ σ₂) ->
                     context τ Γ σ₂ ->
                     context τ Γ σ₁
+  | cxt_fix : forall Γ (x:atom) σ,
+                    context τ Γ σ ->
+                    context τ ((x,σ)::Γ) σ
+
   | cxt_lam : forall Γ (x:atom) σ₁ σ₂,
                     context τ Γ (σ₁ ⇒ σ₂) ->
                     context τ ((x,σ₁)::Γ) σ₂.
@@ -1975,6 +2048,7 @@ Fixpoint plug τ Γ σ (C:context τ Γ σ) : term Γ σ -> term nil τ :=
   | cxt_appl Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
   | cxt_appr Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
   | cxt_lam  Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
+  | cxt_fix Γ a σ C' => fun x => plug τ _ _ C' (tfix Γ a σ x)
   end.
 
 Definition cxt_eq τ Γ σ (m n:term Γ σ):=
@@ -1991,6 +2065,7 @@ Proof.
   elimtype False. eapply app_not_value; eauto.
   elimtype False. eapply if_not_value; eauto.
   discriminate.
+  elimtype False. eapply fix_not_value; eauto.
 Qed.
 
 
@@ -2072,6 +2147,10 @@ Proof.
   apply IHC. simpl.
   apply cat_respects; auto.
   apply PLT.pair_eq; auto.
+
+  simpl; intros.
+  apply IHC. simpl.
+admit. (* fixes *)
 
   simpl; intros.
   apply IHC. simpl.
