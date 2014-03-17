@@ -1511,6 +1511,7 @@ Proof.
   rewrite H in H5. rewrite H5 in H6.
   assert (b = b').
   apply flat_elem'_inj in H6. auto.
+  exact tt.
   subst b'.
   subst zm zn.
   assert (z = (tbool b)).
@@ -1533,6 +1534,7 @@ Proof.
   rewrite H in H5. rewrite H5 in H6.
   assert (b = b').
   apply flat_elem'_inj in H6. auto.
+  exact tt.
   subst b'.
   subst zm zn.
   assert (z = (tbool b)).
