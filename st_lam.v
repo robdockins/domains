@@ -372,8 +372,6 @@ Reserved Notation "m ⇓ z" (at level 82, left associativity).
 Reserved Notation "m ↓" (at level 82, left associativity).
 
 Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
-  | evar : forall x τ IN,
-               tvar Γ x τ IN ↓
   | ebool : forall b,
                tbool Γ b ↓
   | eif : forall σ x y z b q,
@@ -999,7 +997,6 @@ Lemma eval_value Γ τ x y :
   eval Γ τ x y -> eval Γ τ y y.
 Proof.
   intro H. induction H.
-  apply evar.
   apply ebool.
   auto.
   apply elam.
@@ -1012,9 +1009,6 @@ Proof.
   intro H. revert y2.
   induction H.
 
-  intros. inv H. 
-  f_equal.
-  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   intros. inv H. auto.
   intros. inv H1.
   assert (tbool Γ b = tbool Γ b0).
@@ -1039,19 +1033,6 @@ Proof.
   eapply eval_value; eauto.
 Qed.
 
-
-Lemma eval_app_congruence Γ σ₁ σ₂ : forall x x' y y' z,
-  (forall q, eval _ _ x q -> eval _ _ x' q) ->
-  (forall q, eval _ _ y q -> eval _ _ y' q) ->
-  eval Γ _ (@tapp Γ σ₁ σ₂ x y) z ->
-  eval Γ _ (@tapp Γ σ₁ σ₂ x' y') z.
-Proof.
-  intros.
-  inv H1.
-  apply H in H7.
-  apply H0 in H8.
-  eapply eapp; eauto.
-Qed.
 
 (**  Now we define the logical relation.  It is defined by induction
      on the structure of types, in a standard way.
@@ -1218,8 +1199,7 @@ Lemma eval_alpha Γ τ (m z:term Γ τ) :
   exists z', (n ⇓ z') /\ alpha_cong Γ Γ' τ z z'.
 Proof.
   intro H. induction H; intros.
-  inv H. exists (tvar Γ' x₂ τ H₂). split. apply evar.
-  apply acong_var. auto.
+
   inv H. exists (tbool Γ' b). split.
   apply ebool. apply acong_bool.
 
@@ -1290,7 +1270,7 @@ Lemma alpha_cong_value Γ Γ' σ x y :
   alpha_cong Γ Γ' σ x y -> x↓ -> y↓.
 Proof.
   intro H. induction H; intros.
-  apply evar.
+  inv H0.
   apply ebool.
   inv H1.
   eapply app_not_value in H9; eauto. elim H9.
