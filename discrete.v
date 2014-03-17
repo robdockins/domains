@@ -275,7 +275,6 @@ Qed.
 
 Canonical Structure finbool.
 
-
 Lemma disc_cases_elem'
      : forall (X : fintype) (A B C : PLT) 
        (f : X -> A → B) (g: C → 1) (x : X) (h : C → A),
@@ -313,4 +312,74 @@ Proof.
   apply (mk_disc_cases_elem X _ _ f (fintype.fintype_list X)).
   apply fintype.fintype_complete.
   auto.   
+Qed.
+
+
+Lemma disc_cases_univ (X:fintype) (A B:PLT) (f:X -> A → B) q :
+  (forall x, f x ≈ q ∘ 〈 id, disc_elem x ∘ PLT.terminate _ _〉) ->
+  disc_cases f ≈ q.
+Proof.
+  intros. split; hnf; simpl; intros.
+  destruct a. destruct p.
+  apply (mk_disc_cases_elem X _ _ f (fintype.fintype_list X)) in H0.
+  destruct (H c1).
+  apply H1 in H0.
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [z [??]].
+  destruct z.
+  apply (PLT.pair_hom_rel false A _ _ id(A) (disc_elem c1 ∘ PLT.terminate _ _))
+     in H0.
+  destruct H0.
+  apply PLT.compose_hom_rel in H4.
+  destruct H4 as [?[??]]. destruct x.
+  revert H3. apply PLT.hom_order; auto.
+  split; simpl.
+  simpl in H0. apply ident_elem in H0. auto.
+  simpl in H5. apply single_axiom in H5.
+  destruct H5 as [[??][??]]; auto.
+  apply fintype.fintype_complete.
+
+  destruct a. destruct p.
+  apply (mk_disc_cases_elem X _ _ f (fintype.fintype_list X)); auto.
+  apply fintype.fintype_complete.
+  assert ((c0,c) ∈ PLT.hom_rel (q ∘ 〈id, disc_elem c1 ∘ PLT.terminate false A〉)).
+  apply PLT.compose_hom_rel.
+  exists (c0,c1).
+  split; auto.
+  apply PLT.pair_hom_rel.
+  split.
+  simpl. apply ident_elem; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split; auto.
+  simpl. apply eprod_elem.
+  split. apply eff_complete.
+  apply single_axiom; auto.
+  simpl. apply single_axiom. auto.
+  destruct (H c1).
+  apply H3 in H1.
+  auto.
+Qed.
+
+Lemma disc_cases_commute : forall (X : fintype) (A B C : PLT) 
+       (f : X -> A → B) (g:C → A) (h:C → disc X),
+       disc_cases f ∘ 〈 g, h 〉 ≈ disc_cases (fun x => f x ∘ g) ∘ 〈 id, h 〉.
+Proof.
+  intros. transitivity (disc_cases f ∘ PLT.pair_map g id ∘ 〈id,h〉).
+  unfold PLT.pair_map.
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite <- (cat_assoc PLT). rewrite PLT.pair_commute1.
+  rewrite <- (cat_assoc PLT). rewrite PLT.pair_commute2.
+  rewrite (cat_ident2 PLT). rewrite (cat_ident1 PLT). auto.
+  apply cat_respects; auto.
+  symmetry. apply disc_cases_univ.
+  intros. 
+  unfold PLT.pair_map.
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite <- (cat_assoc PLT). rewrite PLT.pair_commute1.
+  rewrite <- (cat_assoc PLT). rewrite PLT.pair_commute2.
+  rewrite (cat_ident1 PLT). rewrite (cat_ident2 PLT).
+  symmetry.
+  apply disc_cases_elem'.
 Qed.

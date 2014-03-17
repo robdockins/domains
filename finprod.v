@@ -1591,6 +1591,22 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Definition mk_finprod ls X (f:forall i, X → ty (lookup i ls)) : X → finprod ls := 
     internals.finprod_univ ls nil X (fun i _ => f i) (fun i H1 H2 => eq_refl _ _).
 
+  Definition empty_cxt_inh : finprod nil :=
+    fun i => @internals.codom_elem nil None i (fun H =>H) tt.
+
+  Lemma empty_cxt_le : forall a b : finprod nil, a ≤ b.
+  Proof.
+    repeat intro.
+    hnf. destruct (a i). destruct (b i). auto. contradiction.
+    destruct (b i). contradiction. hnf. auto.
+  Qed.
+    
+  Lemma empty_cxt_uniq : forall a b : finprod nil, a ≈ b.
+  Proof.
+    intros. split; apply empty_cxt_le.
+  Qed.
+
+
   Lemma finprod_proj_commute : forall ls i X f,
     proj ls i ∘ mk_finprod ls X f ≈ f i.
   Proof.

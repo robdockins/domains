@@ -204,6 +204,116 @@ Proof.
   rewrite (cat_ident1 PLT). auto.
 Qed.
 
+Lemma strict_curry_monotone Γ A B (f f':Γ×U A → U B) :
+  f ≤ f' -> strict_curry f ≤ strict_curry f'.
+Proof.
+  intros. unfold strict_curry.
+  apply PLT.compose_mono; auto.
+  apply U_mono.
+  apply PLT.curry_mono.
+  apply PLT.compose_mono; auto.
+  apply PLT.compose_mono; auto.
+  apply PLT.compose_mono; auto.
+Qed.
+
+Lemma strict_curry'_monotone Γ A B (f f':Γ×U A → U B) :
+  f ≤ f' -> strict_curry' f ≤ strict_curry' f'.
+Proof.
+  intros. unfold strict_curry'.
+  apply PLT.compose_mono. 2: auto.
+  apply strict_curry_monotone. auto.
+Qed.
+
+Lemma strict_curry_eq Γ A B (f f':Γ×U A → U B) :
+  f ≈ f' -> strict_curry f ≈ strict_curry f'.
+Proof.
+  intros [??]; split; apply strict_curry_monotone; auto.
+Qed.
+
+Lemma strict_curry'_eq Γ A B (f f':Γ×U A → U B) :
+  f ≈ f' -> strict_curry' f ≈ strict_curry' f'.
+Proof.
+  intros [??]; split; apply strict_curry'_monotone; auto.
+Qed.
+
+Add Parametric Morphism Γ A B :
+  (@strict_curry Γ A B)
+    with signature (Preord.ord_op _) ==> (Preord.ord_op _)
+    as strict_curry_le_morphism.
+Proof.
+  intros. apply strict_curry_monotone; auto.
+Qed.  
+
+Add Parametric Morphism Γ A B :
+  (@strict_curry' Γ A B)
+    with signature (Preord.ord_op _) ==> (Preord.ord_op _)
+    as strict_curry'_le_morphism.
+Proof.
+  intros. apply strict_curry'_monotone; auto.
+Qed.  
+
+Add Parametric Morphism Γ A B :
+  (@strict_curry Γ A B)
+    with signature (eq_op _) ==> (eq_op _)
+    as strict_curry_morphism.
+Proof.
+  intros. apply strict_curry_eq; auto.
+Qed.  
+
+Add Parametric Morphism Γ A B :
+  (@strict_curry' Γ A B)
+    with signature (eq_op _) ==> (eq_op _)
+    as strict_curry'_morphism.
+Proof.
+  intros. apply strict_curry'_eq; auto.
+Qed.  
+
+
+Lemma strict_curry_compose_commute Γ Γ' A B (f:Γ×U A → U B) (h:Γ' → Γ) :
+  strict_curry f ∘ h ≈ strict_curry (f ∘ PLT.pair_map h id).
+Proof.
+  unfold strict_curry.
+  rewrite <- (cat_assoc PLT).
+  rewrite (NT.axiom adj_unit h).
+  rewrite (cat_assoc PLT).
+  apply cat_respects; auto.
+  symmetry. apply (Functor.compose U).
+  symmetry.
+  rewrite PLT.curry_compose_commute.
+  unfold PLT.pair_map at 2.
+  apply PLT.curry_eq.
+  repeat rewrite <- (cat_assoc ∂PLT).
+  apply cat_respects. auto.
+  rewrite <- (PLT.pair_map_pair true).
+  rewrite (cat_ident2 ∂PLT).
+  rewrite (cat_ident2 ∂PLT).
+  symmetry.
+  rewrite (Functor.compose). 2: reflexivity.
+  rewrite <- (cat_assoc ∂PLT).
+  apply cat_respects. auto.
+  rewrite (cat_assoc ∂PLT).
+  unfold pair_map.
+
+  rewrite <- (lift_prod_natural _ _ _ _ h id).
+  rewrite <- (cat_assoc ∂PLT).
+  apply cat_respects. auto.
+  unfold PLT.pair_map at 2.
+  rewrite <- (PLT.pair_map_pair true).
+  apply PLT.pair_eq.
+  rewrite (cat_ident2 ∂PLT). auto.
+  rewrite (Functor.ident L). 2: auto.
+  rewrite (cat_ident2 ∂PLT). auto.
+Qed.
+
+Lemma strict_curry_compose_commute' Γ Γ' A B (f:Γ×U A → U B) (h:Γ' → Γ) :
+  strict_curry' f ∘ h ≈ strict_curry' (f ∘ PLT.pair_map h id).
+Proof.
+  unfold strict_curry'.
+  rewrite <- (cat_assoc PLT).
+  rewrite (strict_curry_compose_commute _ _ _ _ f h).
+  auto.
+Qed.
+
 
 Lemma plt_strict_compose : forall (A B C:∂PLT) (f:B → C),
   f ∘ (⊥: A → B) ≈ ⊥.
@@ -570,40 +680,6 @@ Definition flat_elem' (X:enumtype) (Γ:PLT) (x:X) : Γ → U (flat X)
   := U·(flat_elem x ∘ PLT.terminate _ _) ∘ η.
 Arguments flat_elem' [X Γ] x.
 
-Lemma flat_cases_elem_term (X:enumtype) (Γ D B:∂PLT) 
-  (f:X -> Γ → B) (x:X) (h:D → Γ) :
-  flat_cases f ∘ 《h, flat_elem x ∘ PLT.terminate true D》 ≈ f x ∘ h.
-Proof.
-  split; intros a H. destruct a.
-  apply PLT.compose_hom_rel in H.
-  apply PLT.compose_hom_rel.
-  destruct H as [q [??]].
-  destruct q.
-  simpl in H0.
-  rewrite <- (flat_cases_rel_elem _ _ _ f) in H0.
-  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
-  rewrite PLT.compose_hom_rel in H1.
-  destruct H1 as [[] [??]].
-  exists c1. split; auto.
-  simpl in H2.
-  apply single_axiom in H2.
-  destruct H2 as [[??][??]]. simpl in *.
-  hnf in H3. subst c2. auto.
-  destruct a.
-  apply PLT.compose_hom_rel in H.
-  apply PLT.compose_hom_rel.
-  destruct H as [q [??]].
-  exists (q,x). split.
-  apply PLT.pair_hom_rel. split; auto.
-  apply PLT.compose_hom_rel. exists tt.
-  split; auto.
-  simpl. apply eprod_elem. split.
-  apply eff_complete.
-  apply single_axiom. auto.
-  simpl. apply single_axiom. auto.
-  apply (flat_cases_rel_elem).
-  auto.   
-Qed.
 
 Lemma flat_cases_elem' (X:enumtype) (Γ D:PLT) (B:∂PLT) 
   (f:X -> Γ → U B) (x:X) (h:D → Γ) :
@@ -631,7 +707,7 @@ Proof.
   rewrite H.
   rewrite (cat_ident2 ∂PLT).
   rewrite (cat_ident1 ∂PLT).
-  rewrite flat_cases_elem_term.
+  rewrite flat_cases_elem.
   rewrite <- (cat_assoc ∂PLT).
   rewrite <- (Functor.compose L). 2: reflexivity.
   rewrite (Functor.compose U). 2: reflexivity.
@@ -641,6 +717,287 @@ Proof.
   generalize (Adjunction.adjoint_axiom2 PLT_adjoint B).
   simpl; intros. rewrite H0.
   apply cat_ident2.
+Qed.
+
+Lemma flat_cases'_strict (X:enumtype) (Γ:PLT) (B:∂PLT) 
+  (f:X -> Γ → U B) a x b :
+  (a,x,b) ∈ PLT.hom_rel (flat_cases' f) -> x = None -> b = None.
+Proof.
+  intros.
+  unfold flat_cases' in H.
+  apply (PLT.compose_hom_rel _ _ _ _
+    η
+    (U·(flat_cases (fun x : X => ε ∘ L·f x) ∘ PLT.pair_map id ε ∘
+      lift_prod'))
+    (a,x) b) in H.
+  destruct H as [?[??]].
+  simpl in H. apply adj_unit_rel_elem in H.
+  subst x.
+  apply (U_hom_rel
+    _ _
+    (flat_cases (fun x : X => ε ∘ L·f x) ∘ PLT.pair_map id ε ∘
+      lift_prod')) in H1.
+  destruct H1; auto.
+  destruct H0 as [?[?[??]]].
+  destruct H1; subst.
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [?[??]].
+  simpl in H0. apply ident_elem in H0.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [?[??]]. destruct x2.
+  destruct x0.
+  unfold PLT.pair_map in H1.
+  apply (PLT.pair_hom_rel true (L Γ) (flat X) (L Γ ⊗ L (U (flat X))) (id ∘ π₁)
+    (ε ∘ π₂)) in H1.
+  destruct H1.
+  apply PLT.compose_hom_rel in H3.
+  destruct H3 as [?[??]].
+  simpl in H3. 
+  rewrite (pi2_rel_elem _ _ _ _ c1 c2 x0) in H3.
+  simpl in H4.
+  apply adj_counit_rel_elem in H4.
+  rewrite H3 in H4.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [?[??]].
+  simpl in H1.
+  rewrite (pi1_rel_elem _ _ _ _ c1 c2 x2) in H1.
+  simpl in H5. apply ident_elem in H5.
+  destruct x. destruct H0. simpl in *.
+  rewrite H6 in H4.
+  destruct H. simpl in *.
+  rewrite H7 in H4.
+  elim H4.
+Qed.
+  
+Lemma flat_cases'_semvalue (X:enumtype) A (Γ:PLT) (B:∂PLT) 
+  (f:X -> Γ → U B) (g : A → Γ) h :
+  semvalue (flat_cases' f ∘ 〈g,h〉) ->
+  semvalue h.
+Proof.
+  repeat intro.
+  hnf in H.
+  destruct (H g0) as [??].
+  rewrite (PLT.compose_hom_rel _ _ _ _ 〈g,h〉 (flat_cases' f)) in H0.
+  destruct H0 as [?[??]].
+  destruct x0.
+  rewrite (PLT.pair_hom_rel _ _ _ _ g h) in H0.
+  destruct H0.
+  destruct c0.
+  eauto.
+  assert (Some x = None).
+  eapply flat_cases'_strict.
+  apply H1. auto.
+  discriminate.
+Qed.
+
+
+Lemma flat_cases_univ' (X:enumtype) (A:PLT) (B:∂PLT) (f:X -> A → U B) 
+  (q: A × U (flat X) → U B) :
+  (forall a x b, (a,x,b) ∈ PLT.hom_rel q -> x = None -> b = None) ->
+  (forall x, f x ≈ q ∘ 〈 id, flat_elem' x 〉) ->
+  flat_cases' f ≈ q.
+Proof.
+  intro Hq0.
+  intros. unfold flat_cases'.
+  rewrite PLT.pair_map_eq.
+  split; repeat intro.
+  destruct a as [[a x] b]. 
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [z [??]].
+  apply U_hom_rel in H1.
+  destruct H1. subst b.
+  destruct (PLT.hom_directed _ _ _ q (a,x) nil).
+  hnf; auto. red; intros. apply nil_elem in H1. elim H1.
+  destruct H1. apply erel_image_elem in H2.
+  revert H2. apply PLT.hom_order; auto.
+  destruct x0; simpl.
+  exact I. exact I.
+  destruct H1 as [m [n [??]]].  
+  destruct H2. subst z b.
+  simpl in H0.
+  apply adj_unit_rel_elem in H0.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [?[??]].
+  destruct x0.
+  simpl in H1. apply ident_elem in H1.
+  apply PLT.compose_hom_rel in H2.
+  destruct H2 as [?[??]].
+  destruct x0.
+  rewrite (pair_rel_elem' _ _ _ _ (PLT.hom_rel id) (PLT.hom_rel ε)
+    (PLT.hom_order _ _ _ _) 
+    (PLT.hom_order _ _ _ _) 
+    c c0 c1 c2) in H2.
+  destruct H2.
+  simpl in H2. apply ident_elem in H2.
+  simpl in H4. apply adj_counit_rel_elem in H4.
+  destruct c0. 2: elim H4.
+  simpl in H3.  
+  rewrite <- (flat_cases_rel_elem X (L A) B _ c2 c1 n) in H3.
+  simpl in H3.
+  apply PLT.compose_hom_rel in H3.
+  destruct H3 as [?[??]].
+  apply L_hom_rel in H3.
+  destruct (H c2).
+  apply H6 in H3.
+  rewrite (PLT.compose_hom_rel false _ _ _ 〈id,flat_elem' c2〉 q) in H3.
+  destruct H3 as [?[??]].
+  destruct x1.
+  apply (PLT.pair_hom_rel _ _ _ _ id(_) (flat_elem' c2) c1 c3) in H3.
+  destruct H3. simpl in H3. apply ident_elem in H3.
+  unfold flat_elem' in H9.
+  apply PLT.compose_hom_rel in H9.
+  destruct H9 as [?[??]].
+  simpl in H9. apply adj_unit_rel_elem in H9.
+  apply U_hom_rel in H10.
+  destruct m; simpl in *.
+  revert H8. apply PLT.hom_order; auto.
+  split; simpl.
+  rewrite H3. destruct H1. simpl in *.
+  rewrite H2. rewrite H1. destruct H0; auto.
+  destruct H10. subst c4. exact I.
+  destruct H8 as [?[?[?[??]]]].
+  subst.
+  apply PLT.compose_hom_rel in H8.
+  destruct H8 as [?[??]].
+  simpl in H10.
+  apply single_axiom in H10.
+  destruct H10 as [[??][??]]. simpl in *.
+  hnf in H13. subst c2.
+  rewrite H4. destruct H1. simpl in *.
+  rewrite H13. destruct H0; auto.
+  apply adj_counit_rel_elem in H5.
+  auto.
+
+  destruct a as [[a x] b].
+
+  destruct x as [x|].
+  assert ((a,b) ∈ PLT.hom_rel (q ∘ 〈 id, flat_elem' x 〉)).
+  apply PLT.compose_hom_rel.
+  exists (a,Some x).
+  split.
+  apply PLT.pair_hom_rel.
+  split. simpl. apply ident_elem. auto.
+  unfold flat_elem'.
+  apply PLT.compose_hom_rel.
+  exists (Some a).
+  split. simpl.
+  apply adj_unit_rel_elem. auto.
+  apply U_hom_rel.
+  right. exists a. exists x.
+  split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem.
+  split. apply eff_complete. apply single_axiom; auto.
+  simpl. apply single_axiom. auto.
+  auto.
+  destruct (H x). apply H3 in H1.
+  apply PLT.compose_hom_rel.
+  exists (Some (a,Some x)).
+  split. simpl.
+  apply adj_unit_rel_elem. auto.
+  apply U_hom_rel.
+  destruct b; auto.
+  right.
+  exists (a,Some x). exists c.
+  split; auto.
+  apply PLT.compose_hom_rel.
+  exists (a, Some x).
+  split.
+  unfold lift_prod; simpl.
+  apply ident_elem. auto.
+  apply PLT.compose_hom_rel.
+  exists (a,x). split; auto.
+  simpl.
+  rewrite (pair_rel_elem' _ _ _ _ _ _ (ident_ordering _ _) 
+    (adj_counit_hom_obligation_1 _) a (Some x) a x).
+  split. apply ident_elem; auto.
+  apply adj_counit_rel_elem. auto.
+  simpl.
+  apply flat_cases_rel_elem.
+  apply PLT.compose_hom_rel.
+  exists (Some c).
+  split.
+  apply L_hom_rel.
+  auto.
+  apply adj_counit_rel_elem. auto.
+  
+  apply PLT.compose_hom_rel.
+  exists (Some (a,None)).
+  split.
+  simpl. apply adj_unit_rel_elem. auto.
+  apply U_hom_rel.
+  assert (b = None).
+  eapply Hq0; eauto.
+  auto.
+Qed.
+
+Lemma flat_cases_commute : forall (X : enumtype) (A C : PLT) (B:∂PLT)
+  (f : X -> A → U B) (g:C → A) (h:C → U (flat X)),
+  flat_cases' f ∘ 〈g, h〉 ≈ flat_cases' (fun x => f x ∘ g) ∘ 〈id, h〉.
+Proof.
+  intros.
+  transitivity (flat_cases' f ∘ PLT.pair_map g id ∘ 〈id,h〉).
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (PLT.pair_map_pair false).
+  rewrite (cat_ident1 PLT). rewrite (cat_ident2 PLT). auto.
+  apply cat_respects; auto.
+  symmetry. apply flat_cases_univ'.
+  intros.
+
+  apply (PLT.compose_hom_rel false _ _ _ (PLT.pair_map g id) (flat_cases' f)) in H.
+  destruct H as [?[??]].
+  unfold PLT.pair_map in H.
+  destruct x0.
+  rewrite (PLT.pair_hom_rel false _ _ _ (g ∘ π₁) (id ∘ π₂) (a,x) c c0) in H.
+  destruct H.
+  apply PLT.compose_hom_rel in H2.
+  destruct H2 as [?[??]].
+  simpl in H3. apply ident_elem in H3.
+  simpl in H2.
+  apply (pi2_rel_elem _ _ _ _ a x x0) in H2.
+  subst x. destruct x0.
+  elim H2.
+  destruct c0. elim H3.
+  eapply flat_cases'_strict.
+  apply H1. auto.
+  
+  intros. rewrite <- (cat_assoc PLT).
+  rewrite <- (PLT.pair_map_pair false).
+  rewrite (cat_ident1 PLT).
+  rewrite (cat_ident2 PLT).
+  rewrite flat_cases_elem'. auto.
+Qed.
+
+Lemma flat_elem'_ignores_arg (X:enumtype) A B (x:X) (h:A → B) : 
+  flat_elem' x ≈ flat_elem' x ∘ h.
+Proof.
+  unfold flat_elem'.
+  symmetry.
+  rewrite <- (cat_assoc PLT).
+  rewrite (NT.axiom adj_unit h).
+  rewrite (cat_assoc PLT).
+  simpl.
+  rewrite <- (Functor.compose U). 2: reflexivity.
+  rewrite <- (cat_assoc ∂PLT).
+  apply cat_respects; auto.
+  apply Functor.respects.
+  apply cat_respects; auto.
+  split; hnf; intros.
+  destruct a; simpl.
+  apply eprod_elem. split.
+  apply eff_complete. destruct c0. apply single_axiom. auto.
+  destruct a.
+  apply PLT.compose_hom_rel.
+  destruct (PLT.hom_directed false A B h c nil) as [z ?]; auto.
+  hnf. auto.
+  red; intros. apply nil_elem in H0. elim H0.
+  destruct H0.
+  apply erel_image_elem in H1.
+  exists z. split. apply L_hom_rel.  auto.
+  simpl. apply eprod_elem.
+  split. apply eff_complete. destruct c0.
+  apply single_axiom; auto.
 Qed.
 
 Lemma flat_elem'_semvalue : forall (X:enumtype) Γ (x:X),
@@ -724,19 +1081,20 @@ Proof.
   hnf in H6. subst q. auto.
 Qed.
 
-Lemma flat_elem'_inj (X:enumtype) (x x':X) :
-  @flat_elem' X 1 x ≈ flat_elem' x' -> x = x'.
+
+Lemma flat_elem'_inj (X:enumtype) (x x':X) (A:PLT) (a:A) :
+  @flat_elem' X A x ≈ flat_elem' x' -> x = x'.
 Proof.
   intros.
   unfold flat_elem' in H.
-  assert ((tt, Some x) ∈ PLT.hom_rel (U·(flat_elem x ∘ PLT.terminate true (L (PLT.unit false))) ∘ η)).
+  assert ((a, Some x) ∈ PLT.hom_rel (U·(flat_elem x ∘ PLT.terminate true (L A)) ∘ η)).
   rewrite (PLT.compose_hom_rel _ _ _ _ η 
-    (U·(flat_elem x ∘ PLT.terminate true (L (PLT.unit false))))).
-  exists (Some tt). split.
+    (U·(flat_elem x ∘ PLT.terminate true (L A)))).
+  exists (Some a). split.
   simpl. apply adj_unit_rel_elem. auto.
   apply U_hom_rel.
-  right. exists tt. exists x. split; auto.
-  rewrite (PLT.compose_hom_rel _ _ _ _ (PLT.terminate true (L (PLT.unit false)))
+  right. exists a. exists x. split; auto.
+  rewrite (PLT.compose_hom_rel _ _ _ _ (PLT.terminate true (L A))
     (flat_elem x)).
   exists tt. split.
   simpl. apply eprod_elem. split. apply eff_complete.
@@ -745,14 +1103,14 @@ Proof.
   destruct H.
   apply H in H0.
   rewrite (PLT.compose_hom_rel _ _ _ _ η 
-    (U·(flat_elem x' ∘ PLT.terminate true (L (PLT.unit false))))) in H0.
+    (U·(flat_elem x' ∘ PLT.terminate true (L A)))) in H0.
   destruct H0 as [y[??]].
   simpl in H0. apply adj_unit_rel_elem in H0.
   apply (U_hom_rel _ _ 
-    (flat_elem x' ∘ PLT.terminate true (L (PLT.unit false)))) in H2.
+    (flat_elem x' ∘ PLT.terminate true (L A))) in H2.
   destruct H2. discriminate.
   destruct H2 as [p [q [?[??]]]]. subst y. inversion H4; subst.
-  rewrite (PLT.compose_hom_rel _ _ _ _ (PLT.terminate true (L (PLT.unit false)))
+  rewrite (PLT.compose_hom_rel _ _ _ _ (PLT.terminate true (L A))
     (flat_elem x')) in H2.
   destruct H2 as [?[??]].
   simpl in H3.

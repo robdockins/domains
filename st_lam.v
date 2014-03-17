@@ -64,6 +64,7 @@ Inductive rawterm : Type :=
   | rawvar : atom -> rawterm
   | rawbool : bool -> rawterm
   | rawapp : rawterm -> rawterm -> rawterm
+  | rawif : rawterm -> rawterm -> rawterm -> rawterm
   | rawlam : atom -> ty -> rawterm -> rawterm.
 
 Inductive term (Γ:env) : ty -> Type :=
@@ -76,6 +77,11 @@ Inductive term (Γ:env) : ty -> Type :=
                 term Γ (σ₁ ⇒ σ₂) ->
                 term Γ σ₁ ->
                 term Γ σ₂
+  | tif : forall σ,
+                term Γ ty_bool ->
+                term Γ σ ->
+                term Γ σ ->
+                term Γ σ
   | tlam : forall x σ₁ σ₂,
                 term ((x,σ₁)::Γ) σ₂ ->
                 term Γ (σ₁ ⇒ σ₂).
@@ -117,16 +123,22 @@ Inductive alpha_cong : forall Γ Γ' (τ:ty), term Γ τ -> term Γ' τ -> Prop 
                   alpha_cong Γ Γ' σ₁ m₂ n₂ ->
                   alpha_cong Γ Γ' σ₂ (m₁ • m₂) (n₁ • n₂)
 
+  | acong_if : forall Γ Γ' σ x1 x2 y1 y2 z1 z2,
+                  alpha_cong Γ Γ' ty_bool x1 x2 ->
+                  alpha_cong Γ Γ' σ y1 y2 ->
+                  alpha_cong Γ Γ' σ z1 z2 ->
+                  alpha_cong Γ Γ' σ (tif Γ σ x1 y1 z1) (tif Γ' σ x2 y2 z2)
+  
   | acong_lam : forall (Γ Γ':env) (x₁ x₂:atom) σ₁ σ₂ m₁ m₂,
                   alpha_cong ((x₁,σ₁)::Γ) ((x₂,σ₁)::Γ') σ₂ m₁ m₂ ->
                   alpha_cong Γ Γ' (σ₁ ⇒ σ₂) (tlam Γ x₁ σ₁ σ₂ m₁) (tlam Γ' x₂ σ₁ σ₂ m₂).
-
 
 Fixpoint raw (Γ:env) (τ:ty) (m:term Γ τ) : rawterm :=
   match m with
   | tvar x _ _ => rawvar x
   | tbool b => rawbool b
   | tapp σ₁ σ₂ t1 t2 => rawapp (raw Γ (σ₁ ⇒ σ₂) t1) (raw Γ σ₁ t2)
+  | tif σ x y z => rawif (raw Γ ty_bool x) (raw Γ σ y) (raw Γ σ z)
   | tlam x σ₁ σ₂ m' => rawlam x σ₁ (raw ((x,σ₁)::Γ) σ₂ m')
   end.
 
@@ -152,6 +164,10 @@ Fixpoint term_wk (Γ₁ Γ₂:env) (σ:ty)
   | tbool b => tbool Γ₂ b
   | tapp σ₁ σ₂ m₁ m₂ =>
         @tapp Γ₂ σ₁ σ₂ (term_wk Γ₁ Γ₂ (σ₁ ⇒ σ₂) m₁ H) (term_wk Γ₁ Γ₂ σ₁ m₂ H)
+  | tif σ x y z =>
+        tif Γ₂ σ (term_wk Γ₁ Γ₂ ty_bool x H)
+                 (term_wk Γ₁ Γ₂ σ y H)
+                 (term_wk Γ₁ Γ₂ σ z H)
   | tlam x σ₁ σ₂ m' =>
         tlam Γ₂ x σ₁ σ₂ 
             (term_wk ((x,σ₁)::Γ₁) ((x,σ₁)::Γ₂) σ₂ m'
@@ -252,6 +268,10 @@ Fixpoint term_subst
       @tapp Γ' σ₁ σ₂
           (term_subst Γ Γ' (σ₁ ⇒ σ₂) VAR m₁)
           (term_subst Γ Γ' σ₁ VAR m₂)
+  | tif σ x y z =>
+      tif Γ' σ (term_subst Γ Γ' ty_bool VAR x)
+            (term_subst Γ Γ' σ VAR y)
+            (term_subst Γ Γ' σ VAR z)
   | tlam x σ₁ σ₂ m' =>
       let x' := fresh[ Γ, Γ' ] in
       tlam Γ' x' σ₁ σ₂
@@ -356,6 +376,10 @@ Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
                tvar Γ x τ IN ↓
   | ebool : forall b,
                tbool Γ b ↓
+  | eif : forall σ x y z b q,
+               x ⇓ (tbool Γ b) ->
+               (if b then y else z) ⇓ q ->
+               (tif Γ σ x y z) ⇓ q
   | elam : forall x σ₁ σ₂ m,
                tlam Γ x σ₁ σ₂ m ↓
   | eapp : forall x σ₁ σ₂ m₁ m₂ n₁ n₂ z,
@@ -377,6 +401,8 @@ Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
   match m in term _ τ' return dom Γ τ' with
   | tvar x σ IN => castty IN ∘ proj Γ x
   | tbool b => disc_elem b ∘ PLT.terminate false (cxt Γ)
+  | tif σ x y z => disc_cases (fun b:bool => if b then 〚y〛 else 〚z〛)  
+                     ∘ 〈 id, 〚x〛 〉
   | tapp σ₁ σ₂ m₁ m₂ => apply ∘ 〈 〚m₁〛, 〚m₂〛 〉
   | tlam x σ₁ σ₂ m' => Λ(〚m'〛 ∘ bind Γ x σ₁)
   end
@@ -409,6 +435,26 @@ Proof.
   apply PLT.pair_eq.
   apply IHalpha_cong1. auto.
   apply IHalpha_cong2. auto.
+
+  simpl; intros.
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (cat_ident2 PLT).
+  rewrite (cat_ident2 PLT).
+  rewrite (IHalpha_cong1 _ h₁ h₂ H2).
+  rewrite disc_cases_commute.
+  rewrite (disc_cases_commute _ _ _ _ _ h₂).
+  apply cat_respects; auto.
+  apply disc_cases_univ.
+  intros.
+  rewrite disc_cases_elem'.
+  rewrite (cat_ident1 PLT).
+  destruct x.
+  apply IHalpha_cong2; auto.
+  apply IHalpha_cong3; auto.
+
   simpl; intros.
   do 2 rewrite (PLT.curry_compose_commute false).
   apply PLT.curry_eq.
@@ -536,7 +582,7 @@ Proof.
 Qed.
 
 Lemma weaken_term_denote Γ a m : forall Γ' H,
-  〚m〛 ∘ weaken_denote Γ Γ' H  ≈〚 term_wk Γ Γ' a m H 〛.
+  〚m〛 ∘ weaken_denote Γ Γ' H ≈〚 term_wk Γ Γ' a m H 〛.
 Proof.
   induction m; simpl; intros.
   unfold weaken_denote.
@@ -567,6 +613,17 @@ Proof.
   apply PLT.pair_eq.
   apply IHm1; auto.
   apply IHm2; auto.
+
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (cat_ident2 PLT).
+  rewrite (disc_cases_commute _ _ _ _ _ (weaken_denote Γ Γ' H)).
+  rewrite IHm1. apply cat_respects; auto.
+  apply disc_cases_univ.
+  intros. rewrite disc_cases_elem'.
+  rewrite (cat_ident1 PLT).
+  destruct x; auto.
+
   rewrite PLT.curry_compose_commute.
   apply PLT.curry_eq.
   rewrite <- IHm.
@@ -707,6 +764,18 @@ Proof.
   apply cat_respects. auto.
   rewrite (PLT.pair_compose_commute false).
   rewrite IHm1. rewrite IHm2. auto.
+
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (cat_ident2 PLT).
+  rewrite (disc_cases_commute _ _ _ _ _ (varmap_denote Γ Γ' VAR)).
+  apply cat_respects.
+  2: apply PLT.pair_eq; auto.
+  apply disc_cases_univ. intros.
+  rewrite disc_cases_elem'.
+  rewrite (cat_ident1 PLT).
+  destruct x; auto.
+
   rewrite IHm.
   rewrite PLT.curry_compose_commute.
   apply PLT.curry_eq.
@@ -749,7 +818,7 @@ Proof.
   decide equality. decide equality.
   reflexivity.
   auto.
-  Grab Existential Variables.
+Grab Existential Variables.
   simpl.
   set (q := fresh [Γ,Γ']). simpl in q. fold q.
   cut (q ∉ ‖Γ'‖).
@@ -811,6 +880,13 @@ Theorem soundness : forall Γ τ (m z:term Γ τ),
   m ⇓ z -> 〚m〛 ≈ 〚z〛.
 Proof.
   intros. induction H; simpl; auto.
+
+  rewrite IHeval1.
+  simpl.
+  rewrite disc_cases_elem'.
+  rewrite (cat_ident1 PLT).
+  destruct b; auto.
+
   rewrite IHeval1.
   rewrite IHeval2.
   rewrite <- IHeval3.
@@ -865,6 +941,7 @@ Proof.
   eapply var_cong_refl; eauto.
   apply acong_bool.
   apply acong_app; auto.
+  apply acong_if; auto.
   apply acong_lam; auto.
 Qed.
 
@@ -876,6 +953,7 @@ Proof.
   apply acong_var. apply var_cong_sym. auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply acong_if; auto.
   apply acong_lam; auto.
 Qed.
 
@@ -890,6 +968,7 @@ Proof.
   eapply var_cong_trans; eauto.
   apply acong_bool.
   apply acong_app; eauto.
+  apply acong_if; eauto.
   apply acong_lam; eauto.
 Qed.
 
@@ -904,13 +983,12 @@ Proof.
   apply acong_var. apply H0. auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply acong_if; auto.
   apply acong_lam. apply IHalpha_cong.
   intros. inv H1.
   apply vcong_here; auto.
   apply vcong_there; auto.
 Qed.
-
-
 
 (**  Now we move on to the more difficult adequacy proof.
      For this we will first need a variety of technical results
@@ -923,6 +1001,7 @@ Proof.
   intro H. induction H.
   apply evar.
   apply ebool.
+  auto.
   apply elam.
   auto.
 Qed.
@@ -937,6 +1016,11 @@ Proof.
   f_equal.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   intros. inv H. auto.
+  intros. inv H1.
+  assert (tbool Γ b = tbool Γ b0).
+  apply IHeval1. auto.
+  inv H2.
+  apply IHeval2; auto.
   intros. inv H. auto.
 
   intros. inv H2.
@@ -1084,6 +1168,10 @@ Proof.
   apply acong_bool.
   inv H0.
   apply acong_app; auto.
+
+  inv H0. simpl.
+  apply acong_if; auto.
+
   inv H0. simpl.
   apply acong_lam; auto.
   apply IHm. intros.
@@ -1134,6 +1222,16 @@ Proof.
   apply acong_var. auto.
   inv H. exists (tbool Γ' b). split.
   apply ebool. apply acong_bool.
+
+  inv H1.
+  destruct (IHeval1 Γ' x2) as [m [??]]; auto.
+  inv H3.
+  destruct (IHeval2 Γ' (if b then y2 else z2)) as [n [??]]; auto.
+  destruct b; auto.
+  exists n.
+  split; auto.
+  eapply eif. eauto. auto.
+
   inv H. exists (tlam Γ' x₂ σ₁ σ₂ m₂).
   split. apply elam.
   apply acong_lam. auto.
@@ -1174,6 +1272,16 @@ Lemma app_not_value Γ σ (x y:term Γ σ) :
   x⇓y -> forall σ₂ (m:term Γ (σ₂ ⇒ σ)) n, y = m•n -> False.
 Proof.
   intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
+
+Lemma if_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall a b c, y = tif Γ σ a b c -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
   subst z.
   eapply IHeval3; eauto.
 Qed.
@@ -1186,6 +1294,7 @@ Proof.
   apply ebool.
   inv H1.
   eapply app_not_value in H9; eauto. elim H9.
+  eapply if_not_value in H2. elim H2. eauto.
   apply elam.
 Qed.  
 
@@ -1195,6 +1304,7 @@ Proof.
   intros until m; induction m; simpl; intros; auto.
   f_equal.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  f_equal; auto.
   f_equal; auto.
   f_equal; auto.
 Qed.  
@@ -1208,6 +1318,10 @@ Proof.
   rewrite (IHm1 Γ₂ Γ₃ H1 H2 H3).
   rewrite (IHm2 Γ₂ Γ₃ H1 H2 H3).
   auto.
+  f_equal.
+  apply IHm1.
+  apply IHm2.
+  apply IHm3.
   f_equal.
   apply IHm.
 Qed.
@@ -1233,6 +1347,7 @@ Proof.
   intros until m. induction m; simpl; intros; auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply acong_if; auto.
   apply acong_lam.
 
   apply IHm; clear IHm.
@@ -1337,6 +1452,7 @@ Proof.
   simpl. apply acong_app.
   apply IHm1; auto.
   apply IHm2; auto.
+  apply acong_if; auto.
 
   apply acong_lam.
   eapply alpha_eq_trans. 2: apply IHm. clear IHm.
@@ -1439,6 +1555,7 @@ Proof.
   apply H1. auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply acong_if; auto.
   apply acong_lam; auto.
   apply IHalpha_cong. intros.
   unfold shift_vars'.
@@ -1640,6 +1757,40 @@ Proof.
   rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
   symmetry; apply PLT.pair_compose_commute.
+
+  (* if case *)
+  destruct (IHm1 VAR VARh H) as [x' [x'' [?[??]]]].
+  simpl in H2.
+  destruct H2 as [b [??]].
+  destruct (IHm2 VAR VARh H) as [y' [y'' [?[??]]]].
+  destruct (IHm3 VAR VARh H) as [z' [z'' [?[??]]]].
+  destruct b.
+  exists y'. exists y''.
+  split; auto.
+  subst x''. inv H1.
+  eapply eif.
+  eauto. simpl. auto.
+  split; auto.
+  revert H6.
+  apply LR_equiv.
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (cat_ident2 PLT).
+  rewrite H3.
+  rewrite disc_cases_elem'. auto.
+  exists z'. exists z''.
+  split; auto.
+  subst x''. inv H1.
+  eapply eif.
+  eauto. simpl. auto.
+  split; auto.
+  revert H9.
+  apply LR_equiv.
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (cat_ident2 PLT).
+  rewrite H3.
+  rewrite disc_cases_elem'. auto.
   
   (* lam case *)  
   econstructor. econstructor. split. apply elam.
@@ -1750,6 +1901,11 @@ Qed.
 
 Inductive context τ : env -> ty -> Type :=
   | cxt_top : context τ nil τ
+  | cxt_if : forall Γ σ,
+                    term Γ σ ->
+                    term Γ σ ->
+                    context τ Γ σ ->
+                    context τ Γ ty_bool
   | cxt_appl : forall Γ σ₁ σ₂,
                     term Γ σ₁ ->
                     context τ Γ σ₂ ->
@@ -1765,6 +1921,7 @@ Inductive context τ : env -> ty -> Type :=
 Fixpoint plug τ Γ σ (C:context τ Γ σ) : term Γ σ -> term nil τ :=
   match C in context _ Γ' σ' return term Γ' σ' -> term nil τ with
   | cxt_top => fun x => x
+  | cxt_if Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
   | cxt_appl Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
   | cxt_appr Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
   | cxt_lam  Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
@@ -1805,6 +1962,11 @@ Proof.
   assert (z = (tbool nil bm)).
   eapply eval_eq; eauto.
   subst z. auto.
+
+  simpl; intros.
+  apply IHC. simpl.
+  apply cat_respects; auto.
+  apply PLT.pair_eq; auto.
 
   simpl. intros.
   apply IHC. simpl.

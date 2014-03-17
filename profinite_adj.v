@@ -999,6 +999,51 @@ Proof.
   eapply (PLT.hom_order _ _ _ g); eauto.
 Qed.
 
+Lemma lift_prod_natural A B C D (f:A → B) (g:C → D) :
+  lift_prod B D ∘ PLT.pair_map (L·f) (L·g) ≈ L·(PLT.pair_map f g) ∘ lift_prod A C.
+Proof.
+  split; hnf; intros.
+  destruct a.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]]. destruct q.
+  apply PLT.compose_hom_rel.
+  exists c. split.
+  simpl. apply ident_elem. auto.
+  simpl in H0.
+  apply ident_elem in H0.
+  apply PLT.hom_order with c (c1,c2); auto.
+  destruct a.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]]. 
+  apply PLT.compose_hom_rel.
+  exists c0. split.
+  apply PLT.hom_order with q c0; auto.
+  simpl in H. apply ident_elem in H. auto.
+  simpl. apply ident_elem. auto.
+Qed.
+
+Lemma lift_prod'_natural A B C D (f:A → B) (g:C → D) :
+   PLT.pair_map (L·f) (L·g) ∘ lift_prod' _ _ ≈ lift_prod' _ _ ∘ L·(PLT.pair_map f g).
+Proof.
+  split; hnf; intros.
+  destruct a.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]]. destruct q.
+  apply PLT.compose_hom_rel.
+  exists c0. split.
+  simpl in H. apply ident_elem in H.
+  apply PLT.hom_order with (c1,c2) c0; auto.
+  simpl. apply ident_elem. auto.
+  destruct a.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]]. 
+  apply PLT.compose_hom_rel.
+  exists c. split.
+  simpl. apply ident_elem; auto.
+  apply PLT.hom_order with c q; auto.
+  simpl in H0. apply ident_elem in H0. auto.
+Qed.
+
 
 Section strictify.
   Variables X Y:ob ∂PLT.

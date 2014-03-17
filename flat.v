@@ -209,7 +209,8 @@ Section flat_cases.
     apply (flat_cases_rel_elem x a x0). auto.
   Qed.
 
-  Lemma flat_cases_elem x h : flat_cases ∘ 《h, flat_elem x》 ≈ f x ∘ h.
+  Lemma flat_cases_elem C x h :
+    flat_cases ∘ 《h, flat_elem x ∘ PLT.terminate true C》 ≈ f x ∘ h.
   Proof.
     split; intros a H. destruct a.
     apply PLT.compose_hom_rel in H.
@@ -217,26 +218,90 @@ Section flat_cases.
     destruct H as [q [??]].
     destruct q.
     apply (flat_cases_rel_elem) in H0.
-    simpl in H.
     rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
     exists c1. split; auto.
-    simpl in H1.
-    apply single_axiom in H1.
-    destruct H1 as [[??][??]]. simpl in *.
-    hnf in H2. subst c2. auto.
+    apply PLT.compose_hom_rel in H1.
+    destruct H1 as [?[??]]. destruct x0.
+    simpl in H2.
+    apply single_axiom in H2.
+    destruct H2 as [[??][??]]. simpl in *.
+    hnf in H3. subst c2. auto.
     destruct a.
     apply PLT.compose_hom_rel in H.
     apply PLT.compose_hom_rel.
     destruct H as [q [??]].
     exists (q,x). split.
     apply pair_rel_elem. split; auto.
+    apply PLT.compose_hom_rel.
+    exists tt. split; auto.
+    simpl. apply eprod_elem.
+    split. apply eff_complete. apply single_axiom; auto.
     simpl. apply single_axiom.
-    destruct c. auto.
+    auto.
     apply (flat_cases_rel_elem).
     auto.   
   Qed.
 End flat_cases.
 Arguments flat_cases [X A B] f.
+
+Lemma flat_cases_univ (X:enumtype) (A B:∂PLT) (f:X -> A → B) q :
+  (forall x, f x ≈ q ∘ 《 id, flat_elem x ∘ PLT.terminate _ _》) ->
+  flat_cases f ≈ q.
+Proof.
+  intros. split; repeat intro.
+  destruct a as [[a x] b].
+  destruct (H x).
+  simpl in H0.
+  apply (flat_cases_rel_elem _ _ _ f x a b) in H0.
+  apply H1 in H0.
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [[a' x'] [??]].
+  apply (PLT.pair_hom_rel _ _ _ _ _ _ a a' x') in H0.
+  destruct H0. simpl in H0. apply ident_elem in H0.
+  apply PLT.compose_hom_rel in H4.
+  destruct H4 as [?[??]]. simpl in H5.
+  apply single_axiom in H5.
+  revert H3. apply PLT.hom_order.
+  split; simpl; auto.
+  destruct H5 as [[??][??]]; auto.
+  auto.
+
+  destruct a as [[a x] b].
+  destruct (H x).
+  simpl. apply flat_cases_rel_elem.
+  apply H2.
+  apply PLT.compose_hom_rel.
+  exists (a,x). split; auto.
+  apply PLT.pair_hom_rel.
+  split; simpl. apply ident_elem; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split; auto.
+  simpl. apply eprod_elem.
+  split. apply eff_complete. apply single_axiom. auto.
+  simpl. apply single_axiom; auto.
+Qed.
+
+Lemma flat_cases_commute : forall (X : enumtype) (A B C : ∂PLT) 
+  (f : X -> A → B) (g:C → A) (h:C → flat X),
+  flat_cases f ∘ 《 g, h 》 ≈ flat_cases (fun x => f x ∘ g) ∘ 《 id, h 》.
+Proof.
+  intros.
+  transitivity (flat_cases f ∘ PLT.pair_map g id ∘ 《id,h》).
+  rewrite <- (cat_assoc ∂PLT).
+  rewrite <- (PLT.pair_map_pair true).
+  rewrite (cat_ident1 ∂PLT).
+  rewrite (cat_ident2 ∂PLT).
+  auto.
+  apply cat_respects; auto.
+  symmetry. apply flat_cases_univ.
+  intros.
+  rewrite <- (cat_assoc ∂PLT).
+  rewrite <- (PLT.pair_map_pair true).
+  rewrite (cat_ident1 ∂PLT).
+  rewrite (cat_ident2 ∂PLT).
+  rewrite flat_cases_elem. auto.
+Qed.
+
 
 Definition boolset : N -> option bool :=
   fun n => match n with N0 => Some true | _ => Some false end.
