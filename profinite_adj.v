@@ -1044,6 +1044,8 @@ Proof.
   simpl in H0. apply ident_elem in H0. auto.
 Qed.
 
+Arguments lift_prod [A B].
+Arguments lift_prod' [A B].
 
 Section strictify.
   Variables X Y:ob ∂PLT.

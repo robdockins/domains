@@ -21,6 +21,7 @@ Require Import cpo.
 Require Import profinite.
 Require Import profinite_adj.
 Require Import strict_utils.
+Require Import fixes.
 Require Import flat.
 
 

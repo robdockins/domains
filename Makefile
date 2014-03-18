@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=st_lam.v\
+VFILES:=st_lam_fix.v\
+  st_lam.v\
   finprod.v\
   strict_utils.v\
   powerdom.v\
@@ -89,6 +90,7 @@ VFILES:=st_lam.v\
   lam_models.v\
   flat.v\
   discrete.v\
+  fixes.v\
   nominal.v\
   permutations.v\
   atoms.v\

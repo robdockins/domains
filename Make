@@ -25,6 +25,7 @@ cont_adj.v
 atoms.v
 permutations.v
 nominal.v
+fixes.v
 discrete.v
 flat.v
 lam_models.v
@@ -34,3 +35,4 @@ powerdom.v
 strict_utils.v
 finprod.v
 st_lam.v
+st_lam_fix.v
