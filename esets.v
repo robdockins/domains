@@ -127,14 +127,24 @@ Canonical Structure eset_theory : set.theory :=
 
 Notation eset := (set_preord eset_theory).
 
-Section eset_lemmas.
+Definition cl_eset_theory CL := cset_theory eset_theory CL.
+Notation cl_eset CL := (set_preord (cl_eset_theory CL)).
+
+
+(**  * Countable indefinite description
+
+     A version of the principle of indefinite description can be proved for
+     enumerable sets.  This takes the form of a choice function which,
+     given an inhabited enumerable set, calculates an inhabitant of the set.
+
+     The choice function works by simply counting upwards through the
+     set's indexes until it finds an element.  This process terminates
+     because we assume the set is inhabited.  We convince Coq's termination
+     checker of this fact by using an auxilary inductive definition
+     [einhabited].
+  *)
+Section countable_ID.
   Variable A:preord.
-
-  (** The empty set is easily definable.  *)
-  Definition empty : eset A := fun n => None.
-
-  (** Every list (qua finite set) generates an enumerable set. *)
-  Definition elist (l:list A) : eset A := fun n => nth_error l (N.to_nat n).
 
   (** Here we define inhabitedness of an enumerable set as an inductive
       predicate with a single constructor.  This enables us to define
@@ -192,7 +202,6 @@ Section eset_lemmas.
 
 Global Opaque find_inhabitant.
 
-
   Definition choose P (H:einhabited P) : A
     := projT1 (find_inhabitant P H).
 
@@ -211,12 +220,28 @@ Global Opaque find_inhabitant.
     destruct H as [a H]. exists a; auto.
     destruct H as [n ?]. exists n. destruct a0. rewrite H. auto.
   Qed.
-End eset_lemmas.
-Arguments elist {A} l _.
+End countable_ID.
 Arguments einhabited {A} P.
 
-Definition cl_eset_theory CL := cset_theory eset_theory CL.
-Notation cl_eset CL := (set_preord (cl_eset_theory CL)).
+Theorem countable_indefinite_description (A:preord) (X:eset A) :
+  (exists x:A, x ∈ X) -> { x:A | x ∈ X }.
+Proof.
+  intros.
+  assert (einhabited X).
+  apply inhabited_einhabited. simpl; auto.
+  exists (choose A X H0). apply choose_elem.
+Qed.
+
+
+
+(** * Additional operations on enumerable sets. *)
+
+(** The empty set is easily definable.  *)
+Definition empty (A:preord) : eset A := fun n => None.
+
+(** Every list (qua finite set) generates an enumerable set. *)
+Definition elist (A:preord) (l:list A) : eset A := fun n => nth_error l (N.to_nat n).
+Arguments elist {A} l _.
 
 (**  The intersection of enumerable sets can be defined if we have a decidable equality on the
      elements.
@@ -985,4 +1010,45 @@ Proof.
   apply esubset_dec_elem.
   intros. rewrite <- H0; auto.
   split; auto.
+Qed.
+
+(** * Weak countable choice 
+
+     Countable indefinite description gives rise to a functional choice principle:
+       "Every total enumerable relation gives rise to a (computable) function."
+
+     There are two subtle points regarding the formal statemet: first,
+     we need need to assume a decidable order on A (and thus decidable
+     setoid equality); second, the choice function is _constructed_
+     not just asserted to exist.
+
+     This statement is weaker than the "standard" version of countable choice.
+     In countable choice, the domain [A] is assumed to be countable,
+     but the cardinality of the relation [R] is unconstrained.
+
+     Here, we instead require [R] to be enumerable and [A] to have a decidable
+     order.  Because [R] is total, this implies [A] is countable (and
+     effective, as defined in "effective.v.")  Hence this statement is
+     implied by countable choice (more precisely, a statmenet of countable choice
+     that constructs a function, rather than merely asserting it to exist).
+     This statement is _strictly_ weaker, as the usual version of
+     countable choice is not provable in Coq.
+  *)
+Theorem weak_countable_choice (A B:preord) (HA:ord_dec A) (R:erel A B) :
+  (forall a:A, exists b, (a,b) ∈ R) ->
+  { f:A -> B | forall a, (a, f a) ∈ R }.
+Proof.
+  intros.
+
+  assert (Hrng : forall a, einhabited (erel_image A B HA R a)).
+    intros. apply member_inhabited.
+    destruct (H a) as [b ?]. exists b.
+    apply erel_image_elem. auto.
+
+  exists (fun a => choose B (erel_image A B HA R a) (Hrng a)).
+
+  intros.
+  generalize (choose_elem B (erel_image A B HA R a) (Hrng a)).
+  intros. apply erel_image_elem in H0.
+  auto.
 Qed.

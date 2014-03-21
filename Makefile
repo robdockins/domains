@@ -80,8 +80,7 @@ endif
 #                    #
 ######################
 
-VFILES:=st_lam_fix.v\
-  st_lam.v\
+VFILES:=st_lam.v\
   finprod.v\
   strict_utils.v\
   powerdom.v\

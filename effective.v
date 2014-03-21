@@ -55,7 +55,7 @@ Qed.
      We do this by first generating the subset of the enumeration set
      containing all elements equal to [x]; then we choose the smallest
      index from that set that is defined.  Such an element exists
-     because we know the set is inhabited.  The principle of countable
+     because we know the set is inhabited.  The weak principle of countable
      choice then suffices to choose the index.
   *)
 
