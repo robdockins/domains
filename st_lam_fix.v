@@ -21,6 +21,7 @@ Require Import profinite.
 Require Import finprod.
 Require Import flat.
 Require Import profinite_adj.
+Require Import fixes.
 Require Import strict_utils.
 
 
@@ -483,13 +484,68 @@ Proof.
 
   simpl; intros.
 
-admit. (* fixes commutes with compose, etc *)
+  do 2 rewrite fixes_compose_commute.
+  apply fixes_eq.
+  do 2 rewrite PLT.curry_compose_commute.
+  apply PLT.curry_eq.
+  do 2 rewrite <- (cat_assoc PLT).
+  apply IHalpha_cong.  
+  
+(* FIXME: extract lemma here *)
+  intros. inv H1.
+  do 2 rewrite <- (cat_assoc PLT).
+  rewrite (cat_assoc PLT _ _ _ _ (proj ((a,σ)::Γ) a)).
+  rewrite (ENV.proj_bind_eq _ _ _ _ (refl_equal a)).
+  rewrite <- (cat_assoc PLT).
+  unfold PLT.pair_map.
+  rewrite PLT.pair_commute2.
+  rewrite (cat_ident2 PLT).
+  symmetry.  
+  rewrite (cat_assoc PLT _ _ _ _ (proj ((b,σ)::Γ') b)).
+  rewrite (ENV.proj_bind_eq _ _ _ _ (refl_equal b)).
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute2.
+  do 2 rewrite (cat_assoc PLT).
+  apply cat_respects; auto.  
+  etransitivity.
+  apply cast_compose.
+  symmetry.
+  etransitivity.
+  apply cast_compose.
+
+  match goal with [ |- castty ?X ≈ castty ?Y ] => generalize X Y end.
+  hnf in IN1. simpl in *.
+  destruct (string_dec a a).
+  inv IN1. intros.
+  replace e0 with e1. auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  elim n; auto.
+
+  do 2 rewrite <- (cat_assoc PLT).
+  rewrite (cat_assoc PLT _ _ _ _ (proj ((x₁,σ)::Γ) a)).
+  rewrite (ENV.proj_bind_neq x₁ σ a Γ H9); auto.
+  unfold PLT.pair_map.
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  symmetry.
+  rewrite (cat_assoc PLT _ _ _ _ (proj ((x₂,σ)::Γ') b)).
+  rewrite (ENV.proj_bind_neq x₂ σ b Γ' H10); auto.
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  repeat rewrite (cat_assoc PLT).
+  apply cat_respects; auto.
+  rewrite (cast_compose false).  
+  rewrite (cast_compose false).  
+  symmetry. apply H0. auto.
+(* end lemma *)
 
   simpl; intros.
   do 2 rewrite strict_curry_compose_commute'.
   apply strict_curry'_eq.
   do 2 rewrite <- (cat_assoc PLT).
   apply IHalpha_cong.  
+
+(* FIXME: use lemma here *)
   intros. inv H1.
   do 2 rewrite <- (cat_assoc PLT).
   rewrite (cat_assoc PLT _ _ _ _ (proj ((a,σ₁)::Γ) a)).
@@ -535,6 +591,7 @@ admit. (* fixes commutes with compose, etc *)
   rewrite (cast_compose false).  
   rewrite (cast_compose false).  
   symmetry. apply H0. auto.
+(* END: use lemma *)
 Qed.
 
 Lemma alpha_cong_denote' Γ τ (m:term Γ τ) (n:term Γ τ) :
@@ -661,6 +718,8 @@ Proof.
   rewrite strict_curry_compose_commute'.
   apply strict_curry'_eq.
   rewrite <- IHm.
+
+(* lemma here ? *)
   do 2 rewrite <- (cat_assoc PLT). apply cat_respects; auto.
 
   symmetry.
@@ -708,8 +767,64 @@ Proof.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   discriminate.  
+(* end lemma? *)
 
-admit. (* something about fixes *)
+  rewrite fixes_compose_commute.
+  apply fixes_eq.
+  rewrite PLT.curry_compose_commute.
+  apply PLT.curry_eq.
+  rewrite <- IHm.
+
+(* use lemma here? *)
+
+  do 2 rewrite <- (cat_assoc PLT). apply cat_respects; auto.
+
+  symmetry.
+  unfold weaken_denote at 1.
+  rewrite ENV.mk_finprod_compose_commute.
+  symmetry. apply ENV.finprod_universal.
+  intros.
+  rewrite (cat_assoc PLT).
+  unfold bind.
+  rewrite (ENV.finprod_proj_commute ((x,σ)::Γ)).
+  symmetry.
+  rewrite <- (cat_assoc PLT).
+  rewrite ENV.finprod_proj_commute. simpl.
+  generalize (env_incl_wk Γ Γ' x σ H i).
+  unfold env_incl. simpl. unfold inenv. simpl.
+  destruct (string_dec  x i).
+  intros.
+  unfold PLT.pair_map.
+  rewrite (cat_ident2 PLT).
+  symmetry. etransitivity. apply PLT.pair_commute2.
+  replace (i0 σ Logic.eq_refl) with (refl_equal (Some σ)).
+  rewrite cast_refl. rewrite (cat_ident2 PLT); auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+
+  symmetry.
+  unfold PLT.pair_map.
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  rewrite (cat_assoc PLT).
+  unfold weaken_denote.
+  rewrite (ENV.finprod_proj_commute Γ).
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  match goal with [ |- _ ?X ≈ _ ] => generalize X end.
+  pattern (ENV.lookup i Γ) at 2 3 4 8.
+  case (ENV.lookup i Γ); auto.
+  intros.
+  generalize (H i t e) (i0 t e).
+  unfold inenv.
+  case (ENV.lookup i Γ'); intros.
+  inv i1.
+  replace i1 with (refl_equal (Some t)).
+  replace e0 with (refl_equal (Some t)).
+  auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  discriminate.  
+(* end use lemma? *)
 Qed.
 
 Lemma weaken_map_denote Γ Γ'
@@ -814,6 +929,8 @@ Proof.
   rewrite IHm.
   rewrite strict_curry_compose_commute'.
   apply strict_curry'_eq.
+
+(* begin lemma? *)
   rewrite <- (cat_assoc PLT).
   rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
@@ -853,10 +970,69 @@ Proof.
   decide equality. decide equality.
   reflexivity.
   auto.
+(* end lemma? *)
 
-admit. (* fixes *)
+  rewrite IHm.
+  rewrite fixes_compose_commute.
+  apply fixes_eq.
+  rewrite PLT.curry_compose_commute.
+  apply PLT.curry_eq.
+
+(* use lemma? *)
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+
+  unfold shift_vars'.
+  unfold shift_vars.
+  rewrite varmap_extend_bind.
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  rewrite (PLT.pair_compose_commute false).
+  unfold PLT.pair_map.
+  apply PLT.pair_eq.
+
+  rewrite weaken_map_denote.
+  rewrite <- (cat_assoc PLT).
+  rewrite ENV.bind_unbind. auto.
+
+  simpl denote.
+  rewrite <- (cat_assoc PLT).
+  generalize (ENV.proj_bind_eq
+    (fresh_atom (‖Γ'‖++nil)) σ (fresh_atom (‖Γ'‖++nil)) Γ' Logic.refl_equal).
+  simpl. intros. 
+  etransitivity. apply cat_respects. reflexivity.
+  apply H.
+  rewrite (cat_assoc PLT).
+  match goal with 
+    [ |- castty ?H1 ∘ castty ?H2 ∘ π₂ ≈ _ ] =>
+    generalize H1 H2
+  end.
+  intros.
+  etransitivity. apply cat_respects. 
+  apply (cast_compose false _ (ENV.ty) _ _ _ e i).
+  reflexivity.
+  etransitivity. apply cat_respects. 
+  refine (cast_dec_id false _ (ENV.ty) _
+    (Some σ) (Logic.eq_trans e i)).
+  decide equality. decide equality.
+  reflexivity.
+  auto.
+(* end use lemma? *)
 
 Grab Existential Variables.
+  simpl.
+  set (q := fresh [Γ']). simpl in q. fold q.
+  cut (q ∉ ‖Γ'‖).
+  clearbody q. clear. induction Γ'; simpl; intros; auto.
+  destruct a. simpl in *.
+  destruct (string_dec c q). subst q.
+  elim H. apply cons_elem. simpl; auto.
+  apply IHΓ'. intro. apply H. apply cons_elem; auto.
+  unfold q. apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem. auto.
+
+(* another copy of same *)
   simpl.
   set (q := fresh [Γ']). simpl in q. fold q.
   cut (q ∉ ‖Γ'‖).
@@ -910,7 +1086,6 @@ Proof.
   rewrite varmap_var_id. auto.
 Qed.
 
-
 Lemma value_semvalue Γ τ (m z:term Γ τ) : m ⇓ z -> semvalue 〚z〛.
 Proof.
   intro H; induction H; auto.
@@ -944,6 +1119,7 @@ Proof.
   apply subst_soundness.
   eapply value_semvalue; eauto.
 Qed.
+
 
 Lemma var_cong_refl Γ x τ:
   inenv Γ x τ ->
@@ -1234,7 +1410,10 @@ Proof.
 
   inv H0. simpl.
   apply acong_lam; auto.
-  apply IHm. intros.
+  apply IHm. 
+
+(* lemma ? *)
+  intros.
   unfold shift_vars', shift_vars, extend_map, weaken_map.
   hnf in IN1. hnf in IN2. simpl in IN1. simpl in IN2.
   revert IN1 IN2.
@@ -1269,8 +1448,48 @@ Proof.
   red; intros. apply app_elem; auto.
   apply H. inv H1. elim n; auto. auto.
   auto.
+(* end lemma? *)
 
-  admit. (* fix case *)
+  inv H0. simpl.
+  apply acong_fix; auto.
+  apply IHm.
+(* use lemma? *)
+  intros.
+  unfold shift_vars', shift_vars, extend_map, weaken_map.
+  hnf in IN1. hnf in IN2. simpl in IN1. simpl in IN2.
+  revert IN1 IN2.
+  destruct (string_dec x a1); simpl; intros.
+  destruct (string_dec x₂ a2); simpl; intros.
+  subst x. subst x₂. unfold eq_rect_r.
+  inv IN1.
+  replace IN1 with (Logic.eq_refl (Some σ0)). simpl.
+  replace IN2 with (Logic.eq_refl (Some σ0)). simpl.
+  unfold newestvar. simpl.
+  apply acong_var.
+  apply vcong_here; auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  inv H1. elim n; auto.
+  elim H10; auto.
+  destruct (string_dec x₂ a2); simpl; intros.
+  subst x₂. inv H1.
+  elim n; auto. elim H11; auto.
+  apply alpha_cong_wk; auto.
+  intros.
+  apply vcong_there; auto.
+  apply varcong_inenv1 in H2.
+  apply env_supp_inenv in H2.
+  intro. subst a. revert H2.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem; auto.
+  apply varcong_inenv2 in H2.
+  apply env_supp_inenv in H2.
+  intro. subst b. revert H2.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem; auto.
+  apply H. inv H1. elim n; auto. auto.
+  auto.
+(* end use lemma? *)
 Qed.
 
 
@@ -1296,7 +1515,36 @@ Proof.
   inv H. exists (tlam Γ' x₂ σ₁ σ₂ m₂).
   split. apply elam.
   apply acong_lam. auto.
-admit. (* fix case *)
+
+  (**)
+  inv H0.
+  destruct (IHeval Γ' (subst Γ' σ σ x₂ m₂ (tfix Γ' x₂ σ m₂))) as [z' [??]].
+  unfold subst. apply term_subst_cong; auto.
+(* use lemma *)
+  intros. 
+  inv H1.
+  unfold extend_map. simpl.
+  revert IN1 IN2. unfold inenv; simpl.
+  destruct (string_dec a1 a1).
+  destruct (string_dec a2 a2).
+  intros. inv IN1.
+  replace IN1 with (Logic.eq_refl (Some σ0)). simpl.
+  replace IN2 with (Logic.eq_refl (Some σ0)). simpl.
+  unfold eq_rect_r; simpl. auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  elim n; auto. elim n; auto.
+  unfold extend_map. simpl.
+  revert IN1 IN2. unfold inenv; simpl.
+  destruct (string_dec x a1).
+  elim H10; auto.
+  destruct (string_dec x₂ a2).
+  elim H11; auto.
+  intros. 
+  apply acong_var. auto.
+(* end use lemma *)
+  exists z'. split; auto.
+  eapply efix. auto.
 
   inv H2.
   destruct (IHeval1 Γ' n₁0 H8) as [z1' [??]].
@@ -1305,6 +1553,7 @@ admit. (* fix case *)
   destruct (IHeval3 Γ' (subst Γ' σ₂ σ₁ x₂ m₂0 z2')) as [z' [??]].
   unfold subst.
   apply term_subst_cong.
+(* begin lemma. *)
   intros. 
   inv H7.
   unfold extend_map. simpl.
@@ -1326,6 +1575,7 @@ admit. (* fix case *)
   elim H19; auto.
   intros. 
   apply acong_var. auto.
+(* end lemma *)
   auto.    
   exists z'; split; auto.
   eapply eapp; eauto.
@@ -1433,6 +1683,8 @@ Proof.
   apply acong_lam.
 
   apply IHm; clear IHm.
+
+(* begin lemma? *)
   intros. unfold shift_vars'. unfold shift_vars.
   unfold extend_map. simpl. unfold weaken_map. simpl.
   unfold newestvar. simpl. unfold newestvar_obligation_1. simpl.
@@ -1519,8 +1771,98 @@ Proof.
     red; intros. apply app_elem; auto.
   auto.
   apply H.
+(* end lemma ? *)
 
-  admit. (* fix case *)
+  apply acong_fix.
+  apply IHm; clear IHm.
+(* use lemma *)
+  intros. unfold shift_vars'. unfold shift_vars.
+  unfold extend_map. simpl. unfold weaken_map. simpl.
+  unfold newestvar. simpl. unfold newestvar_obligation_1. simpl.
+  generalize Ha1 Ha2. unfold inenv; simpl.
+  destruct (string_dec x a); simpl.
+  subst a. intros.
+  inv Ha0. unfold eq_rect_r.
+  replace Ha0 with (Logic.eq_refl (Some σ0)).
+  replace Ha3 with (Logic.eq_refl (Some σ0)). simpl.
+  apply acong_var.
+  apply vcong_here; auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+
+  intros.  
+  rewrite term_wk_compose'.
+  match goal with [ |- alpha_cong _ _ _
+    (term_wk _ _ _ _ ?Q1)
+    (term_wk _ _ _ _ ?Q2) ] =>
+    generalize Q1 Q2; intros
+  end.
+  assert (forall x τ, inenv Γ₂ x τ -> inenv ((fresh[Γ₂],σ)::Γ₂) x τ).
+    intros.
+    hnf. hnf in H1. simpl. simpl in H1.
+    rewrite H1.
+    set (q := fresh [Γ₂]).
+    simpl in q. fold q.
+    destruct (string_dec q x0).
+    subst q.
+    elimtype False.
+    clear -H1 e.
+    assert (x0 ∈ ‖Γ₂‖).
+    apply env_supp_inenv. eauto.
+    subst x0. revert H.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem. auto.
+    auto.
+
+  apply alpha_eq_trans with
+    ((fresh [Γ₂],σ)::Γ₂) 
+    (term_wk Γ₂ ((fresh [Γ₂],σ)::Γ₂) σ0
+      (term_wk Γ₁ Γ₂ σ0 (VAR1 a σ0 Ha0) H₁) H1).
+  rewrite term_wk_compose'.
+  apply alpha_cong_wk.
+  intros.
+ apply vcong_there; auto.
+  clear -H2.
+  intro.
+  apply varcong_inenv1 in H2.
+  apply env_supp_inenv in H2. subst a0.  revert H2.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem. auto.
+  clear -H2 H₁.
+    intro.
+    apply varcong_inenv2 in H2.
+    assert (exists τ, inenv Γ₂ b τ).
+    destruct H2; eauto.
+    apply env_supp_inenv in H0. subst b. revert H0.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem. auto.
+  clear -H₁ H2.
+    assert (a0 = b).
+    apply varcong_eq in H2; auto.
+    subst a0.
+    apply varcong_inenv1 in H2.
+    destruct H2. apply H₁ in H.
+    eapply inenv_varcong; eauto.
+
+  apply alpha_eq_refl.
+  apply alpha_cong_wk.
+  intros.
+  apply vcong_there.
+  clear -H2.
+    intro.
+    apply varcong_inenv1 in H2.
+    apply env_supp_inenv in H2. subst a0. revert H2.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem; auto.
+  clear -H2.
+    intro.
+    apply varcong_inenv2 in H2.
+    apply env_supp_inenv in H2. subst b. revert H2.
+    apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem; auto.
+  auto.
+  apply H.
+(* end use lemma *)
 Qed.
 
 Lemma compose_term_subst : forall Γ₁ τ (m:term Γ₁ τ),
@@ -1541,6 +1883,7 @@ Proof.
   apply acong_lam.
   eapply alpha_eq_trans. 2: apply IHm. clear IHm.
 
+(* begin lemma? *)
   apply term_subst_cong.
   clear. unfold shift_vars', shift_vars. simpl.
   intros.
@@ -1620,8 +1963,92 @@ Proof.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
   apply alpha_eq_refl.
+(* end lemma *)
 
-  admit. (* fix case *)
+  apply acong_fix.
+  eapply alpha_eq_trans. 2: apply IHm. clear IHm.
+
+(* use lemma *)
+  apply term_subst_cong.
+  clear. unfold shift_vars', shift_vars. simpl.
+  intros.
+  simpl.
+  unfold inenv in *. simpl in *.
+  unfold extend_map.
+  destruct (string_dec x a1).
+  unfold eq_rect_r. simpl.
+  subst a1. inv IN1.
+  replace IN1 with (Logic.eq_refl (Some σ0)).
+  unfold newestvar; simpl.
+  unfold newestvar_obligation_1. simpl.
+  revert IN2.
+  destruct (string_dec x a2).
+  subst a2; intros.
+  replace IN2 with (Logic.eq_refl (Some σ0)).
+  simpl.
+  unfold weaken_map; simpl.
+  
+  set (q := (fresh_atom (‖Γ₂‖ ++ nil))).
+  simpl in *. fold q.
+  destruct (string_dec q q). simpl.
+  apply acong_var.
+  apply vcong_here; auto.
+  elim n; auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  intros.
+  elim n. inv H; auto. elim H7; auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  revert IN2.
+  destruct (string_dec x a2).
+  subst a2; intros.
+  elim n. inv H; auto. elim H8; auto.
+  intros.
+  simpl.
+  unfold weaken_map; simpl.
+  simpl.
+  assert (a1 = a2).
+  inv H; auto.
+  clear -H9.
+  apply varcong_eq in H9; auto.
+  subst a2.
+  replace IN2 with IN1.
+
+  apply term_subst_wk_cong. simpl. intros.
+  set (q1 := fresh [ Γ₂ ]). 
+  set (q2 := fresh [ Γ₃ ]).
+  unfold inenv in *. simpl in *.
+  revert Ha2.
+  simpl in *. fold q1. fold q2.  
+  destruct (string_dec q1 a).
+  subst a.
+  elimtype False.
+  
+  assert (q1 ∈ ‖Γ₂‖).
+  apply env_supp_inenv. eauto.
+  revert H1. unfold q1.
+  apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem; auto.
+  intros.
+  apply alpha_cong_wk.
+  intros. apply vcong_there; auto.
+    intro.
+    apply varcong_inenv1 in H1.
+    apply env_supp_inenv in H1. subst a0.
+    revert H1. apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem; auto.
+  unfold q2.
+    intro.
+    apply varcong_inenv2 in H1.
+    apply env_supp_inenv in H1. subst b.
+    revert H1. apply fresh_atom_is_fresh'.
+    red; intros. apply app_elem; auto.
+
+  replace Ha2 with Ha1.
+  apply alpha_eq_refl.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  apply alpha_eq_refl.
+(* end use lemma *)  
 Qed.  
 
 
@@ -1642,9 +2069,11 @@ Proof.
   apply acong_bool.
   apply acong_app; auto.
   apply acong_if; auto.
-admit. (* fix case *)
-  apply acong_lam; auto.
-  apply IHalpha_cong. intros.
+
+  apply acong_fix; auto.
+  apply IHalpha_cong.
+(* use lemma *)
+  intros.
   unfold shift_vars'.
   unfold shift_vars. simpl.
   unfold newestvar. unfold extend_map; simpl.
@@ -1676,6 +2105,45 @@ admit. (* fix case *)
   apply fresh_atom_is_fresh'.
   red; intros.
   apply app_elem; auto.
+(* end lemma *)
+
+  apply acong_lam; auto.
+  apply IHalpha_cong.
+
+(* begin lemma *)
+  intros.
+  unfold shift_vars'.
+  unfold shift_vars. simpl.
+  unfold newestvar. unfold extend_map; simpl.
+  revert H2. unfold inenv; simpl.
+  unfold newestvar_obligation_1. simpl.
+  destruct (string_dec x₁ a). intros.
+  subst a. inv H2.
+  replace H2 with (refl_equal (Some τ)).
+  unfold eq_rect_r; simpl.
+  apply acong_var.
+  apply vcong_here; auto.
+  inv H4; auto. elim H12; auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  intros.  
+  inv H4. elim n; auto.
+  unfold weaken_map. simpl.
+  assert (inenv Γ' b τ).
+  revert H3. unfold inenv; simpl.
+  destruct (string_dec x₂ b).
+  contradiction. auto.
+  generalize (H1 a b τ H2 H5 H14). intros.
+  inv H6. rewrite <- H7. simpl.
+  apply acong_var.
+  apply vcong_there; auto.
+  clear -H₁. intro.
+  assert (x₁0 ∈ ‖Γ₂‖).
+  apply env_supp_inenv. eauto.
+  subst x₁0. revert H0.
+  apply fresh_atom_is_fresh'.
+  red; intros.
+  apply app_elem; auto.
+(* end lemma *)
 Qed.
 
 Lemma subst_alpha_ident Γ Γ' σ
@@ -1769,194 +2237,376 @@ Proof.
   inv H.
 Qed.
 
+Lemma LR_alpha_cong τ : forall m1 m2 h,
+  alpha_cong nil nil τ m1 m2 ->
+  LR τ m1 h -> LR τ m2 h.
+Proof.
+  induction τ; simpl; intros.
+  destruct H0 as [b [??]]. exists b; split; auto.
+  inv H; try discriminate. auto.
+
+  destruct (H0 n h' H1 H2 H3 H4) as [z1 [z2 [?[??]]]].
+  destruct (eval_alpha _ _ _ _ H5 _ (m2•n)) as [z' [??]].
+  apply acong_app; auto.
+  apply alpha_eq_refl.
+  exists z'. exists z2. split; auto. split; auto.
+  apply alpha_eq_trans with nil z1; auto.
+  apply alpha_eq_sym; auto.
+Qed.
+
+(* FIXME: move this somewhere else; share with skiy.v ? *)
+Lemma semvalue_sup (B:∂PLT) (XS:dirset (PLT.homset_cpo _ (cxt nil) (U B))) : 
+  semvalue (∐XS) -> exists x, x ∈ XS /\ semvalue x.
+Proof.
+  intros.
+  destruct (H ENV.empty_cxt_inh) as [q ?].
+  simpl in H0.
+  apply union_axiom in H0.
+  destruct H0 as [q' [??]].
+  apply image_axiom2 in H0.
+  destruct H0 as [q'' [??]].
+  simpl in *.
+  exists q''. split; auto.
+  red; intro. 
+  exists q. rewrite <- H2; auto.
+  revert H1. apply member_eq.
+  split; split; simpl; auto.
+  apply ENV.empty_cxt_le.
+  apply ENV.empty_cxt_le.
+Qed.
+
+Lemma plt_semvalue_bot (Γ:PLT) (A:∂PLT) (x:Γ) :
+  semvalue (⊥ : Γ → U A) -> False.
+Proof.  
+  intros.
+  red in H.
+  destruct (H x).
+  simpl in H0.
+  unfold plt_hom_adj' in H0.
+  rewrite (PLT.compose_hom_rel false _ _ _ η (U·(cppo_bot (PLT.homset_cpo true (L Γ) A)))) in H0.
+  destruct H0 as [y [??]].
+  simpl in H0. apply adj_unit_rel_elem in H0.
+  rewrite (U_hom_rel _ _ (cppo_bot (PLT.homset_cpo true (L Γ) A))) in H1.
+  destruct H1. discriminate.
+  destruct H1 as [?[?[?[??]]]].
+  simpl in H1.
+  apply union_axiom in H1.
+  destruct H1 as [?[??]].
+  apply image_axiom2 in H1.
+  destruct H1 as [?[??]]. apply empty_elem in H1. auto.
+Qed.
+
+Lemma LR_admissible τ : 
+  forall m (XS:dirset (PLT.homset_cpo _ _ (U (tydom τ)))),
+  semvalue (∐XS) ->
+  (forall x, x ∈ XS -> semvalue x -> LR τ m x) -> LR τ m (∐XS).
+Proof.
+  induction τ; simpl. intros.
+
+  apply semvalue_sup in H. destruct H as [x [??]].
+  destruct (H0 x) as [b [??]]; auto.
+  subst m. exists b. split; auto.
+  split.
+  apply CPO.sup_is_least.
+  hnf; simpl; intros.
+  destruct (proj2_sig XS (x::x0::nil)). hnf; auto.
+  hnf; intros. apply cons_elem in H4.
+  destruct H4. rewrite H4. auto.
+  apply cons_elem in H4.
+  destruct H4. rewrite H4. auto.
+  apply nil_elem in H4. elim H4.
+  destruct H4.
+  assert (x1 ≈ x).  
+  assert (x ≤ x1). apply H4. apply cons_elem; auto.
+  split; auto.
+  hnf; intros.
+  rewrite H3 in H6.
+  destruct a.
+  assert ((c,Some b : U (flat enumbool)) ∈ PLT.hom_rel x1).
+  apply H6.
+  unfold flat_elem'.
+  apply PLT.compose_hom_rel. exists (Some c).
+  split. simpl. apply adj_unit_rel_elem. auto.
+  apply U_hom_rel. right.
+  exists c. exists b. split; auto.
+  apply PLT.compose_hom_rel; auto.
+  exists tt. split.
+  simpl. apply eprod_elem. split; simpl.
+  apply eff_complete. apply single_axiom; auto.
+  simpl. apply single_axiom; auto.
+  destruct H3. apply H9.
+  unfold flat_elem'.
+  apply PLT.compose_hom_rel.
+  exists (Some c). split.
+  simpl. apply adj_unit_rel_elem; simpl; auto.
+  apply U_hom_rel.
+  destruct c0; auto. right.
+  exists c. exists c0. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt.
+  split. simpl.
+  apply eprod_elem. split.
+  apply eff_complete. apply single_axiom; auto.
+  simpl. apply single_axiom; auto.
+  cut (c0 = b). intros. subst c0; auto.
+  destruct (PLT.hom_directed _ _ _ x1 c ((Some c0::Some b::nil))).
+  hnf; auto.
+  red; intros.
+  apply cons_elem in H10. destruct H10. rewrite H10.
+  apply erel_image_elem. auto.
+  apply cons_elem in H10. destruct H10. rewrite H10.
+  apply erel_image_elem. auto.
+  apply nil_elem in H10. elim H10.
+  destruct H10.
+  assert (Some c0 ≤ x2).
+  apply H10. apply cons_elem; auto.
+  assert (Some (b:enumbool) ≤ x2).
+  apply H10. apply cons_elem. right. apply cons_elem; auto.
+  destruct x2. hnf in H12. hnf in H13.
+  subst c0. subst b. auto.
+  elim H12.
+
+  rewrite <- H3. rewrite <- H6.
+  apply H4.
+  apply cons_elem. right.
+  apply cons_elem. auto.
+  apply CPO.sup_is_ub. rewrite <- H3. auto.
+
+  simpl; intros.
+  set (g := (postcompose _ strict_app' ∘ pair_left (U (tydom (τ1 ⇒ τ2))) h')).
+  assert (strict_app' ∘ PLT.pair (∐XS) h' ≈ g (∐XS)).
+  simpl; auto.
+  assert (strict_app' ∘ PLT.pair (∐XS) h' ≈ ∐(image g XS)).
+  rewrite H5.
+  apply CPO.continuous_sup'.
+  apply continuous_sequence.
+  apply postcompose_continuous.
+  apply pair_left_continuous.
+
+  assert (exists q, q ∈ XS /\
+    semvalue (strict_app' ∘ PLT.pair q h')).
+  rewrite H6 in H4.
+  destruct (H4 ENV.empty_cxt_inh) as [q ?].
+  simpl.
+  simpl in H7.
+  apply union_axiom in H7.
+  destruct H7 as [q' [??]].
+  apply image_axiom2 in H7.
+  destruct H7 as [q'' [??]].
+  apply image_axiom2 in H7.
+  destruct H7 as [q''' [??]].
+  exists q'''. split; auto.
+  rewrite H9 in H8.
+  rewrite H10 in H8.
+  red; intros.
+  exists q. auto.
+  revert H8. apply PLT.hom_order; auto.
+  apply ENV.empty_cxt_le.
+
+  destruct H7 as [q [??]].
+  assert (semvalue q).
+  apply semvalue_app_out1' in H8. auto.
+  destruct (H0 q H7 H9 n h' H1 H2 H3 H8) as [z1 [z2 [?[??]]]].
+  exists z1. exists z2. split; auto. split; auto.
+  cut (LR τ2 z2 (∐(image g XS))).
+  apply LR_equiv; auto.
+  apply IHτ2; auto.
+  rewrite <- H6. auto.
+
+  intros.
+  apply image_axiom2 in H13. destruct H13 as [y [??]].
+  rewrite H15 in H14.
+  simpl in H14.
+  assert (semvalue y).
+  apply semvalue_app_out1' in H14. auto.
+  destruct (H0 y H13 H16 n h' H1 H2 H3) as [z1' [z2' [?[??]]]]; auto.
+  assert (z1 = z1').
+  eapply eval_eq; eauto. subst z1'.
+  cut (LR τ2 z2' x). 
+  apply LR_alpha_cong. 
+  apply alpha_eq_trans with nil z1; auto.
+  apply alpha_eq_sym; auto.
+  revert H19.
+  apply LR_equiv; auto.
+Qed.
+
+
 (**  The fundamental lemma states that every term stands in the logical relation
      with its denotation when applied to related substitutions.
   *)
 Lemma fundamental_lemma : forall Γ τ (m:term Γ τ) 
   (VAR:varmap Γ nil) (VARh : cxt nil → cxt Γ),
-  (forall a σ H, VAR a σ H ↓ /\
-       LR σ (VAR a σ H) (castty H ∘ proj Γ a ∘ VARh)) ->
+  (forall a σ (H:inenv Γ a σ), 
+       semvalue (castty H ∘ proj Γ a ∘ VARh) ->
+       exists z,
+         (VAR a σ H ⇓ z) /\
+         LR σ z (castty H ∘ proj Γ a ∘ VARh)) ->
   semvalue (〚m〛 ∘ VARh) ->
-  exists z1 z2,
-    eval nil τ (term_subst Γ nil τ VAR m) z1 /\
-    alpha_cong nil nil τ z1 z2 /\
-    LR τ z2 (〚m〛 ∘ VARh ).
+  exists z,
+    eval nil τ (term_subst Γ nil τ VAR m) z /\
+    LR τ z (〚m〛 ∘ VARh ).
 Proof.
   induction m; simpl; intros.
 
   (* var case *)  
-  simpl. exists (VAR x σ i). exists (VAR x σ i). 
-  destruct (H x σ i); intuition.
-  apply alpha_eq_refl.
+  auto.
   
   (* bool case *)
   exists (tbool nil n). 
-  exists (tbool nil n). 
   split. apply ebool.
-  split. apply acong_bool.
   exists n. split; auto.
   symmetry. apply flat_elem'_ignores_arg.
 
   (* application case *)  
   rewrite <- (cat_assoc PLT) in H0.
   rewrite (PLT.pair_compose_commute false) in H0.
-  destruct (IHm1 VAR VARh H) as [z1 [z1' [?[??]]]]; auto.
+  destruct (IHm1 VAR VARh H) as [z1 [??]]; auto.
   apply semvalue_app_out1' in H0. auto.
-  destruct (IHm2 VAR VARh H) as [z2 [z2' [?[??]]]].
+  destruct (IHm2 VAR VARh H) as [z2 [??]].
   apply semvalue_app_out2' in H0. auto.
-  simpl in H3.
-  destruct (H3 z2' (〚 m2 〛 ∘ VARh)) as [z3 [z3' [?[??]]]]; auto.
-  eapply alpha_cong_value. apply H5.
+  simpl in H2.
+  destruct (H2 z2 (〚 m2 〛 ∘ VARh)) as [z3 [z3' [?[??]]]]; auto.
   eapply eval_value. eauto.
   apply semvalue_app_out2' in H0. auto.
-  inv H7.
-  apply alpha_eq_sym in H2.
-  apply alpha_eq_sym in H5.
-  destruct (eval_alpha _ _ _ _ H15 _ _ H2) as [q1 [??]].
-  destruct (eval_alpha _ _ _ _ H16 _ _ H5) as [q2 [??]].
-  inv H11. 
-  assert (alpha_cong _ _ _ (subst nil σ₂ σ₁ x n₁ n₂) (subst nil σ₂ σ₁ _ m₂ q2)).
-
-  unfold subst. simpl.
-  apply term_subst_cong. intros.
-  unfold extend_map. simpl.
-  revert IN1 IN2. unfold inenv; simpl.
-  destruct (string_dec x a1).
-  destruct (string_dec x₂ a2).
-  unfold eq_rect_r; simpl.
-  intros. inv IN1.
-  replace IN1 with (Logic.eq_refl (Some σ)). simpl.
-  replace IN2 with (Logic.eq_refl (Some σ)). simpl.
-  auto.
-  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
-  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
-  inv H14. elim n; auto. elim H26; auto.
-  intro. discriminate.
-  auto.
-
-  destruct (eval_alpha _ _ _ _ H17 _ _ H14) as [q3 [??]].
-  exists q3. exists z3'. split.
+  exists z3. split.
+  inv H5.
   eapply eapp; eauto.
   eapply eval_trans. apply H1. eauto.
-  replace z2 with q2. auto.
+  replace z2 with n₂. auto.
   eapply eval_eq. eauto.
   eapply eval_value; eauto.
-  split; auto.
-  eapply alpha_eq_trans.
-  apply alpha_eq_sym in H19. apply H19. auto.
-  revert H9. apply LR_equiv.
+  cut (LR σ₂ z3' (strict_app' ∘ 〈〚 m1 〛, 〚 m2 〛〉 ∘ VARh)).
+  apply LR_alpha_cong.
+  apply alpha_eq_sym; auto.
+  revert H7.
+  apply LR_equiv.
   rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
   symmetry; apply PLT.pair_compose_commute.
 
   (* if case *)
-  destruct (IHm1 VAR VARh H) as [x' [x'' [?[??]]]]; auto.
+  destruct (IHm1 VAR VARh H) as [x' [??]]; auto.
   rewrite <- (cat_assoc PLT) in H0.
   rewrite (PLT.pair_compose_commute false) in H0.
   rewrite (cat_ident2 PLT) in H0.
   apply flat_cases'_semvalue in H0. auto.
 
-  simpl in H3.
-  destruct H3 as [b [??]].
+  simpl in H2.
+  destruct H2 as [b [??]].
   destruct b.
 
-  destruct (IHm2 VAR VARh H) as [y' [y'' [?[??]]]].
+  destruct (IHm2 VAR VARh H) as [y' [??]].
   rewrite <- (cat_assoc PLT) in H0.
   rewrite (PLT.pair_compose_commute false) in H0.
-  rewrite H4 in H0.
+  rewrite H3 in H0.
   rewrite (cat_ident2 PLT) in H0.
   rewrite (flat_cases_elem') in H0.
   auto.
-  exists y'. exists y''.
+  exists y'.
   split; auto.
-  subst x''. inv H2.
-  eapply eif.
-  eauto. simpl. auto.
-  split; auto.
-  revert H7.
+  subst x'.
+  eapply eif; eauto.
+  revert H5.
   apply LR_equiv.
   rewrite <- (cat_assoc PLT).
   rewrite (PLT.pair_compose_commute false).
   rewrite (cat_ident2 PLT).
-  rewrite H4.
+  rewrite H3.
   rewrite flat_cases_elem'. auto.
 
-  destruct (IHm3 VAR VARh H) as [z' [z'' [?[??]]]].
+  destruct (IHm3 VAR VARh H) as [z' [??]].
   rewrite <- (cat_assoc PLT) in H0.
   rewrite (PLT.pair_compose_commute false) in H0.
-  rewrite H4 in H0.
+  rewrite H3 in H0.
   rewrite (cat_ident2 PLT) in H0.
   rewrite (flat_cases_elem') in H0.
   auto.
-  exists z'. exists z''.
+  exists z'.
   split; auto.
-  subst x''. inv H2.
-  eapply eif.
-  eauto. simpl. auto.
-  split; auto.
-  revert H7.
+  subst x'.
+  eapply eif; eauto.
+  revert H5.
   apply LR_equiv.
   rewrite <- (cat_assoc PLT).
   rewrite (PLT.pair_compose_commute false).
   rewrite (cat_ident2 PLT).
-  rewrite H4.
+  rewrite H3.
   rewrite flat_cases_elem'. auto.
   
   (* lam case *)  
-  econstructor. econstructor. split. apply elam.
-  split. apply alpha_eq_refl.
+  econstructor. split. apply elam.
   intros.
   set (VAR' := extend_map Γ nil VAR x σ₁ n).
   set (VARh' := bind Γ x σ₁ ∘ 〈 VARh, h' 〉). 
-  destruct (IHm VAR' VARh') as [z [??]]. clear IHm.
+  destruct (IHm VAR' VARh') as [z [??]]; clear IHm.
   simpl; intros.
-  split.
-  subst VAR' VARh'. unfold extend_map.
-  hnf in H5. simpl in *.
-  destruct (string_dec x a). inv H5.
-  replace H5 with (Logic.eq_refl (Some σ)). simpl.
-  unfold eq_rect_r. simpl. auto.
-  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
-  apply H.
-  subst VAR' VARh'. unfold extend_map.
-  hnf in H5. simpl in *. unfold eq_rect_r. simpl.
-  unfold f_equal. unfold eq_sym. simpl.
-  revert H5.
-  generalize (ENV.proj_bind_neq x σ₁ a Γ).
+
+  unfold VARh'.
+  cut (
+    exists z : term nil σ,
+     (VAR' a σ H5 ⇓ z) /\
+     LR σ z (castty H5 ∘ (proj ((x, σ₁) :: Γ) a ∘ bind Γ x σ₁) ∘ 〈VARh, h'〉)).
+  intros [z [??]]. exists z. split; auto.
+  revert H8. apply LR_equiv.
+  rewrite (cat_assoc PLT).
+  rewrite (cat_assoc PLT). auto.
+  assert (semvalue (castty H5 ∘ (proj ((x,σ₁)::Γ) a ∘ bind Γ x σ₁) ∘ 〈 VARh, h'〉)).
+  rewrite (cat_assoc PLT).
+  unfold VARh' in H6.
+  rewrite (cat_assoc PLT) in H6.
+  auto.  
+  revert H7. clear H6.
   generalize (ENV.proj_bind_eq x σ₁ a Γ).
-  simpl.
-  generalize (proj ((x,σ₁)::Γ) a).
+  generalize (ENV.proj_bind_neq x σ₁ a Γ).
+  set (p := (proj ((x,σ₁)::Γ) a ∘ bind Γ x σ₁)).
+  simpl in *. fold p. clearbody p.
+  revert p.
+  revert H5. unfold inenv; simpl.
+  subst VAR' VARh'. simpl.
+  unfold extend_map; simpl.
   unfold ENV.lookup_neq. simpl.
   unfold ENV.lookup_eq. simpl.
-  destruct (string_dec x a). simpl; intros.
-  inv H7. replace H7 with (refl_equal (Some σ)). simpl.
+  destruct (string_dec x a); simpl; intros.
+  inv H5.
+  replace H5 with (Logic.eq_refl (Some σ)).
+  unfold eq_rect_r; simpl.
+  exists n. split; auto.
   revert H1. apply LR_equiv.
-  rewrite cast_refl. rewrite (cat_ident2 PLT).
+  rewrite H7.
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute2.
   rewrite (cat_assoc PLT).
-  rewrite H5; auto.
-  rewrite cast_refl. rewrite (cat_ident2 PLT).
-  rewrite PLT.pair_commute2. auto.
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite (cat_ident2 PLT).
+  auto. auto.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
 
-  intros.
-  destruct (H a σ H7). revert H9.
-  apply LR_equiv.
-  rewrite cast_refl in H6.
-  rewrite (cat_ident2 PLT) in H6.
-  rewrite <- (cat_assoc PLT).
-  rewrite <- (cat_assoc PLT).
-  rewrite (cat_assoc PLT _ _ _ _ h).
-  rewrite H6; auto.
-  rewrite <- (cat_assoc PLT).
-  rewrite PLT.pair_commute1.
+  destruct (H a σ H5) as [z [??]].
+  rewrite (H6 n0) in H8.
+  rewrite cast_refl in H8.
+  rewrite (cat_ident2 PLT) in H8.
+  rewrite <- (cat_assoc PLT) in H8.
+  rewrite <- (cat_assoc PLT) in H8.
+  rewrite (PLT.pair_commute1) in H8.
+  rewrite (cat_assoc PLT) in H8.
   auto.
-  rewrite strict_curry_app2' in H4.
-  unfold VARh'.
-  rewrite (cat_assoc PLT).
-  auto.
+  exists z; split; auto.
+  revert H10. apply LR_equiv.
+  rewrite (H6 n0).
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_commute1).
   auto.
 
-  destruct H5 as [?[??]].
+  rewrite strict_curry_app2' in H4.
+  unfold VARh'.
+  rewrite (cat_assoc PLT). auto.
+  auto.
 
   assert (alpha_cong _ _ _ 
     (term_subst ((x, σ₁) :: Γ) nil σ₂ VAR' m)
@@ -1973,43 +2623,213 @@ Proof.
     intros. apply extend_shift_alpha; auto.
     apply alpha_eq_refl.
 
-  destruct (eval_alpha _ _ _ _ H5 _ _ H8) as [q' [??]].
-  exists q'. exists x0.
+  destruct (eval_alpha _ _ _ _ H5 _ _ H7) as [q' [??]].
+  exists q'. exists z.
   split.
   eapply eapp. apply elam. eauto. auto.
-  split.
-  eapply alpha_eq_trans.
-  apply alpha_eq_sym. eauto. auto.
+  split. apply alpha_eq_sym. auto.
 
-  revert H7. apply LR_equiv.
+  revert H6. apply LR_equiv.
   rewrite strict_curry_app2'.
   unfold VARh'.
   rewrite (cat_assoc PLT). auto.
   auto.
 
-  admit. (* fix case *)
+  (* fix case *)
+  revert VAR VARh H H0.
+  unfold fixes.
+  apply scott_induction.
+  red; split.
+  intros.
+  rewrite plt_bot_chomp in H0.
+  apply plt_semvalue_bot in H0.
+  elim H0.
+  apply ENV.empty_cxt_inh.
+
+  intros.
+  assert (∐XS ∘ VARh ≈ ∐(image (precompose _ VARh) XS)).
+  destruct (CPO.continuous_sup' _ _ _ (precompose (U (tydom σ)) VARh)).
+  apply H3. apply (precompose_continuous false _ _ (U (tydom σ)) VARh).
+  rewrite H3 in H2.
+  destruct (semvalue_sup _ (image (precompose (U (tydom σ)) VARh) XS) H2)
+     as [q [??]].
+  apply image_axiom2 in H4.  
+  destruct H4 as [q' [??]]. simpl in H6.
+  rewrite H6 in H5.
+  destruct (H0 q' H4 VAR VARh H1 H5) as [z [??]].
+  exists z. split; auto.
+  cut (LR σ z (∐(image (precompose (U (tydom σ)) VARh) XS))).
+  apply LR_equiv. auto.
+  apply LR_admissible; auto.
+  intros. apply image_axiom2 in H9.
+  destruct H9 as [w [??]]. simpl in H11.
+  rewrite H11 in H10.
+  destruct (H0 w H9 VAR VARh H1 H10) as [z' [??]].
+  assert (z = z').
+  eapply eval_eq; eauto. subst z'.
+  revert H13; apply LR_equiv; auto.
+
+  intros.
+  destruct (H0 VAR VARh H1) as [z [??]].
+  rewrite H; auto.
+  exists z. split; auto.
+  revert H4. apply LR_equiv. rewrite H; auto.
+
+  simpl; intros. unfold fixes_step in H1. unfold fixes_step.
+  rewrite PLT.curry_apply2 in H1.
+  repeat rewrite <- (cat_assoc PLT) in H1.
+  set (n := (tfix nil (fresh_atom nil) σ
+        (term_subst ((x, σ) :: Γ) ((fresh_atom nil, σ) :: nil) σ
+           (shift_vars' Γ nil x σ VAR) m))).
+  set (VAR' := extend_map Γ nil VAR x σ n).
+  set (VARh' := bind Γ x σ ∘ 〈 VARh, x0 ∘ VARh 〉). 
+  destruct (IHm VAR' VARh') as [z [??]]; clear IHm.
+  simpl; intros.
+
+  unfold VARh'.
+  cut (
+    exists z : term nil σ0,
+     (VAR' a σ0 H2 ⇓ z) /\
+     LR σ0 z (castty H2 ∘ (proj ((x, σ) :: Γ) a ∘ bind Γ x σ) ∘ 〈VARh, x0 ∘ VARh〉)).
+  intros [z [??]]. exists z. split; auto.
+  revert H5. apply LR_equiv.
+  rewrite (cat_assoc PLT).
+  rewrite (cat_assoc PLT). auto.
+  assert (semvalue (castty H2 ∘ (proj ((x,σ)::Γ) a ∘ bind Γ x σ) ∘ 〈 VARh, x0 ∘ VARh〉)).
+  rewrite (cat_assoc PLT).
+  unfold VARh' in H3.
+  rewrite (cat_assoc PLT) in H3.
+  auto.  
+  revert H4. clear H3.
+  generalize (ENV.proj_bind_eq x σ a Γ).
+  generalize (ENV.proj_bind_neq x σ a Γ).
+  set (p := (proj ((x,σ)::Γ) a ∘ bind Γ x σ)).
+  simpl in *. fold p. clearbody p.
+  revert p.
+  revert H2. unfold inenv; simpl.
+  subst VAR' VARh'. simpl.
+  unfold extend_map; simpl.
+  unfold ENV.lookup_neq. simpl.
+  unfold ENV.lookup_eq. simpl.
+  destruct (string_dec x a); simpl; intros.
+  injection H2. intro. subst σ0.
+  replace H2 with (Logic.eq_refl (Some σ)).
+  unfold eq_rect_r; simpl.
+  destruct (H VAR VARh); auto.
+  rewrite (H4 e) in H5.
+  rewrite cast_refl in H5.
+  rewrite (cat_ident2 PLT) in H5.
+  rewrite <- (cat_assoc PLT) in H5.
+  rewrite PLT.pair_commute2 in H5.
+  replace H2 with (Logic.eq_refl (Some σ)) in H5.
+  rewrite cast_refl in H5.
+  rewrite (cat_ident2 PLT) in H5.
+  auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+  destruct H6.  
+  exists x1; split; auto.
+  revert H7. apply LR_equiv.
+  rewrite (H4 e).
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute2.
+  rewrite (cat_ident2 PLT).
+  auto.
+  apply Eqdep_dec.UIP_dec. decide equality. decide equality.
+
+  destruct (H0 a σ0 H2) as [z [??]].
+  rewrite (H3 n0) in H5.
+  rewrite cast_refl in H5.
+  rewrite (cat_ident2 PLT) in H5.
+  rewrite <- (cat_assoc PLT) in H5.
+  rewrite <- (cat_assoc PLT) in H5.
+  rewrite (PLT.pair_commute1) in H5.
+  rewrite (cat_assoc PLT) in H5.
+  auto.
+  exists z; split; auto.
+  revert H7. apply LR_equiv.
+  rewrite (H3 n0).
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_commute1).
+  auto.
+
+  unfold VARh'.
+  rewrite (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false) in H1.
+  rewrite (cat_ident2 PLT) in H1.
+  rewrite (cat_assoc PLT) in H1.
+  auto.
+
+  assert (alpha_cong _ _ _ 
+    (term_subst ((x, σ) :: Γ) nil σ VAR' m)
+    (subst nil σ σ (fresh_atom nil) 
+      (term_subst ((x, σ) :: Γ) ((fresh_atom nil, σ) :: nil) σ
+             (shift_vars' Γ nil x σ VAR) m)
+      n)).
+    unfold VAR'.
+    unfold subst. 
+    apply alpha_eq_sym.
+    eapply alpha_eq_trans. apply alpha_eq_sym. apply compose_term_subst.
+    apply term_subst_cong.
+    unfold shift_vars'.
+    intros. apply extend_shift_alpha; auto.
+    apply alpha_eq_refl.
+
+  destruct (eval_alpha _ _ _ _ H2 _ _ H4) as [q' [??]].
+  exists q'.
+  split.
+  eapply efix. auto.
+  cut (LR σ q' (〚m〛 ∘ VARh')).
+  apply LR_equiv.
+  rewrite PLT.curry_apply2.
+  unfold VARh'.
+  rewrite <- (cat_assoc PLT).
+  rewrite (PLT.pair_compose_commute false).
+  rewrite (cat_ident2 PLT).
+  rewrite (cat_assoc PLT).
+  auto.
+
+  revert H3.
+  apply LR_alpha_cong. auto.
+
 Qed.
 
 (**  A simpified form of the fundamental lemma that follows
      from the inductively-strong one above.
   *)
 Lemma fundamental_lemma' : forall τ (m:term nil τ),
-  semvalue 〚m〛 ->
-  exists z z', eval nil τ m z /\ alpha_cong _ _ _ z z' /\ LR τ z' 〚 m 〛.
+  semvalue 〚m〛 -> exists z, eval nil τ m z /\ LR τ z 〚 m 〛.
 Proof.
   intros.
-  destruct (fundamental_lemma nil τ m (tvar nil) id) as [z [z' [?[??]]]].
-  intros. hnf in H. simpl in H. discriminate.
+  destruct (fundamental_lemma nil τ m (tvar nil) id) as [z [??]].
+  intros. discriminate.
   rewrite (cat_ident1 PLT). auto.
   destruct (eval_alpha _ _ _ _ H0 nil m) as [q [??]].
   apply subst_alpha_ident. apply alpha_eq_refl.
-  intros. inv H5.
-  exists q. exists z'. split; auto.
-  split; auto.
-  apply alpha_eq_trans with nil z; auto.
-  apply alpha_eq_sym; auto.
-  revert H2. apply LR_equiv.
+  intros. inv H4.
+  exists q. split; auto.
+  cut (LR τ z 〚m〛).  
+  apply LR_alpha_cong; auto.
+  revert H1. apply LR_equiv.
   apply cat_ident1.
+Qed.
+
+Lemma closed_bools_semvalue : forall Γ τ (m z:term Γ τ),
+  m ⇓ z -> Γ = nil -> τ = 2%ty -> semvalue 〚z〛.
+Proof.
+  do 4 intro. 
+  revert m; case z; intros; subst; simpl.
+  inv i.
+  apply flat_elem'_semvalue.
+  elimtype False. eapply app_not_value; eauto.
+  elimtype False. eapply if_not_value; eauto.
+  discriminate.
+  elimtype False. eapply fix_not_value; eauto.
 Qed.
 
 
@@ -2055,18 +2875,6 @@ Definition cxt_eq τ Γ σ (m n:term Γ σ):=
   forall (C:context τ Γ σ) (z:term nil τ),
     eval nil τ (plug τ Γ σ C m) z <-> eval nil τ (plug τ Γ σ C n) z.
 
-Lemma closed_bools_semvalue : forall Γ τ (m z:term Γ τ),
-  m ⇓ z -> Γ = nil -> τ = 2%ty -> semvalue 〚z〛.
-Proof.
-  do 4 intro. 
-  revert m; case z; intros; subst; simpl.
-  inv i.
-  apply flat_elem'_semvalue.
-  elimtype False. eapply app_not_value; eauto.
-  elimtype False. eapply if_not_value; eauto.
-  discriminate.
-  elimtype False. eapply fix_not_value; eauto.
-Qed.
 
 
 (**  Adequacy means that terms with equivalant denotations
@@ -2082,51 +2890,49 @@ Proof.
   simpl; intros.
   split; intros.
 
-  destruct (fundamental_lemma' _ m) as [zm [zm' [?[??]]]]. 
+  destruct (fundamental_lemma' _ m) as [zm [??]]. 
   assert (semvalue 〚z〛).
   eapply closed_bools_semvalue; eauto.
   apply soundness in H0.
   rewrite H0. auto.
-  destruct (fundamental_lemma' _ n) as [zn [zn' [?[??]]]]. 
+  destruct (fundamental_lemma' _ n) as [zn [??]].
   rewrite <- H.
   assert (semvalue 〚z〛).
   eapply closed_bools_semvalue; eauto.
   apply soundness in H0.
   rewrite H0. auto.
-  simpl in *.
-  destruct H3 as [bm [??]].
-  destruct H6 as [bn [??]].
-  subst zm' zn'. inv H2. inv H5.
-  simpl in *.
-  rewrite H in H7.
-  rewrite H7 in H8.
+  destruct H2 as [bm [??]].
+  destruct H4 as [bn [??]].
   assert (bm = bn).
-  apply flat_elem'_inj in H8. auto.
+  rewrite H in H5.
+  rewrite H5 in H6.
+  apply flat_elem'_inj in H6. auto.
   exact (ENV.empty_cxt_inh).
   subst bn.
   assert (z = (tbool nil bm)).
   eapply eval_eq; eauto.
-  subst z. auto.
+  subst; auto.
+  subst; auto.
 
-  destruct (fundamental_lemma' _ m) as [zm [zm' [?[??]]]]. 
+  destruct (fundamental_lemma' _ m) as [zm [??]].
   assert (semvalue 〚z〛).
   eapply closed_bools_semvalue; eauto.
   apply soundness in H0.
   rewrite H. rewrite H0. auto.
-  destruct (fundamental_lemma' _ n) as [zn [zn' [?[??]]]]. 
+  destruct (fundamental_lemma' _ n) as [zn [??]]. 
   assert (semvalue 〚z〛).
   eapply closed_bools_semvalue; eauto.
   apply soundness in H0.
   rewrite H0. auto.
   simpl in *.
-  destruct H3 as [bm [??]].
-  destruct H6 as [bn [??]].
-  subst zm' zn'. inv H2. inv H5.
+  destruct H2 as [bm [??]].
+  destruct H4 as [bn [??]].
+  subst zm zn. 
   simpl in *.
-  rewrite H in H7.
-  rewrite H7 in H8.
+  rewrite H in H5.
+  rewrite H5 in H6.
   assert (bm = bn).
-  apply flat_elem'_inj in H8. auto.
+  apply flat_elem'_inj in H6. auto.
   exact (ENV.empty_cxt_inh).
   subst bn.
   assert (z = (tbool nil bm)).
@@ -2150,7 +2956,9 @@ Proof.
 
   simpl; intros.
   apply IHC. simpl.
-admit. (* fixes *)
+  apply fixes_eq.
+  apply PLT.curry_eq.
+  apply cat_respects; auto.
 
   simpl; intros.
   apply IHC. simpl.
@@ -2172,8 +2980,7 @@ Proof.
   revert Hx. apply PLT.hom_order; auto.
   apply ENV.empty_cxt_le.
 
-  elim H.
-  destruct H0. eauto.
+  elim H. eauto.
   apply PLT.compose_hom_rel.    
   simpl. exists None.
   split.
@@ -2189,6 +2996,7 @@ Proof.
 
   destruct (H2 ENV.empty_cxt_inh) as [x ?].
   destruct H1. apply H1 in H3.
+
   simpl bottom in H3.
   apply (PLT.compose_hom_rel) in H3.
   destruct H3 as [q [??]].
