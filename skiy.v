@@ -24,7 +24,15 @@ Require Import strict_utils.
 Require Import fixes.
 Require Import flat.
 
+(** * Soundness and adequacy simply-typed SKI with booleans and fixpoints.
 
+    The adequacy proof goes via a standard logical-relations argument.
+    As a corollary of the main logical-relations lemma, we show that
+    nonvalues are denoted by ⊥.
+  *)
+
+
+(**  We have arrow types and a single base type of booleans. *)
 Inductive ty :=
   | ty_bool
   | ty_arrow : ty -> ty -> ty.
@@ -37,6 +45,11 @@ Bind Scope ty_scope with ty.
 Delimit Scope ski_scope with ski.
 Open Scope ski_scope.
 
+(**  Terms are boolean constants, the standard combinators S, K and I,
+     and an IF/THEN/ELSE combinator; and applications.  We also have
+     the call-by-value fixpoint combinator Y.  As usual for the CBV
+     fixpoint operator, it only calculates fixpoints at function types.
+  *)
 Inductive term : ty -> Type :=
   | tbool : forall b:bool,
                 term 2
@@ -56,7 +69,7 @@ Inductive term : ty -> Type :=
                 term ((σ₁ ⇒ σ₂ ⇒ σ₃) ⇒ (σ₁ ⇒ σ₂) ⇒ σ₁ ⇒ σ₃)
 
   | tIF : forall σ,
-                term (ty_bool ⇒ σ ⇒ σ ⇒ σ)
+                term (2 ⇒ σ ⇒ σ ⇒ σ)
 
   | tY : forall σ₁ σ₂,
                 term ( ((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂)) ⇒ (σ₁ ⇒ σ₂) ).
@@ -65,6 +78,9 @@ Arguments tapp [_ _] _ _.
 Notation "x • y" := (tapp x y) 
   (at level 52, left associativity, format "x • y") : ski_scope.
 
+(**  The operational semantics is given in a big-step style, with the specification
+     of redexes split out into a separate relation.
+  *)
 Inductive redex : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> term σ₁ -> term σ₂ -> Prop :=
   | redex_I : forall σ x,
                   redex _ _ (tI σ) x x
@@ -84,7 +100,7 @@ Inductive redex : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> term σ₁ -> te
                             (f•(tY σ₁ σ₂ • f)•x).
 
 Inductive eval : forall τ, term τ -> term τ -> Prop :=
-  | ebool : forall b, eval ty_bool (tbool b) (tbool b)
+  | ebool : forall b, eval 2 (tbool b) (tbool b)
   | eI   : forall σ, eval _ (tI σ) (tI _)
   | eK   : forall σ₁ σ₂, eval _ (tK σ₁ σ₂) (tK _ _)
   | eS   : forall σ₁ σ₂ σ₃, eval _ (tS σ₁ σ₂ σ₃) (tS _ _ _)
@@ -102,6 +118,11 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
              ~(exists r, redex σ₁ σ₂ n₁ n₂ r) ->
              eval σ₂ (m₁ • m₂) (n₁ • n₂).
 
+
+(**  Syntactic types have decicable equality, which
+     implies injectivity for dependent pairs with
+     (syntactic) types as the type being depended upon.
+  *)
 Lemma inj_pair2_ty : forall (F:ty -> Type) τ x y,
   existT F τ x = existT F τ y -> x = y.
 Proof.
@@ -119,11 +140,17 @@ Ltac inj_ty :=
 Ltac inv H :=
   inversion H; subst; inj_ty; repeat subst.
 
+
+(** Values are terms that evaluate to themselves.
+  *)
 Definition value σ (t:term σ) := eval _ t t.
 Arguments value [σ] t.
 
+(**  Here are some basic techincal results  
+     about the operational semantics.
+  *)
 Lemma eval_value τ x y :
-  eval τ x y -> eval τ y y.
+  eval τ x y -> value y.
 Proof.
   intro H. induction H.
   apply ebool.
@@ -134,27 +161,6 @@ Proof.
   apply eY.
   auto.
   apply eapp2; auto.
-Qed.
-
-Lemma eval_app_inv σ₁ σ₂ x y z :
-  eval _ (@tapp σ₁ σ₂ x y) z ->
-  exists x', exists y',
-    eval _ x x' /\ eval _ y y' /\
-    eval _ (x' • y') z.
-Proof.
-  intros. inv H.
-  exists n₁. exists n₂.
-  intuition.
-  eapply eapp1.
-  eapply eval_value; eauto.
-  eapply eval_value; eauto.
-  eauto. auto.
-  exists n₁. exists n₂.
-  intuition.
-  apply eapp2.
-  eapply eval_value; eauto.
-  eapply eval_value; eauto.
-  auto.
 Qed.
 
 Lemma redex_eq τ₁ τ₂ x y z1 z2 :
@@ -208,6 +214,20 @@ Proof.
   eapply eval_value; eauto.
 Qed.
 
+Lemma eval_app_congruence σ₁ σ₂ : forall x x' y y' z,
+  (forall q, eval _ x q -> eval _ x' q) ->
+  (forall q, eval _ y q -> eval _ y' q) ->
+  eval _ (@tapp σ₁ σ₂ x y) z ->
+  eval _ (@tapp σ₁ σ₂ x' y') z.
+Proof.
+  intros.
+  inv H1.
+  apply H in H7.
+  apply H0 in H8.
+  eapply eapp1; eauto.
+  apply eapp2; auto.
+Qed.
+
 Lemma eval_no_redex : forall σ₁ σ₂ x x',
   eval σ₂ x x' ->
   forall m₁ m₂ n₁ n₂ r,
@@ -227,6 +247,45 @@ Proof.
   apply H1. eauto.
 Qed.
 
+
+Lemma value_app_inv σ₁ σ₂ x y :
+  value (@tapp σ₁ σ₂ x y) ->
+  value x /\ value y.
+Proof.
+  intros. inv H.
+  elimtype False.
+  eapply eval_no_redex.
+  apply H8. reflexivity. eauto. eauto. eauto.
+  split; auto.
+Qed.  
+
+(*
+Lemma eval_app_inv σ₁ σ₂ x y z :
+  eval _ (@tapp σ₁ σ₂ x y) z ->
+  exists x', exists y',
+    eval _ x x' /\ eval _ y y' /\
+    eval _ (x' • y') z.
+Proof.
+  intros. inv H.
+  exists n₁. exists n₂.
+  intuition.
+  eapply eapp1.
+  eapply eval_value; eauto.
+  eapply eval_value; eauto.
+  eauto. auto.
+  exists n₁. exists n₂.
+  intuition.
+  apply eapp2.
+  eapply eval_value; eauto.
+  eapply eval_value; eauto.
+  auto.
+Qed.
+*)
+
+(**  "Inert" terms are those that will not evaluate if applied to
+     one more argument.  We prove that every term at function type
+     is either intert or forms a redex if applied to another term.
+  *)
 Inductive inert : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> Prop :=
   | inert_K : forall σ₁ σ₂,
                   inert _ _ (tK σ₁ σ₂)
@@ -241,23 +300,12 @@ Inductive inert : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> Prop :=
   | inert_Y : forall σ₁ σ₂,
                   inert _ _ (tY σ₁ σ₂).
 
-Lemma value_app_inv σ₁ σ₂ x y :
-  value (@tapp σ₁ σ₂ x y) ->
-  value x /\ value y.
-Proof.
-  intros. inv H.
-  elimtype False.
-  eapply eval_no_redex.
-  apply H8. reflexivity. eauto. eauto. eauto.
-  split; auto.
-Qed.  
 
 Fixpoint tmsize τ (x:term τ) : nat :=
   match x with
   | tapp σ₁ σ₂ a b => (1 + tmsize _ a + tmsize _ b)%nat
   | _ => 1%nat
   end.
-
 
 Lemma redex_inert_false : forall σ₁ σ₂ f g r,
   redex σ₁ σ₂ f g r ->
@@ -368,7 +416,7 @@ Proof.
 Qed.
 
 Lemma canonical_bool : forall x,
-  eval ty_bool x x -> 
+  eval 2 x x -> 
   x = tbool true \/ x = tbool false.
 Proof.
   intros. inv H.
@@ -384,12 +432,18 @@ Proof.
 Qed.
 
 
+(**  Types are interpreted as pointed domains.  Booleans
+     are the flat domain over booleans and the arrow type
+     is the lifted strict function space.
+  *)
 Fixpoint tydom (τ:ty) : ∂PLT :=
   match τ with
   | ty_bool => flat enumbool
   | ty_arrow τ₁ τ₂ => colift (tydom τ₁ ⊸ tydom τ₂)
   end.
 
+(**  Here we define the semantics of the Y combinator.
+  *)
 Section Ydefn.
   Variables σ₁ σ₂:ty.
 
@@ -445,6 +499,11 @@ End Ydefn.
 
 Notation "'Λ' f" := (strict_curry' f) : ski_scope.
 
+(**  The denotation of terms.  The denotation of
+     the S, K and I combinators a straightforward interpretation of the
+     usual lambda term into the strict lambda and strict application 
+     denotation functions.
+  *)
 Fixpoint denote (τ:ty) (m:term τ) : 1 → U (tydom τ) :=
   match m in term τ return 1 → U (tydom τ) with
   | tbool b => flat_elem' b
@@ -466,6 +525,11 @@ Fixpoint denote (τ:ty) (m:term τ) : 1 → U (tydom τ) :=
  where "〚 m 〛" := (denote _ m) : ski_scope.
 
 
+(**  This mutual induction shows that operational
+     values have semantic values as denotations,
+     and that inert operational values yield 
+     semantic values when applied to any semantic value.
+  *)
 Lemma value_inert_semvalue : forall n,
   (forall σ x,
     tmsize _ x = n ->
@@ -575,6 +639,9 @@ Qed.
 
 Hint Resolve value_semvalue.
 
+
+(**  Now we can show the soundness of redexes.
+  *)
 Lemma redex_soundness : forall σ₁ σ₂ x y z,
   value x ->
   value y ->
@@ -671,6 +738,8 @@ Proof.
   apply (value_semvalue _ f). auto.
 Qed.
 
+(** This leads easily into the soundness of evaluation.
+  *)
 Lemma soundness : forall τ (m z:term τ),
   eval τ m z -> 〚m〛≈〚z〛.
 Proof.
@@ -688,21 +757,11 @@ Proof.
 Qed.
 
 
-Lemma eval_app_congruence σ₁ σ₂ : forall x x' y y' z,
-  (forall q, eval _ x q -> eval _ x' q) ->
-  (forall q, eval _ y q -> eval _ y' q) ->
-  eval _ (@tapp σ₁ σ₂ x y) z ->
-  eval _ (@tapp σ₁ σ₂ x' y') z.
-Proof.
-  intros.
-  inv H1.
-  apply H in H7.
-  apply H0 in H8.
-  eapply eapp1; eauto.
-  apply eapp2; auto.
-Qed.
+(** * The logical relations lemma
 
-
+    Now define the logical relation for adequacy.  It is defined
+    by induction on the structure of types, in a standard way.    
+  *)
 Fixpoint LR (τ:ty) : 
   term τ -> (1 → U (tydom τ)) -> Prop :=
   match τ as τ' return 
@@ -737,6 +796,11 @@ Proof.
   apply PLT.pair_eq; auto.
 Qed.
 
+(**  Now we need a host of auxilary definitions to state
+     the main lemmas regarding the logical relation.  These
+     definitions allow us to apply an arbitrary number of
+     arguments to a syntactic term and to the denotation of terms.
+  *)
 Fixpoint lrtys (ts:list ty) (z:ty) :=
   match ts with
   | nil => z
@@ -812,6 +876,9 @@ Proof.
   apply semvalue_app_out1' in H. auto.
 Qed.
 
+(**  This fact is important in the base cases of the fundamental lemma; it allows
+     unwind a stack of applications.
+  *)
 Lemma LR_under_apply ls :
    forall (τ : ty) (m z0 : term (lrtys ls τ)) (xs : lrsyn ls) 
      (ys : lrsem ls) (h : 1 → U (tydom (lrtys ls τ))),
@@ -842,6 +909,9 @@ Proof.
 Qed.
 
 
+(**  If a sup is a semantic value, then there is some element of the
+     set is a semantic value.
+  *)
 Lemma semvalue_sup (B:∂PLT) (XS:dirset (PLT.homset_cpo _ 1 (U B))) : 
   semvalue (∐XS) -> exists x, x ∈ XS /\ semvalue x.
 Proof.
@@ -858,6 +928,9 @@ Proof.
   exists q. rewrite <- H2; auto.
 Qed.
 
+(**  The logical relation is admissible.  This is key to the
+     fundamental lemma case for Y.
+  *)
 Lemma LR_admissible τ : 
   forall m (XS:dirset (PLT.homset_cpo _ 1 (U (tydom τ)))),
   semvalue (∐XS) ->
@@ -986,6 +1059,9 @@ Proof.
   apply LR_equiv; auto.
 Qed.
 
+(**  Here we prove fundamental lemma case for he main body
+     of Y combinator. This proof goes by Scott induction.
+  *)
 Lemma LR_Ybody σ₁ σ₂
   (f:term ((σ₁ ⇒ σ₂) ⇒ σ₁ ⇒ σ₂)) hf :
   LR _ f hf -> value f -> semvalue hf ->
@@ -1128,29 +1204,9 @@ Proof.
   auto.
 Qed.
 
-Lemma LR_Y σ₁ σ₂ : LR _ (tY σ₁ σ₂) 〚tY σ₁ σ₂〛.
-Proof.
-  simpl; intros.
-  exists (tapp (tY _ _) n).
-  split. apply eapp2. apply eY. auto.
-  intros [? Hr]; inv Hr.
-  intros.  
-  unfold Ysem in H6.
-  rewrite strict_curry_app' in H6.
-  rewrite <- (cat_assoc PLT) in H6.
-  rewrite PLT.pair_commute2 in H6.
-  destruct (LR_Ybody σ₁ σ₂ n h' H H0 H1 n0 h'0 H3 H4 H5 H6) as [z [??]].
-  exists z. split; auto.
-  revert H8. apply LR_equiv.
-  unfold Ysem.
-  rewrite strict_curry_app'.
-  rewrite <- (cat_assoc PLT).
-  rewrite PLT.pair_commute2.
-  auto.
-  auto.
-  auto.
-Qed.
-
+(**  Now we can prove the fundamental lemma cases for
+     each of the system combinators.
+  *)
 
 Lemma LR_I σ : LR _ (tI σ) 〚tI σ〛.
 Proof.
@@ -1275,6 +1331,29 @@ Proof.
   revert H15. apply LR_equiv. auto.
 Qed.
 
+Lemma LR_Y σ₁ σ₂ : LR _ (tY σ₁ σ₂) 〚tY σ₁ σ₂〛.
+Proof.
+  simpl; intros.
+  exists (tapp (tY _ _) n).
+  split. apply eapp2. apply eY. auto.
+  intros [? Hr]; inv Hr.
+  intros.  
+  unfold Ysem in H6.
+  rewrite strict_curry_app' in H6.
+  rewrite <- (cat_assoc PLT) in H6.
+  rewrite PLT.pair_commute2 in H6.
+  destruct (LR_Ybody σ₁ σ₂ n h' H H0 H1 n0 h'0 H3 H4 H5 H6) as [z [??]].
+  exists z. split; auto.
+  revert H8. apply LR_equiv.
+  unfold Ysem.
+  rewrite strict_curry_app'.
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute2.
+  auto.
+  auto.
+  auto.
+Qed.
+
 Lemma LR_IF σ : LR _ (tIF σ) 〚tIF σ〛.
 Proof.
   simpl. intros.
@@ -1322,7 +1401,8 @@ Proof.
   apply flat_elem'_semvalue.  
 Qed.
 
-
+(**  Now the fundamental lemma follows by induction on terms.
+  *)
 Lemma fundamental_lemma : forall σ (n:term σ) ls τ m xs ys
   (Hσ : σ = lrtys ls τ),
   eq_rect σ term n (lrtys ls τ) Hσ = m ->
@@ -1455,6 +1535,8 @@ Proof.
   exists (tY σ₁ σ₂). split. apply eY. apply LR_Y.
 Qed.
 
+(**  A specialization of the fundamental lemma to empty contexts
+  *)
 Lemma fundamental_lemma' : forall τ (m:term τ),
   semvalue 〚m〛 ->
   exists z, eval τ m z /\ LR τ z 〚m〛.
@@ -1464,6 +1546,12 @@ Proof.
   simpl. auto.
 Qed.
 
+(** * Contextual equivalance and the adequacy theorem.
+
+     Now we define contextual equivalance.  Contexts here are
+     given in "inside-out" form, which makes the induction in the
+     adequacy proof significantly easier.
+  *)
 Inductive context τ : ty -> Type :=
   | cxt_top : context τ τ
   | cxt_appl : forall σ₁ σ₂,
@@ -1486,8 +1574,11 @@ Definition cxt_eq τ σ (m n:term σ):=
   forall (C:context τ σ) (z:term τ),
     eval τ (plug τ σ C m) z <-> eval τ (plug τ σ C n) z.
 
+(**  Adequacy means that terms with equivalant denotations
+     are contextually equivalant in any boolean context.
+  *)
 Theorem adequacy : forall τ (m n:term τ),
-  〚m〛≈〚n〛 -> cxt_eq ty_bool τ m n.
+  〚m〛≈〚n〛 -> cxt_eq 2 τ m n.
 Proof.
   intros. intro.
   revert n m H.
@@ -1553,6 +1644,7 @@ Proof.
   apply PLT.pair_eq; auto.
 Qed.
 
+(** Every term fails to evaluate iff the denotation is bottom. *)
 Corollary denote_bottom_nonvalue : forall τ (m:term τ),
   (~exists z, eval τ m z) <-> 〚m〛 ≈ ⊥.
 Proof.
@@ -1594,5 +1686,8 @@ Proof.
   apply empty_elem in H5. elim H5.
 Qed.   
 
+(** These should print "Closed under the global context", meaning these
+    theorems hold without the use of any axioms.
+  *)
 Print Assumptions adequacy.
 Print Assumptions denote_bottom_nonvalue.

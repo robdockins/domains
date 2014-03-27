@@ -88,7 +88,7 @@ Inductive redex : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> term σ₁ -> te
                   redex _ _ (tIF σ • tbool false • th) el el.
 
 Inductive eval : forall τ, term τ -> term τ -> Prop :=
-  | ebool : forall b, eval ty_bool (tbool b) (tbool b)
+  | ebool : forall b, eval 2 (tbool b) (tbool b)
   | eI   : forall σ, eval _ (tI σ) (tI _)
   | eK   : forall σ₁ σ₂, eval _ (tK σ₁ σ₂) (tK _ _)
   | eS   : forall σ₁ σ₂ σ₃, eval _ (tS σ₁ σ₂ σ₃) (tS _ _ _)
@@ -98,19 +98,128 @@ Inductive eval : forall τ, term τ -> term τ -> Prop :=
              eval σ₁ m₂ n₂ ->
              redex σ₁ σ₂ n₁ n₂ r ->
              eval σ₂ r z ->
-             eval σ₂ (m₁•m₂) z
+             eval σ₂ (m₁ • m₂) z
   | eapp2 : forall σ₁ σ₂ m₁ m₂ n₁ n₂,
              eval (σ₁ ⇒ σ₂) m₁ n₁ ->
              eval σ₁ m₂ n₂ ->
              ~(exists r, redex σ₁ σ₂ n₁ n₂ r) ->
-             eval σ₂ (m₁•m₂) (n₁•n₂).
+             eval σ₂ (m₁ • m₂) (n₁ • n₂).
+
+(**  Syntactic types have decicable equality, which
+     implies injectivity for dependent pairs with
+     (syntactic) types as the type being depended upon.
+  *)
+Lemma inj_pair2_ty : forall (F:ty -> Type) τ x y,
+  existT F τ x = existT F τ y -> x = y.
+Proof.
+  intros.
+  apply Eqdep_dec.inj_pair2_eq_dec in H. auto.
+  decide equality.
+Qed.
+
+Ltac inj_ty :=
+  repeat match goal with
+           [ H : existT _ _ _ = existT _ _ _ |- _ ] =>
+             apply inj_pair2_ty in H
+           end.
+
+Ltac inv H :=
+  inversion H; subst; inj_ty; repeat subst.
+
+(** Values are terms that evaluate to themselves.
+  *)
+Definition value σ (t:term σ) := eval _ t t.
+Arguments value [σ] t.
+
+(**  Here are some basic techincal results  
+     about the operational semantics.
+  *)
+Lemma eval_value τ x y :
+  eval τ x y -> value y.
+Proof.
+  intro H. induction H.
+  apply ebool.
+  apply eI.
+  apply eK.
+  apply eS.
+  apply eIF.
+  auto.
+  apply eapp2; auto.
+Qed.
+
+Lemma redex_eq τ₁ τ₂ x y z1 z2 :
+  redex τ₁ τ₂ x y z1 ->
+  redex τ₁ τ₂ x y z2 ->
+  z1 = z2.
+Proof.
+  intros; inv H; inv H; inv H0; auto.
+Qed.
+
+Lemma eval_eq τ x y1 y2 :
+  eval τ x y1 -> eval τ x y2 -> y1 = y2.
+Proof.
+  intro H. revert y2.
+  induction H.
+
+  intros. inv H. auto.
+  intros. inv H. auto.
+  intros. inv H. auto.
+  intros. inv H. auto.
+  intros. inv H. auto.
+
+  intros. inv H3.
+  apply IHeval1 in H9.
+  apply IHeval2 in H10.
+  subst n₁0 n₂0.
+  assert (r = r0).
+  eapply redex_eq; eauto.
+  subst r0.
+  apply IHeval3; auto.
+  apply IHeval1 in H9.
+  apply IHeval2 in H10.
+  subst n₁0 n₂0.
+  elim H11; eauto.
+
+  intros. inv H2.
+  apply IHeval1 in H8.
+  apply IHeval2 in H9.
+  subst n₁0 n₂0.
+  elim H1. eauto.
+  f_equal; auto.
+Qed.
+
+
+Lemma eval_trans τ x y z :
+  eval τ x y -> eval τ y z -> eval τ x z.
+Proof.
+  intros.
+  replace z with y; auto.
+  eapply eval_eq with y; auto.
+  eapply eval_value; eauto.
+Qed.
+
+
+Lemma eval_app_congruence σ₁ σ₂ : forall x x' y y' z,
+  (forall q, eval _ x q -> eval _ x' q) ->
+  (forall q, eval _ y q -> eval _ y' q) ->
+  eval _ (@tapp σ₁ σ₂ x y) z ->
+  eval _ (@tapp σ₁ σ₂ x' y') z.
+Proof.
+  intros.
+  inv H1.
+  apply H in H7.
+  apply H0 in H8.
+  eapply eapp1; eauto.
+  apply eapp2; auto.
+Qed.
+
 
 (**  Types are interpreted as unpointed domains, using the discrete domain
      of booleans and the exponential in PLT.
   *)
 Fixpoint tydom (τ:ty) : PLT :=
   match τ with
-  | ty_bool => disc finbool
+  | 2%ty => disc finbool
   | (τ₁ ⇒ τ₂)%ty => tydom τ₁ ⇒ tydom τ₂
   end.
 
@@ -220,115 +329,11 @@ Proof.
   auto.
 Qed.
 
-(**  Syntactic types have decicable equality, which
-     implies injectivity for dependent pairs with
-     (syntactic) types as the type being depended upon.
-  *)
-Lemma inj_pair2_ty : forall (F:ty -> Type) τ x y,
-  existT F τ x = existT F τ y -> x = y.
-Proof.
-  intros.
-  apply Eqdep_dec.inj_pair2_eq_dec in H. auto.
-  decide equality.
-Qed.
 
-Ltac inj_ty :=
-  repeat match goal with
-           [ H : existT _ _ _ = existT _ _ _ |- _ ] =>
-             apply inj_pair2_ty in H
-           end.
+(** * The logical relations lemma
 
-Ltac inv H :=
-  inversion H; subst; inj_ty; repeat subst.
-
-
-(**  Now we move on to the more difficult adequacy proof.
-     For this we will first need a variety of technical results
-     about the operational semantics.
-  *)
-
-Lemma eval_value τ x y :
-  eval τ x y -> eval τ y y.
-Proof.
-  intro H. induction H.
-  apply ebool.
-  apply eI.
-  apply eK.
-  apply eS.
-  apply eIF.
-  auto.
-  apply eapp2; auto.
-Qed.
-
-Lemma redex_eq τ₁ τ₂ x y z1 z2 :
-  redex τ₁ τ₂ x y z1 ->
-  redex τ₁ τ₂ x y z2 ->
-  z1 = z2.
-Proof.
-  intros; inv H; inv H; inv H0; auto.
-Qed.
-
-Lemma eval_eq τ x y1 y2 :
-  eval τ x y1 -> eval τ x y2 -> y1 = y2.
-Proof.
-  intro H. revert y2.
-  induction H.
-
-  intros. inv H. auto.
-  intros. inv H. auto.
-  intros. inv H. auto.
-  intros. inv H. auto.
-  intros. inv H. auto.
-
-  intros. inv H3.
-  apply IHeval1 in H9.
-  apply IHeval2 in H10.
-  subst n₁0 n₂0.
-  assert (r = r0).
-  eapply redex_eq; eauto.
-  subst r0.
-  apply IHeval3; auto.
-  apply IHeval1 in H9.
-  apply IHeval2 in H10.
-  subst n₁0 n₂0.
-  elim H11; eauto.
-
-  intros. inv H2.
-  apply IHeval1 in H8.
-  apply IHeval2 in H9.
-  subst n₁0 n₂0.
-  elim H1. eauto.
-  f_equal; auto.
-Qed.
-
-
-Lemma eval_trans τ x y z :
-  eval τ x y -> eval τ y z -> eval τ x z.
-Proof.
-  intros.
-  replace z with y; auto.
-  eapply eval_eq with y; auto.
-  eapply eval_value; eauto.
-Qed.
-
-
-Lemma eval_app_congruence σ₁ σ₂ : forall x x' y y' z,
-  (forall q, eval _ x q -> eval _ x' q) ->
-  (forall q, eval _ y q -> eval _ y' q) ->
-  eval _ (@tapp σ₁ σ₂ x y) z ->
-  eval _ (@tapp σ₁ σ₂ x' y') z.
-Proof.
-  intros.
-  inv H1.
-  apply H in H7.
-  apply H0 in H8.
-  eapply eapp1; eauto.
-  apply eapp2; auto.
-Qed.
-
-
-(**  Now we define the logical relation.  It is defined by induction
-     on the structure of types, in a standard way.
+    Now we define the logical relation.  It is defined by induction
+    on the structure of types, in a standard way.
   *)
 Fixpoint LR (τ:ty) : term τ -> (1 → tydom τ) -> Prop :=
   match τ as τ' return term τ' -> (1 → tydom τ') -> Prop
@@ -747,11 +752,12 @@ Proof.
     (Logic.refl_equal _) (Logic.refl_equal _) I).
 Qed.
 
-(**  Now we define contextual equivalance.  Contexts here are
-     given in "inside-out" form, which makes the induction in the
-     adequacy proof significantly easier.
-  *)
+(** * Contextual equivalance and the adequacy theorem.
 
+    Now we define contextual equivalance.  Contexts here are
+    given in "inside-out" form, which makes the induction in the
+    adequacy proof significantly easier.
+  *)
 Inductive context τ : ty -> Type :=
   | cxt_top : context τ τ
   | cxt_appl : forall σ₁ σ₂,
@@ -778,7 +784,7 @@ Definition cxt_eq τ σ (m n:term σ):=
      are contextually equivalant in any boolean context.
   *)
 Theorem adequacy : forall τ (m n:term τ),
-  〚m〛 ≈ 〚n〛 -> cxt_eq ty_bool τ m n.
+  〚m〛 ≈ 〚n〛 -> cxt_eq 2 τ m n.
 Proof.
   intros. intro.
   revert n m H.

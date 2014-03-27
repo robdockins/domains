@@ -19,6 +19,8 @@ Require Import cpo.
 Require Import profinite.
 Require Import profinite_adj.
 
+(** * A fixpoint operator for nonstrict functions in PLT.
+  *)
 
 Program Definition precompose hf (A B C:PLT.PLT hf) (f:A → B) :
   (Preord.hom (PLT.hom_ord hf B C) (PLT.hom_ord hf A C)) := 
@@ -164,7 +166,9 @@ Section fixes.
 
     apply ∘ 〈f, x〉.
 
-  Program Definition fixes_step' : PLT.homset_cpo _ Γ (U A) → PLT.homset_cpo _ Γ (U A) :=
+  Program Definition fixes_step' :
+    PLT.homset_cpo _ Γ (U A) → PLT.homset_cpo _ Γ (U A) :=
+
     CPO.Hom _ (PLT.homset_cpo _ Γ (U A)) (PLT.homset_cpo _ Γ (U A)) 
     fixes_step _ _.
   Next Obligation.

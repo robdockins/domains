@@ -20,6 +20,13 @@ Require Import profinite.
 Require Import profinite_adj.
 Require Import flat.
 
+(** * Strict functions and applications lifted into PLT
+
+    We give operators for strict functions and applications
+    in PLT.  This takes two forms: a direct one and another
+    one with lifted functions.
+  *)
+
 Definition strict_app (A B:∂PLT) 
   : U (A ⊸ B) × U A → U B
 
@@ -490,7 +497,8 @@ Proof.
   rewrite (cat_ident2 PLT) in H. auto.
 Qed.
 
-
+(**  Lift the case analysis and element function for flat domains into PLT.
+  *)
 Definition flat_cases' (X:enumtype) (Γ:PLT) (B:∂PLT) (f:X -> Γ → U B)
   : (Γ × U (flat X))%plt → U B
   := U·(flat_cases (fun x => ε ∘ L·(f x)) ∘ PLT.pair_map id ε ∘ lift_prod') ∘ η.

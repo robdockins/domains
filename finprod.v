@@ -18,6 +18,14 @@ Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
 
+(** * Finite products for type contexts
+
+  *)
+
+(**  First, a short development of cast morphisms.  These are
+     useful for dealing wiht cases where we have types that
+     are provably equal, but not convertable.
+  *)
 Section cast.
   Variable hf:bool.
   Variable A:Type.
@@ -134,6 +142,11 @@ Definition maybe A B (b:B) (f:A->B) (x:option A) : B :=
 Arguments maybe [A B] b f x.
 
 
+(**  The input module type for contexts.  Type [I] is the
+     index type, but type [A] are proxies for object language
+     types.  The functon [F] interprets the types [A] as objects
+     of PLT.
+  *)
 Module Type FINPROD_INPUT.
   Parameter Inline I:Type.
   Parameter Inline Idec : forall (x y:I), {x=y}+{x<>y}.
@@ -141,6 +154,12 @@ Module Type FINPROD_INPUT.
   Parameter Inline F: A -> PLT.
 End FINPROD_INPUT.
 
+(**  This module type provides an object of contexts, which is
+     the universal object for finite collections of objects.
+
+     These are designed specifically to handle contexts of
+     typed λ-calculi.
+  *)
 Module Type FINPROD.
   Parameter Inline I:Type.
   Parameter Inline Idec : forall (x y:I), {x=y}+{x<>y}.
@@ -179,7 +198,8 @@ Module Type FINPROD.
 
   Parameter finprod : list (I*A) -> PLT.
   Parameter proj : forall ls i, finprod ls → ty (lookup i ls).
-  Parameter mk_finprod : forall ls (X:PLT), (forall i, X → ty (lookup i ls)) -> X → finprod ls.
+  Parameter mk_finprod : forall ls (X:PLT),
+       (forall i, X → ty (lookup i ls)) -> X → finprod ls.
   
   Definition bind ls i a : finprod ls × F a → finprod ((i,a)::ls) :=
    mk_finprod ((i,a)::ls) (finprod ls × F a)

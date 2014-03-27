@@ -24,8 +24,10 @@ Require Import profinite_adj.
 Require Import fixes.
 Require Import strict_utils.
 
-
 Require Import List.
+
+(** * The simply-typed λ-calculus with booleans and fixpoints
+  *)
 
 Inductive ty :=
   | ty_bool

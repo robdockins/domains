@@ -23,6 +23,8 @@ Require Import discrete.
 
 Require Import List.
 
+(** * The simply-typed λ-calculus with booleans
+  *)
 Inductive ty :=
   | ty_bool
   | ty_arrow : ty -> ty -> ty.
