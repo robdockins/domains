@@ -18,6 +18,9 @@ Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
 
+Require Import atoms.
+Require Import permutations.
+
 (** * Finite products for type contexts
 
   *)
@@ -148,8 +151,6 @@ Arguments maybe [A B] b f x.
      of PLT.
   *)
 Module Type FINPROD_INPUT.
-  Parameter Inline I:Type.
-  Parameter Inline Idec : forall (x y:I), {x=y}+{x<>y}.
   Parameter Inline A:Type.
   Parameter Inline F: A -> PLT.
 End FINPROD_INPUT.
@@ -161,16 +162,14 @@ End FINPROD_INPUT.
      typed λ-calculi.
   *)
 Module Type FINPROD.
-  Parameter Inline I:Type.
-  Parameter Inline Idec : forall (x y:I), {x=y}+{x<>y}.
   Parameter Inline A:Type.
   Parameter Inline F: A -> PLT.
 
-  Fixpoint lookup (i:I) (l:list (I*A)) : option A :=
+  Fixpoint lookup (i:atom) (l:list (atom*A)) : option A :=
     match l with
     | nil => None
     | (i',a)::l' =>
-         match Idec i' i with
+         match string_dec i' i with
          | left Hi => Some a
          | right _ => lookup i l'
          end
@@ -178,25 +177,25 @@ Module Type FINPROD.
   
   Lemma lookup_eq : forall i i' a ls,
     i = i' ->
-    Some a = if Idec i i' then Some a else lookup i' ls.
+    Some a = if string_dec i i' then Some a else lookup i' ls.
   Proof.
     intros.
-    destruct (Idec i i'). reflexivity.
+    destruct (string_dec i i'). reflexivity.
     elim n. auto.
   Defined.
   
   Lemma lookup_neq : forall i i' a ls,
     i <> i' ->
-    lookup i' ls = if Idec i i' then Some a else lookup i' ls.
+    lookup i' ls = if string_dec i i' then Some a else lookup i' ls.
   Proof.
     intros.
-    destruct (Idec i i'). elim H; auto.
+    destruct (string_dec i i'). elim H; auto.
     auto.
   Defined.
 
   Definition ty (a:option A) : PLT := maybe 1 F a.
 
-  Parameter finprod : list (I*A) -> PLT.
+  Parameter finprod : list (atom*A) -> PLT.
   Parameter proj : forall ls i, finprod ls → ty (lookup i ls).
   Parameter mk_finprod : forall ls (X:PLT),
        (forall i, X → ty (lookup i ls)) -> X → finprod ls.
@@ -204,7 +203,7 @@ Module Type FINPROD.
   Definition bind ls i a : finprod ls × F a → finprod ((i,a)::ls) :=
    mk_finprod ((i,a)::ls) (finprod ls × F a)
    (fun i' => 
-     match Idec i i' as Hi return
+     match string_dec i i' as Hi return
        (finprod ls × F a) → ty (if Hi then Some a else lookup i' ls)
      with
      | left _  => π₂
@@ -221,7 +220,7 @@ Module Type FINPROD.
 
     mk_finprod ls (finprod ((i,a)::ls))
      (fun i' =>
-       match Idec i i' as Hi return
+       match string_dec i i' as Hi return
          ty (if Hi then Some a else lookup i' ls) → ty (lookup i' ls)
        with
        | left H => cast ty (unbind_lemma ls i i' Hi H) ∘ PLT.terminate _ _ 
@@ -245,6 +244,15 @@ Module Type FINPROD.
     proj ((i,a)::ls) i' ∘ bind ls i a 
       ≈ cast ty (lookup_eq i i' a ls Heq) ∘ π₂.
 
+  Axiom proj_bind : forall i a i' ls,
+    proj ((i,a)::ls) i' ∘ bind ls i a ≈
+    match string_dec i i' as H return 
+      finprod ls × F a → ty (if H then Some a else  lookup i' ls)
+    with
+    | left  Heq  => π₂
+    | right Hneq => proj ls i' ∘ π₁
+    end.
+
   Axiom mk_finprod_compose_commute : forall ls X Y f (h:X → Y),
     mk_finprod ls Y f ∘ h ≈
     mk_finprod ls X (fun i => f i ∘ h).
@@ -255,11 +263,11 @@ End FINPROD.
 Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Include FI.
 
-  Fixpoint lookup (i:I) (l:list (I*A)) : option A :=
+  Fixpoint lookup (i:atom) (l:list (atom*A)) : option A :=
     match l with
     | nil => None
     | (i',a)::l' =>
-         match Idec i' i with
+         match string_dec i' i with
          | left Hi => Some a
          | right _ => lookup i l'
          end
@@ -274,24 +282,24 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Proof.
     induction l1; simpl; auto.
     destruct a as [i' a].
-    destruct (Idec i' i); auto.
+    destruct (string_dec i' i); auto.
   Qed.
 
   Lemma lookup_eq : forall i i' a ls,
     i = i' ->
-    Some a = if Idec i i' then Some a else lookup i' ls.
+    Some a = if string_dec i i' then Some a else lookup i' ls.
   Proof.
     intros.
-    destruct (Idec i i'). reflexivity.
+    destruct (string_dec i i'). reflexivity.
     elim n. auto.
   Defined.
   
   Lemma lookup_neq : forall i i' a ls,
     i <> i' ->
-    lookup i' ls = if Idec i i' then Some a else lookup i' ls.
+    lookup i' ls = if string_dec i i' then Some a else lookup i' ls.
   Proof.
     intros.
-    destruct (Idec i i'). elim H; auto.
+    destruct (string_dec i i'). elim H; auto.
     auto.
   Defined.
 
@@ -299,13 +307,13 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
 
   Module internals.
 
-  Inductive finprod_codom (avd:list I) z i :=
+  Inductive finprod_codom (avd:list atom) z i :=
     | codom_avoid : In i avd -> finprod_codom avd z i
     | codom_elem : ~In i avd -> ty z -> finprod_codom avd z i.
   Arguments codom_avoid [avd z i] H.
   Arguments codom_elem [avd z i] H x.
 
-  Definition finprod_elem (avd:list I) ls := 
+  Definition finprod_elem (avd:list atom) ls := 
     forall i, finprod_codom avd (lookup i ls) i.
 
   Definition finprod_codom_ord avd z i (x y:finprod_codom avd z i) :=
@@ -332,7 +340,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     Preord.Pack (finprod_codom avd z i) (finprod_codom_ord_mixin avd z i).
 
   Definition codom_enum avd z i (n:N) : option (finprod_codom avd z i) :=
-    match In_dec Idec i avd with
+    match In_dec string_dec i avd with
     | left Hin => Some (codom_avoid Hin)
     | right Hnin =>
         match eff_enum _ (PLT.effective (ty z)) n with
@@ -354,9 +362,9 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Next Obligation.
     intros. unfold codom_enum. destruct x. 
     exists 0%N.
-    destruct (in_dec Idec i avd). split; hnf; auto.
+    destruct (in_dec string_dec i avd). split; hnf; auto.
     contradiction.
-    destruct (in_dec Idec i avd). contradiction.
+    destruct (in_dec string_dec i avd). contradiction.
     destruct (eff_complete _ (PLT.effective (ty z)) c). exists x.
     match goal with [|- match (match ?X with _ => _ end) with _ => _ end ] => destruct X end.
     destruct H; split; auto.
@@ -390,7 +398,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Lemma codom_has_normals avd z i : has_normals (codom avd z i) (codom_eff avd z i) false.
   Proof.
     repeat intro.
-    destruct (In_dec Idec i avd).
+    destruct (In_dec string_dec i avd).
     exists (@codom_avoid avd z i i0 :: nil).
     split.
     red; intros.
@@ -483,7 +491,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     unfold finprod_elem in *.
     cut (forall l1 l2,
       (forall i a, lookup i l1 = Some a -> x i ≤ y i) ->
-      l1++l2 = l ->
+      (l1++l2)%list = l ->
       { forall i a, lookup i l2 = Some a -> x i ≤ y i} + 
       { exists i , x i ≰ y i}).
     intros.
@@ -513,18 +521,18 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     destruct a as [i a].
     case_eq (x i); case_eq (y i); intros.
 
-    destruct (IHl2 (l1++(i,a)::nil)); auto; clear IHl2.
+    destruct (IHl2 (l1++(i,a)::nil)%list); auto; clear IHl2.
     intros.
     rewrite lookup_app in H2.
     generalize (H i2 a0).
     destruct (lookup i2 l1); auto.
     intros. simpl in H2.
-    destruct (Idec i i2). subst i2; auto.
+    destruct (string_dec i i2). subst i2; auto.
     hnf. simpl. rewrite H1. rewrite H0. auto.
     discriminate.
     rewrite app_ass; auto.
     left; intros.
-    destruct (Idec i i2). subst i2.
+    destruct (string_dec i i2). subst i2.
     hnf. rewrite H1. rewrite H0. auto.
     apply o with a0; auto.
 
@@ -532,21 +540,21 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     contradiction.
 
     destruct (eff_ord_dec _ (PLT.effective 
-      (ty (lookup i (l1 ++ (i, a) :: l2))))
+      (ty (lookup i (l1 ++ (i, a) :: l2))%list))
       c0 c).
 
-    destruct (IHl2 (l1++(i,a)::nil)); auto; clear IHl2.
+    destruct (IHl2 (l1++(i,a)::nil)%list); auto; clear IHl2.
     intros.
     rewrite lookup_app in H2.
     generalize (H i0 a0).
     destruct (lookup i0 l1); auto.
     intros. simpl in H2.
-    destruct (Idec i i0). subst i0; auto.
+    destruct (string_dec i i0). subst i0; auto.
     hnf. rewrite H1. rewrite H0. auto.
     discriminate.
     rewrite app_ass. auto.
     left. intros. 
-    destruct (Idec i i0).
+    destruct (string_dec i i0).
     subst i0. 
     hnf. rewrite H1. rewrite H0. auto.
     apply o0 with a0; auto.
@@ -559,10 +567,9 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Qed.
 
 
-
   Definition f_hd i a ls avd 
     (f:finprod_elem avd ((i,a)::ls)) : finprod_codom avd (Some a) i :=
-      match Idec i i as Hi
+      match string_dec i i as Hi
         return finprod_codom avd (if Hi then (Some a) else lookup i ls) i ->
                finprod_codom avd (Some a) i
       with
@@ -570,14 +577,14 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       | right Hn => False_rect _ (Hn (Logic.eq_refl i))
       end (f i).
 
-  Definition f_tl i a (ls:list (I*A)) (avd:list I) 
+  Definition f_tl i a (ls:list (atom*A)) (avd:list atom) 
     (f:finprod_elem avd ((i,a)::ls)) : finprod_elem (i::avd) ls :=
     
     fun i' =>
       match f i' with
       | codom_avoid H  => @codom_avoid (i::avd) _ i' (or_intror H)
       | codom_elem H x => 
-         match Idec i i' as Hi return
+         match string_dec i i' as Hi return
            ty (if Hi then Some a else lookup i' ls) -> 
              finprod_codom (i::avd) (lookup i' ls) i'
          with
@@ -586,15 +593,15 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
          end x
       end.
 
-  Definition f_cons i a (ls:list (I*A)) (avd:list I)
+  Definition f_cons i a (ls:list (atom*A)) (avd:list atom)
     (h:finprod_codom avd (Some a) i)
     (f:finprod_elem (i::avd) ls) : finprod_elem avd ((i,a)::ls) :=
 
     fun i' =>
-      match in_dec Idec i' avd with
+      match in_dec string_dec i' avd with
       | left Hin => codom_avoid Hin
       | right Hnin => @codom_elem avd _ i' Hnin
-         match Idec i i' as Hi
+         match string_dec i i' as Hi
            return ty (if Hi then Some a else lookup i' ls)
          with
          | left Hi => 
@@ -620,11 +627,11 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     generalize (H0 i0). clear H0.
     intro. hnf; simpl. hnf in H0.
     unfold f_cons.
-    destruct (in_dec Idec i0 avd). auto.
+    destruct (in_dec string_dec i0 avd). auto.
     simpl.    
     destruct (tl i0).
     destruct (tl' i0).
-    simpl. destruct (Idec i i0).
+    simpl. destruct (string_dec i i0).
     subst i0.
     destruct hd. elim n; auto.
     destruct hd'. elim n; auto.
@@ -633,7 +640,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
 
     destruct (tl' i0).
     elim H0.
-    destruct (Idec i i0); auto.
+    destruct (string_dec i i0); auto.
     subst i0. elim n1; simpl; auto.
   Qed.
 
@@ -645,7 +652,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     intros. generalize (H i). clear H.
     intro. hnf in H. hnf.
     unfold f_cons in *. simpl in *.
-    destruct (in_dec Idec i avd).
+    destruct (in_dec string_dec i avd).
     destruct hd. destruct hd'. auto.
     elim n; auto.
     elim n; auto.
@@ -655,7 +662,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     destruct hd. contradiction.
     destruct hd'. contradiction.
     revert c c0. simpl.
-    destruct (Idec i i); simpl; auto.
+    destruct (string_dec i i); simpl; auto.
     elim n2; auto.
     elim n0; simpl; auto.
     elim n0; simpl; auto.
@@ -668,7 +675,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Proof.
     repeat intro. generalize (H i0); clear H.
     intro. hnf. hnf in H. unfold f_cons in *. simpl in *.
-    destruct (in_dec Idec i0 avd).
+    destruct (in_dec string_dec i0 avd).
     destruct (tl i0).
     destruct (tl' i0). auto.
     elim n; auto.
@@ -678,7 +685,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     elim n0; auto.
     destruct (tl' i0).
     elim n0; auto.
-    destruct (Idec i i0). subst i0.
+    destruct (string_dec i i0). subst i0.
     elim n0; simpl; auto.
     auto.    
   Qed.
@@ -697,25 +704,25 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       finprod_codom_ord _ _ i' (f_cons i a ls avd hd tl i') (f i')).
     intros; split; intro; apply H1; auto.
     intro i'.
-    pose (Idec i i').
+    pose (string_dec i i').
     destruct s. subst i'.
 
     unfold f_cons, f_tl, f_hd, finprod_codom_ord in *. simpl in *.
     revert H H0; simpl.
     destruct hd.
     destruct (f i).
-    destruct (in_dec Idec i avd). intuition.
+    destruct (in_dec string_dec i avd). intuition.
     contradiction.
     revert c; simpl.
-    destruct (Idec i i). simpl.
+    destruct (string_dec i i). simpl.
     intros. destruct H. elim H.
     elim n0; auto.
     destruct (f i).
     contradiction.
-    destruct (in_dec Idec i avd). contradiction.
+    destruct (in_dec string_dec i avd). contradiction.
     simpl.
     revert c c0; simpl.
-    destruct (Idec i i).
+    destruct (string_dec i i).
     simpl; intros.
     destruct H0; auto.
     elim n2. auto.
@@ -724,12 +731,12 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     destruct H0. simpl in *.
     generalize (H i') (H0 i'); clear H H0.
     unfold finprod_codom_ord, f_cons; simpl.
-    destruct (in_dec Idec i' avd).
+    destruct (in_dec string_dec i' avd).
     destruct (f i'); simpl. intros. auto.
     contradiction.
     destruct (f i'); simpl. contradiction.
     revert c; simpl.
-    destruct (Idec i i'); auto.
+    destruct (string_dec i i'); auto.
     elim n; auto.
     intros.
     destruct (tl i').
@@ -737,17 +744,17 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     split; auto.
   Qed.
 
-  Fixpoint enum_finprod (ls:list (I*A)) (avd:list I) (z:N) : 
+  Fixpoint enum_finprod (ls:list (atom*A)) (avd:list atom) (z:N) : 
     option (finprod_elem avd ls) :=
 
     match ls as ls' return option (finprod_elem avd ls') with
-    | nil => Some (fun i:I => 
-          match in_dec Idec i avd with 
+    | nil => Some (fun i:atom => 
+          match in_dec string_dec i avd with 
             | left Hin => codom_avoid Hin 
             | right Hnin => @codom_elem avd None i Hnin tt 
           end)
     | (i,a)::ls' =>
-       match in_dec Idec i avd with
+       match in_dec string_dec i avd with
        | left IN =>
          match enum_finprod ls' (i::avd) z with
          | None => None
@@ -773,42 +780,48 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     exists 0%N.
     simpl.
     split; intro; hnf; simpl.
-    destruct (in_dec Idec i avd).
+    destruct (in_dec string_dec i avd).
     destruct (f i); auto.
     destruct (f i). contradiction.
     hnf; auto.
-    destruct (in_dec Idec i avd).
+    destruct (in_dec string_dec i avd).
     destruct (f i); auto.
     destruct (f i). contradiction.
     hnf; auto.
     
     destruct a as [i a].
     hnf. simpl.
-    destruct (in_dec Idec i avd).
+    destruct (in_dec string_dec i avd).
     destruct (IHls (i::avd) (f_tl i a ls avd f)).
     exists x.
+    simpl in *.
     destruct (enum_finprod ls (i::avd) x).
     apply f_cons_hd_tl.
     unfold f_hd. simpl.
     destruct (f i). clear.
     simpl.
-    destruct (Idec i i). split; hnf; auto.
+    destruct (string_dec i i). split; hnf; auto.
     elim n; auto.
     contradiction.
     auto. auto.
 
+    simpl in *.
     case_eq (f_hd i a ls avd f); intros.
     contradiction.
     destruct (eff_complete _ (PLT.effective (F a)) c) as [q ?].
     destruct (IHls (i::avd) (f_tl i a ls avd f)) as [p ?].
     exists (pairing.pairing (q,p)).    
     rewrite pairing.unpairing_pairing.
-    simpl in *.
     destruct (enum_finprod ls (i::avd) p).
-    match goal with [|- match (match ?X with _ => _ end) with _ => _ end ] => destruct X end.
+    match goal with [|- match (match ?X with _ => _ end) with _ => _ end ] => 
+      set (X' := X); fold X' in H0
+    end.
+    cut (match X' with Some a' => c ≈ a' | None => False end); auto.
+    destruct X'; auto.
+    intros.
     apply f_cons_hd_tl; auto.
     rewrite H. auto.
-    auto. auto.
+    auto.
   Qed.
 
   Program Definition finprod_effective avd ls : effective_order (ord avd ls) :=
@@ -834,13 +847,13 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     generalize (H i).
     destruct (a0 i).
     destruct (b i).
-    simpl. destruct (Idec i i); auto.
+    simpl. destruct (string_dec i i); auto.
     elim n; auto.
     contradiction.
     destruct (b i).
     intro. elim H0.
     revert c c0; simpl.
-    destruct (Idec i i); auto.
+    destruct (string_dec i i); auto.
     elim n1; auto.
   Qed.
 
@@ -857,7 +870,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     auto. contradiction.
     destruct (b i0). contradiction.
     revert c c0; simpl.
-    destruct (Idec i i0); auto.
+    destruct (string_dec i i0); auto.
   Qed.
 
   Lemma finprod_has_normals ls avd :
@@ -868,8 +881,8 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     hnf; simpl; intros.
 
     hnf. simpl; intros.
-    exists ((fun i:I => 
-      match in_dec Idec i avd with 
+    exists ((fun i:atom => 
+      match in_dec string_dec i avd with 
       | left Hin => codom_avoid Hin 
       | right Hnin => @codom_elem avd None i Hnin tt
       end)::nil).                          
@@ -878,37 +891,37 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     apply cons_elem. left.
     split; hnf; simpl; intros.
     destruct (a i).
-    destruct (in_dec Idec i avd). auto.
+    destruct (in_dec string_dec i avd). auto.
     contradiction.
-    destruct (in_dec Idec i avd). 
+    destruct (in_dec string_dec i avd). 
     contradiction.
     hnf; auto.
     destruct (a i).
-    destruct (in_dec Idec i avd). auto.
+    destruct (in_dec string_dec i avd). auto.
     contradiction.
-    destruct (in_dec Idec i avd). 
+    destruct (in_dec string_dec i avd). 
     contradiction.
     hnf; auto.
     split. red; auto.
     repeat intro.
-    exists (fun i:I => 
-      match in_dec Idec i avd with 
+    exists (fun i:atom => 
+      match in_dec string_dec i avd with 
       | left Hin => codom_avoid Hin 
       | right Hnin => @codom_elem avd None i Hnin tt
       end).
     split.
     repeat intro.
     destruct (x i).
-    destruct (in_dec Idec i avd).
+    destruct (in_dec string_dec i avd).
     auto.
     contradiction.
-    destruct (in_dec Idec i avd).
+    destruct (in_dec string_dec i avd).
     contradiction.
     hnf; auto.
     rewrite finsubset_elem. split.
     apply cons_elem; auto.
     repeat intro.
-    destruct (z i); destruct (in_dec Idec i avd); try contradiction; hnf; auto.
+    destruct (z i); destruct (in_dec string_dec i avd); try contradiction; hnf; auto.
     intros. rewrite <- H0; auto.
 
     intros. hnf; simpl; intros.
@@ -1059,7 +1072,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Qed.
   Next Obligation.
     repeat intro.
-    exists (fun i:I => @codom_elem nil None i (fun H => H) tt).
+    exists (fun i:atom => @codom_elem nil None i (fun H => H) tt).
     split; repeat intro.
     hnf. simpl.
     destruct (x0 i). elim i0.
@@ -1070,7 +1083,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     apply enum_finprod_complete.
   Qed.
 
-  Definition proj_rel ls avd (i:I) (Hnin:~In i avd) 
+  Definition proj_rel ls avd (i:atom) (Hnin:~In i avd) 
     : erel (finprod ls avd) (ty (lookup i ls)) :=
     esubset_dec
       (ord avd ls × ty (lookup i ls))%cat_ob
@@ -1079,7 +1092,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       (eprod (eff_enum _ (PLT.effective (finprod ls avd)))
              (eff_enum _ (PLT.effective (ty (lookup i ls))))).
 
-  Lemma proj_rel_elem ls avd (i:I) Hnin f x :
+  Lemma proj_rel_elem ls avd (i:atom) Hnin f x :
     (f,x) ∈ proj_rel ls avd i Hnin <-> f i ≥ @codom_elem avd (lookup i ls) i Hnin x.
   Proof.
     unfold proj_rel. rewrite esubset_dec_elem.
@@ -1131,7 +1144,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     match x with
     | codom_avoid H => @codom_avoid (i'::avd) z i (or_intror H)
     | codom_elem H x =>
-        match Idec i' i with
+        match string_dec i' i with
         | left Hi  => @codom_avoid (i'::avd) z i (or_introl Hi)
         | right Hn => @codom_elem (i'::avd) z i (or_ind Hn H) x
         end
@@ -1141,7 +1154,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     (x:ord avd ((i,a)::ls)) : ord (i::avd) ls :=
     
     fun i' =>
-      match Idec i i' as Hi return
+      match string_dec i i' as Hi return
         finprod_codom avd (if Hi then Some a else lookup i' ls) i' ->
         finprod_codom (i::avd) (lookup i' ls) i'
       with
@@ -1150,8 +1163,8 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       end (x i').
 
   Program Definition finprod_univ_rel 
-      (ls:list (I*A))
-      (avd:list I)
+      (ls:list (atom*A))
+      (avd:list atom)
       (X:PLT)
       (f:forall i, ~In i avd -> X → ty (lookup i ls))
       (Hf : forall i H1 H2, f i H1 ≈ f i H2) :=
@@ -1182,7 +1195,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     destruct a0 as [x g]. simpl.
     rename ls into l.
     set (f' i' (Hnin:~In i' (i::avd)) :=
-        match Idec i i' as Hi return
+        match string_dec i i' as Hi return
           X → ty (if Hi then Some a else lookup i' l) ->
           X → ty (lookup i' l)
         with
@@ -1200,21 +1213,21 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
             (ord_weaken _ _ _ _ g i' ≤ codom_elem Hnin h)))).
       apply semidec_iff.
       split; intros. destruct H.
-      pose (Idec i i0). destruct s.
+      pose (string_dec i i0). destruct s.
       subst i0.
       apply H. clear H.
       generalize (H0 i0); clear H0. simpl.
       unfold f'.
       unfold ord_weaken. simpl.
       generalize (f i0). generalize (g i0). simpl.
-      destruct (Idec i i0). contradiction.
+      destruct (string_dec i i0). contradiction.
       intros. 
       destruct (H (or_ind n Hnin)) as [h' [??]].
       exists h'. split; auto.
       unfold finprod_codom_weaken in H1.
       destruct f0.
       elim H1.
-      destruct (Idec i i0). elim H1. auto.
+      destruct (string_dec i i0). elim H1. auto.
       
     split; intros.
     apply (H i Hnin).
@@ -1222,7 +1235,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     unfold f', ord_weaken. simpl.
     unfold finprod_codom_weaken.
     generalize (f i'). generalize (g i'). simpl.
-    destruct (Idec i i').
+    destruct (string_dec i i').
     subst i'. elim Hnin; simpl; auto.
     intros.
     destruct H0 as [h' [??]]. exists h'. split; auto.
@@ -1235,7 +1248,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
           (x, h) ∈ PLT.hom_rel (f i Hnin) /\ g i ≤ codom_elem Hnin h)).
 
         intros.
-        destruct (In_dec Idec i avd).
+        destruct (In_dec string_dec i avd).
         apply semidec_iff with True.
         split; intros. contradiction. auto.
         apply semidec_true.     
@@ -1270,13 +1283,13 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     unfold f'; simpl; intros.
     generalize (Hf i0).
     generalize (f i0).
-    simpl. destruct (Idec i i0); simpl; auto.
+    simpl. destruct (string_dec i i0); simpl; auto.
     elim H1; simpl; auto.
   Qed.
 
   Section finprod_univ_rel.
-    Variable ls:list (I*A).
-    Variable avd:list I.
+    Variable ls:list (atom*A).
+    Variable avd:list atom.
     Variable X:PLT.
     Variable f:forall i, ~In i avd -> X → ty (lookup i ls).
     Variable Hf : forall i H1 H2, f i H1 ≈ f i H2.
@@ -1374,7 +1387,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       auto.
 
       set (g i :=
-        match In_dec Idec i avd with
+        match In_dec string_dec i avd with
         | left Hin => @codom_avoid avd _ i Hin
         | right Hnin => @codom_elem avd _ i Hnin (choose _ _ (H0 i Hnin))
         end).
@@ -1386,7 +1399,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       apply H in H1.
       apply erel_image_elem in H1.
       rewrite finprod_univ_rel_elem in H1.
-      destruct (in_dec Idec i' avd).
+      destruct (in_dec string_dec i' avd).
       destruct (x0 i'). hnf; auto.
       contradiction.
       unfold choose.
@@ -1414,7 +1427,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       apply erel_image_elem.
       rewrite finprod_univ_rel_elem.
       intros. unfold g.
-      destruct (in_dec Idec i avd). contradiction.
+      destruct (in_dec string_dec i avd). contradiction.
       exists (choose _ _ (H0 i n)).
       split.
       2: red; simpl; auto.
@@ -1474,12 +1487,12 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
           exists q; auto.
 
           set (g i :=
-            match In_dec Idec i avd with
+            match In_dec string_dec i avd with
               | left Hin => @codom_avoid avd _ i Hin
               | right Hnin => @codom_elem avd _ i Hnin (choose _ _ (H0 i Hnin))
             end).
           exists g. unfold g; simpl; intros.
-          destruct (in_dec Idec i' avd). contradiction.
+          destruct (in_dec string_dec i' avd). contradiction.
           simpl. 
           generalize (choose_elem _ _ (H0 i' n)).
           intros. apply erel_image_elem in H1.
@@ -1488,17 +1501,17 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
 
         destruct H0 as [g' ?].
         exists (fun i' =>
-          match Idec i i' with
+          match string_dec i i' with
           | left H => 
                eq_rect i (fun i => finprod_codom avd (lookup i ls) i) (codom_elem Hnin c0) i' H
           | right _ => g' i'
           end).
         split.
-        destruct (Idec i i).
+        destruct (string_dec i i).
         replace e with (Logic.eq_refl i). simpl. auto.
-        apply (Eqdep_dec.UIP_dec Idec). elim n; auto.
+        apply (Eqdep_dec.UIP_dec string_dec). elim n; auto.
         intros.
-        destruct (Idec i i'); auto.
+        destruct (string_dec i i'); auto.
         subst i'. simpl.
         destruct (Hf i Hnin Hnin'); auto.
 
@@ -1541,7 +1554,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
 
       clear H H0.
 
-      cut (forall (ls':list (I*A)), exists h,
+      cut (forall (ls':list (atom*A)), exists h,
         (c,h) ∈ PLT.hom_rel z /\
         forall i x, ~In i avd -> lookup i ls' = Some x -> c0 i ≤ h i).
       intros. destruct (H ls) as [h [??]].
@@ -1569,13 +1582,13 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       intros. discriminate.
       destruct IHls' as [h [??]].
       destruct a. simpl.
-      destruct (in_dec Idec i avd).
+      destruct (in_dec string_dec c1 avd).
       exists h. split; auto.
       intros.
-      destruct (Idec i i1). subst i1. contradiction.
+      destruct (string_dec c1 i0). subst i0. contradiction.
       apply H0 with x; auto.
 
-      destruct (H1 i n) as [q [??]].
+      destruct (H1 c1 n) as [q [??]].
       destruct (PLT.hom_directed false _ _ z c (h::q::nil)) as [h' [??]].
       red; auto.
       red; intros.
@@ -1590,14 +1603,14 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       apply erel_image_elem in H5.
       exists h'. split; auto.
       simpl; intros.
-      destruct (Idec i i0). subst i0.
+      destruct (string_dec c1 i). subst i.
       inversion H7; subst.
-      transitivity (q i); auto.
+      transitivity (q c1); auto.
       cut (q ≤ h'). intros. apply H8.
       apply H4.
       apply cons_elem. right. apply cons_elem; auto.
-      transitivity (h i0).
-      apply (H0 i0 x); auto.
+      transitivity (h i).
+      apply (H0 i x); auto.
       cut (h ≤ h'). intros. apply H8.
       apply H4.
       apply cons_elem; auto.
@@ -1625,7 +1638,6 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Proof.
     intros. split; apply empty_cxt_le.
   Qed.
-
 
   Lemma finprod_proj_commute : forall ls i X f,
     proj ls i ∘ mk_finprod ls X f ≈ f i.
@@ -1657,7 +1669,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Definition bind ls i a : finprod ls × F a → finprod ((i,a)::ls) :=
    mk_finprod ((i,a)::ls) (finprod ls × F a)
    (fun i' => 
-     match Idec i i' as Hi return
+     match string_dec i i' as Hi return
        (finprod ls × F a) → ty (if Hi then Some a else lookup i' ls)
      with
      | left _  => π₂
@@ -1674,7 +1686,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
 
     mk_finprod ls (finprod ((i,a)::ls))
      (fun i' =>
-       match Idec i i' as Hi return
+       match string_dec i i' as Hi return
          ty (if Hi then Some a else lookup i' ls) → ty (lookup i' ls)
        with
        | left H => cast ty (unbind_lemma ls i i' Hi H) ∘ PLT.terminate _ _ 
@@ -1693,7 +1705,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     rewrite <- cat_assoc.
     unfold bind.
     rewrite (finprod_proj_commute ((i,a)::ls) i0).
-    destruct (Idec i i0).
+    destruct (string_dec i i0).
     subst i0.
     unfold unbind_lemma; simpl.
     unfold eq_ind_r. simpl.
@@ -1725,7 +1737,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     unfold bind.
     rewrite finprod_proj_commute.
     unfold lookup_neq. simpl.
-    destruct (Idec i i').
+    destruct (string_dec i i').
     contradiction.
     rewrite cast_refl. rewrite (cat_ident2 PLT).
     auto.
@@ -1738,9 +1750,23 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     unfold bind.
     rewrite finprod_proj_commute.
     unfold lookup_eq. simpl.
-    destruct (Idec i i').
+    destruct (string_dec i i').
     rewrite cast_refl. rewrite (cat_ident2 PLT). auto.
     contradiction.
+  Qed.
+
+  Lemma proj_bind : forall i a i' ls,
+    proj ((i,a)::ls) i' ∘ bind ls i a ≈
+    match string_dec i i' as H return 
+      finprod ls × F a → ty (if H then Some a else  lookup i' ls)
+    with
+    | left  Heq  => π₂
+    | right Hneq => proj ls i' ∘ π₁
+    end.
+  Proof.
+    intros.
+    unfold bind.
+    rewrite finprod_proj_commute. auto.
   Qed.
 
   Lemma mk_finprod_compose_commute ls X Y f (h:X → Y) :
@@ -1752,4 +1778,505 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     rewrite (finprod_proj_commute ls). auto.
   Qed.
 
+  Definition inenv (Γ:list (string*A)) (x:string) (σ:A) :=
+    lookup x Γ = Some σ.
+
+  Definition env_incl (Γ₁ Γ₂:list (atom*A)):=
+    forall x τ, inenv Γ₁ x τ -> inenv Γ₂ x τ.
+
+  Definition env := list (atom*A).
+
+  Definition env_supp (Γ:env) := map (@fst atom A) Γ.
+
+  Canonical Structure env_supported :=
+    Supported env env_supp.
+
+  Lemma env_incl_wk (Γ₁ Γ₂:env) y σ :
+    env_incl Γ₁ Γ₂ ->
+    env_incl ((y,σ)::Γ₁) ((y,σ)::Γ₂).
+  Proof.
+    unfold env_incl. unfold inenv.
+    simpl; repeat intro.
+    destruct (string_dec y x); auto.
+  Qed.
+
+  Lemma weaken_fresh
+    (Γ Γ' : env) (σ: A) x' :
+    x' ∉ ‖Γ'‖ -> 
+    forall (x : atom) (τ : A),
+      inenv Γ' x τ -> inenv ((x', σ) :: Γ') x τ.
+  Proof.
+    intros.
+    unfold inenv. simpl. intros.
+    destruct (string_dec x' x).
+    assert (x' ∈ (‖Γ'‖)).
+    rewrite e.
+    revert H0. clear e. 
+    induction Γ'; simpl in *; intuition.
+    discriminate.
+    destruct a. 
+    hnf in H0. simpl in H0.
+    destruct (string_dec s x).
+    apply cons_elem; simpl; auto. left. subst s; auto.
+    apply cons_elem; right; auto.
+    apply IHΓ'.
+    intro.
+    apply H.
+    apply cons_elem. right; auto.
+    auto.
+    elim H; auto.
+    auto.
+  Defined.
+
+Notation cxt := finprod.
+Notation castty := (cast ty).
+
+  Definition weaken_denote (Γ Γ':env) (Hwk:env_incl Γ Γ') : cxt Γ' → cxt Γ
+      := mk_finprod Γ (cxt Γ')
+        (fun i => match lookup i Γ as a return 
+                  lookup i Γ = a -> ty (lookup i Γ') → ty a
+                with
+                | None => fun H => PLT.terminate _ _
+                | Some a => fun H => castty (Hwk i a H)
+                end refl_equal ∘ proj Γ' i).
+
+  Section varmap.
+    Variable tm : env -> A -> Type.
+    Variable tm_weaken : 
+      forall Γ₁ Γ₂ τ, env_incl Γ₁ Γ₂ -> tm Γ₁ τ -> tm Γ₂ τ.
+    Variable tm_var : forall Γ a τ (H:inenv Γ a τ), tm Γ τ.
+
+    Definition varmap  (Γ₁ Γ₂:env) :=
+      forall a τ, inenv Γ₁ a τ -> tm Γ₂ τ.
+
+    Definition extend_map Γ Γ' 
+      (VAR:varmap Γ Γ') x σ (m:tm Γ' σ) : varmap ((x,σ)::Γ) Γ'.
+    Proof.
+      red. unfold inenv. simpl; intros.
+      destruct (string_dec x a). subst a.
+      injection H. intro. subst σ. exact m.
+      exact (VAR a τ H).
+    Defined.
+
+    Definition weaken_map Γ Γ'
+      (VAR:varmap Γ Γ')
+      x' σ (Hx:x' ∉ ‖Γ'‖) :
+      varmap Γ ((x',σ)::Γ')
+      
+      := fun a τ H => 
+        tm_weaken Γ' ((x', σ) :: Γ') τ (weaken_fresh Γ Γ' σ x' Hx) (VAR a τ H).
+
+    Program Definition newestvar Γ x σ : tm ((x,σ)::Γ) σ := tm_var _ x σ _.
+    Next Obligation.
+      intros. hnf; simpl.
+      destruct (string_dec x x); auto. elim n; auto.
+    Defined.
+
+    Definition shift_vars Γ Γ' x x' σ
+      (Hx:x' ∉ ‖Γ'‖)
+      (VAR:varmap Γ Γ')
+      : varmap ((x,σ)::Γ) ((x',σ)::Γ')
+
+    := extend_map Γ ((x', σ) :: Γ')
+        (weaken_map Γ Γ' VAR x' σ Hx) 
+         x σ (newestvar Γ' x' σ).
+
+    Lemma shift_vars' : forall Γ Γ' x σ,
+      let x' := fresh[ Γ' ] in
+        varmap Γ Γ' ->
+        varmap ((x,σ)::Γ) ((x',σ)::Γ').
+    Proof.
+      intros.
+      refine (shift_vars Γ Γ' x x' σ _ X).
+
+      apply fresh_atom_is_fresh'.
+      simpl. red; intros.
+      apply app_elem. auto.
+    Defined.
+  End varmap.
+
+  Class termmodel :=
+    TermModel
+    { tm : list (atom*A) -> A -> Type
+    ; tm_weaken : forall Γ₁ Γ₂ τ, env_incl Γ₁ Γ₂  -> tm Γ₁ τ -> tm Γ₂ τ
+    ; tm_subst  : forall Γ₁ Γ₂ τ, varmap tm Γ₁ Γ₂ -> tm Γ₁ τ -> tm Γ₂ τ
+    ; tm_var : forall Γ a τ (H:inenv Γ a τ), tm Γ τ
+    ; tm_denote : forall Γ τ, tm Γ τ -> finprod Γ → F τ
+    ; tm_denote_var : forall Γ i (a : A) (H : inenv Γ i a),
+         tm_denote Γ a (tm_var Γ i a H) ≈ castty H ∘ proj Γ i
+    }.
+
+  Section varmap2.
+    Context {Htm : termmodel}.
+
+    Definition varmap_denote (Γ Γ':env) (VAR:varmap tm Γ Γ') : cxt Γ' → cxt Γ
+      := mk_finprod Γ (cxt Γ') 
+      (fun i => match lookup i Γ as a return
+                  lookup i Γ = a -> cxt Γ' → ty a
+                with
+                | None => fun H => PLT.terminate _ _
+                | Some a => fun H => tm_denote _ _ (VAR i a H)
+                end refl_equal).
+
+    Lemma varmap_extend_bind Γ Γ' 
+ (VAR:varmap tm Γ Γ') x σ (m:tm Γ' σ) :
+
+  varmap_denote _ _ (extend_map tm Γ Γ' VAR x σ m) ≈
+  bind Γ x σ ∘ 〈 varmap_denote _ _ VAR, tm_denote _ _ m〉.
+Proof.
+  symmetry. unfold varmap_denote at 2.
+  apply finprod_universal. intros.
+  rewrite (cat_assoc PLT).
+  pose (string_dec x i). destruct s.
+  subst i.
+  rewrite (proj_bind_eq x σ x Γ refl_equal).
+  simpl. unfold lookup_eq.
+  simpl.
+  unfold extend_map. simpl.
+  destruct (string_dec x x). simpl.
+  unfold eq_rect_r. simpl.
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite PLT.pair_commute2. auto.
+  elim n; auto.
+  rewrite (proj_bind_neq x σ i Γ n).
+  unfold lookup_neq. simpl.
+  unfold extend_map; simpl.
+  destruct (string_dec x i).
+  contradiction.
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  unfold varmap_denote.
+  rewrite finprod_proj_commute.
+  auto.
+Qed.
+
+Lemma varmap_var_id Γ :
+  varmap_denote Γ Γ (tm_var Γ) ≈ id.
+Proof.
+  symmetry. unfold varmap_denote.
+  apply finprod_universal.
+  intros.
+  rewrite (cat_ident1 PLT). simpl.
+  cut (forall a H, tm_denote Γ a (tm_var Γ i a H) ≈ castty H ∘ proj Γ i).
+  generalize (proj Γ i).
+  unfold inenv.
+  generalize (tm_var Γ i).
+  unfold inenv.
+  pattern (lookup i Γ).
+  destruct (lookup i Γ); intros.
+  rewrite (H a (refl_equal _)).
+  rewrite cast_refl. rewrite (cat_ident2 PLT); auto.
+  apply plt_terminate_univ.
+  apply tm_denote_var.
+Qed.
+
+Section varmap_compose.
+  Variables Γ₁ Γ₂ Γ₃:env.
+  Variable g:varmap tm Γ₂ Γ₃.
+  Variable f:varmap tm Γ₁ Γ₂.  
+
+  Program Definition varmap_compose : varmap tm Γ₁ Γ₃ :=
+    fun a τ (IN:inenv Γ₁ a τ) => tm_subst Γ₂ Γ₃ τ g (f a τ IN).
+End varmap_compose.
+
+Lemma varmap_compose_denote Γ₁ Γ₂ Γ₃ f g :
+  (forall i a e,
+   tm_denote Γ₃ a (tm_subst Γ₂ Γ₃ a f (g i a e))
+   ≈ tm_denote Γ₂ a (g i a e) ∘ varmap_denote Γ₂ Γ₃ f)
+  ->
+  varmap_denote _ _  (varmap_compose Γ₁ Γ₂ Γ₃ f g) ≈
+  varmap_denote _ _ g ∘ varmap_denote _ _ f.
+Proof.
+  symmetry. apply finprod_universal.
+  intros.
+  rewrite (cat_assoc PLT).
+  unfold varmap_denote at 1.
+  rewrite (finprod_proj_commute Γ₁).
+  match goal with [ |- _ ≈ _ ?X ] => generalize X end.
+  pattern (lookup i Γ₁) at 2 3 4 5 9.
+  case (lookup i Γ₁); intros.
+  2: apply plt_terminate_univ.
+  unfold varmap_compose.
+  symmetry. 
+  apply H.
+Qed.
+    
+Program Definition subst (Γ:env) (τ₁ τ₂:A) (a:atom)
+  (m:tm ((a,τ₂)::Γ) τ₁) (z:tm Γ τ₂) : tm Γ τ₁ :=
+
+  tm_subst ((a,τ₂)::Γ) Γ τ₁ (extend_map tm Γ Γ (tm_var Γ) a τ₂ z) m.
+
+Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
+  (forall Γ τ m Γ' (VAR:varmap tm Γ Γ'),
+    tm_denote _ _ (tm_subst Γ Γ' τ VAR m) ≈ 
+    tm_denote _ _ m ∘ varmap_denote Γ Γ' VAR) ->
+
+   tm_denote _ _ n₁ ∘ bind Γ x σ₁ ∘ 〈id, tm_denote _ _ n₂ 〉 ≈ 
+   tm_denote _ _ (subst Γ σ₂ σ₁ x n₁ n₂).
+Proof.
+  intro.
+  unfold subst.
+  rewrite H.
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  rewrite varmap_extend_bind.
+  rewrite varmap_var_id. auto.
+Qed.
+
+Lemma weaken_map_denote Γ Γ'
+  (VAR:varmap tm Γ Γ')
+  x' σ (Hx:x' ∉ ‖Γ'‖) Hx' :
+
+  (forall Γ a m Γ' H,
+    tm_denote _ _ m ∘ weaken_denote Γ Γ' H ≈ tm_denote _ _ (tm_weaken Γ Γ' a H m)) ->
+
+  varmap_denote _ _ (weaken_map tm tm_weaken Γ Γ' VAR x' σ Hx)
+  ≈
+  varmap_denote _ _ VAR ∘ unbind Γ' x' σ Hx'.
+Proof.
+  symmetry. apply finprod_universal. intros.
+  rewrite (cat_assoc PLT).
+  unfold varmap_denote.
+  rewrite (finprod_proj_commute Γ).
+  unfold weaken_map; simpl.
+  match goal with [ |- _ ≈ _ ?X ] => generalize X end.
+
+  simpl. 
+  pattern (lookup i Γ) at 2 3 4 5 9.
+  case (lookup i Γ); intros.
+  2: apply plt_terminate_univ.
+  rewrite <- H.
+  apply cat_respects. auto.
+  apply finprod_universal.
+  intros. 
+
+  unfold unbind.  
+  rewrite (finprod_proj_commute Γ').
+  symmetry.
+  match goal with [ |- _ ≈ _ ∘ ?X ] => set (p := X) end.
+  simpl in *.
+  set (p' := proj ((x',σ)::Γ') i0). 
+  change p' with p. clear p'.
+  generalize p; clear p.
+  simpl.
+  unfold unbind_lemma. simpl.
+  unfold eq_ind_r. simpl.
+  unfold weaken_fresh. 
+  pattern (string_dec x' i0).
+  destruct (string_dec x' i0). subst i0.
+  intro.
+  apply cat_respects; auto.
+  cut (forall e HASDF,
+   match
+     lookup x' Γ' as a0
+     return (lookup x' Γ' = a0 -> PLT.hom (ty (Some σ)) (ty a0))
+   with
+   | Some a0 =>
+       fun H0 : lookup x' Γ' = Some a0 => HASDF a0 H0
+   | None =>fun _ : lookup x' Γ' = None => PLT.terminate false (ty (Some σ))
+   end e
+   ≈ castty
+       (eq_ind x'
+          (fun y : string => lookup y Γ' = None -> None = lookup x' Γ')
+          (fun H0 : lookup x' Γ' = None => eq_sym H0) x'
+          (eq_sym Logic.eq_refl) Hx') ∘
+      PLT.terminate false (F σ)).
+  intro. apply H0.
+  generalize (
+    castty
+       (eq_ind x'
+          (fun y : string => lookup y Γ' = None -> None = lookup x' Γ')
+          (fun H0 : lookup x' Γ' = None => eq_sym H0) x'
+          (eq_sym Logic.eq_refl) Hx') ∘
+      PLT.terminate false (F σ)).
+  pattern (lookup x' Γ') at 1 3 5 6.
+  rewrite Hx'.
+  intros.
+  symmetry. apply plt_terminate_univ.
+
+  destruct (lookup i0 Γ'); intros.
+  rewrite cast_refl. auto.
+  apply cat_respects; auto.
+  symmetry. apply plt_terminate_univ.
+Qed.
+
+Hypothesis Adec : forall x y:A, {x=y}+{x<>y}.
+
+Lemma varmap_denote_proj Γ Γ' (VAR:varmap tm Γ Γ') x σ (i1 i2:inenv Γ x σ) :
+  tm_denote _ _ (VAR x σ i2) ≈ castty i1 ∘ proj Γ x ∘ varmap_denote Γ Γ' VAR.
+Proof.
+  intros.
+  unfold varmap_denote.
+  rewrite <- (cat_assoc PLT).
+  rewrite finprod_proj_commute.
+  match goal with [ |- _ ≈ _ ∘  _ ?X ] => generalize X end.
+  revert i2.
+  red in i1. rewrite i1.
+  intros.
+  rewrite cast_refl.
+  rewrite (cat_ident2 PLT).
+  replace i2 with e; auto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+  
+Qed.
+
+
+
+Lemma bind_weaken Γ Γ' x σ H :
+   bind Γ x σ ∘ PLT.pair_map (weaken_denote Γ Γ' H) id
+   ≈ weaken_denote ((x, σ) :: Γ) ((x, σ) :: Γ')
+       (env_incl_wk Γ Γ' x σ H) ∘ bind Γ' x σ.
+Proof.
+  symmetry.
+  unfold weaken_denote at 1.
+  rewrite mk_finprod_compose_commute.
+  symmetry. apply finprod_universal.
+  intros.
+  rewrite (cat_assoc PLT).
+  unfold bind.
+  rewrite (finprod_proj_commute ((x,σ)::Γ)).
+  symmetry.
+  rewrite <- (cat_assoc PLT).
+  rewrite finprod_proj_commute. simpl.
+  generalize (env_incl_wk Γ Γ' x σ H i).
+  unfold env_incl. simpl. unfold inenv. simpl.
+  destruct (string_dec x i).
+  intros.
+  unfold PLT.pair_map.
+  rewrite (cat_ident2 PLT).
+  symmetry. etransitivity. apply PLT.pair_commute2.
+  replace (i0 σ Logic.eq_refl) with (refl_equal (Some σ)).
+  rewrite cast_refl. rewrite (cat_ident2 PLT); auto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+
+  symmetry.
+  unfold PLT.pair_map.
+  rewrite <- (cat_assoc PLT).
+  rewrite PLT.pair_commute1.
+  rewrite (cat_assoc PLT).
+  unfold weaken_denote.
+  rewrite (finprod_proj_commute Γ).
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  match goal with [ |- _ ?X ≈ _ ] => generalize X end.
+  pattern (lookup i Γ) at 2 3 4 8.
+  case (lookup i Γ); auto.
+  intros.
+  generalize (H i a e) (i0 a e).
+  unfold inenv.
+  case (lookup i Γ'); intros.
+  inversion i1. subst a0.
+  replace i1 with (refl_equal (Some a)).
+  replace e0 with (refl_equal (Some a)).
+  auto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality.
+  discriminate.  
+Qed.
+
+Lemma proj_weaken Γ Γ' x σ H i :
+   castty i ∘ proj Γ x ∘ weaken_denote Γ Γ' H
+   ≈ castty (H x σ i) ∘ proj Γ' x.
+Proof.
+  unfold weaken_denote.
+  rewrite <- (cat_assoc PLT).
+  rewrite finprod_proj_commute.
+  match goal with [ |- _ ∘ (_ ?X ∘ _) ≈ _ ] => generalize X end.
+  generalize (H x σ i).
+  revert i. unfold inenv.
+  pattern (lookup x Γ) at 1 3 4 5 6 7 .
+  case (lookup x Γ); intros.
+  inversion i. subst a.
+  rewrite (cat_assoc PLT). apply cat_respects; auto.
+  replace i with (refl_equal (Some σ)).
+  rewrite cast_refl. rewrite (cat_ident2 PLT).
+  generalize (H x σ e). generalize i0.
+  unfold inenv. rewrite i0.
+  intros. 
+  replace i2 with (refl_equal (Some σ)).
+  replace i1 with (refl_equal (Some σ)). auto.
+  apply Eqdep_dec.UIP_dec. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality.
+  apply Eqdep_dec.UIP_dec. decide equality.
+  discriminate.
+Qed.
+
+Lemma varmap_shift_bind (Γ Γ':env) x σ VAR :
+  (forall Γ₁ Γ₂ a m H, 
+    tm_denote Γ₁ a m ∘ weaken_denote Γ₁ Γ₂ H
+   ≈ tm_denote Γ₂ a (tm_weaken Γ₁ Γ₂ a H m)) ->
+
+  let x' := fresh[ Γ' ] in
+   varmap_denote ((x, σ) :: Γ) ((x', σ) :: Γ')
+     (shift_vars' tm tm_weaken tm_var Γ Γ' x σ VAR) ∘
+    bind Γ' x' σ
+   ≈ bind Γ x σ ∘ PLT.pair_map (varmap_denote Γ Γ' VAR) id.
+Proof.
+  intro.
+  simpl.
+  unfold shift_vars'.
+  unfold shift_vars.
+  simpl.
+
+  rewrite (varmap_extend_bind Γ ((fresh[Γ'],σ)::Γ')
+    (weaken_map tm tm_weaken Γ Γ' VAR (fresh_atom (‖Γ'‖ ++ nil)%list) σ
+           (fresh_atom_is_fresh' (‖Γ'‖) (‖Γ'‖ ++ nil)%list
+              (fun (a : string) (H : a ∈ ‖Γ'‖) =>
+               match app_elem atom (‖Γ'‖) nil a with
+               | conj _ H1 => H1
+               end (or_introl H))))).
+  rewrite <- (cat_assoc PLT).
+  apply cat_respects; auto.
+  rewrite (PLT.pair_compose_commute false).
+  unfold PLT.pair_map.
+  apply PLT.pair_eq.
+
+  rewrite (weaken_map_denote Γ Γ' VAR).
+  rewrite <- (cat_assoc PLT).
+  rewrite bind_unbind. auto.
+  intros.
+  simpl. apply H.
+
+  simpl.
+  unfold newestvar. simpl.
+  rewrite tm_denote_var.
+  rewrite <- (cat_assoc PLT).
+  generalize (proj_bind_eq
+    (fresh_atom (‖Γ'‖++nil)%list) σ (fresh_atom (‖Γ'‖++nil)%list) Γ' Logic.refl_equal).
+  simpl. intros. 
+  etransitivity. apply cat_respects. reflexivity.
+  apply H0.
+  rewrite (cat_assoc PLT).
+  match goal with 
+    [ |- castty ?H1 ∘ castty ?H2 ∘ π₂ ≈ _ ] =>
+    generalize H1 H2
+  end.
+  intros.
+  etransitivity. apply cat_respects. 
+  red in i.
+  apply (cast_compose false _ ty _ _ _ e i).
+  reflexivity.
+  etransitivity. apply cat_respects. 
+  refine (cast_dec_id false _ ty _
+    (Some σ) (Logic.eq_trans e i)).
+  decide equality. 
+  reflexivity.
+  auto.
+Grab Existential Variables.
+  simpl.
+  set (q := fresh [Γ']). simpl in q. fold q.
+  cut (q ∉ ‖Γ'‖).
+  clearbody q. clear. induction Γ'; simpl; intros; auto.
+  destruct a. simpl in *.
+  destruct (string_dec c q). subst q.
+  elim H. apply cons_elem. simpl; auto.
+  apply IHΓ'. intro. apply H. apply cons_elem; auto.
+  unfold q. apply fresh_atom_is_fresh'.
+  red; intros. apply app_elem. auto.
+Qed.
+  End varmap2.
+  
 End finprod.

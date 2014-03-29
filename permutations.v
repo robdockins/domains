@@ -46,6 +46,14 @@ Notation "‖ x ‖" := (Support.support _ x) (at level 20, format "‖ x ‖").
 Notation "a ♯ b" := (Support.disjoint _ _ a b) 
    (at level 25, no associativity, format "a ♯ b").
 
+Canonical Structure atom_supp :=
+  Supported atom (fun x => x::nil).
+
+Definition concat A := fold_right (@app A) nil.
+
+Notation "'fresh' '[' x , .. , z ']'" :=
+  (fresh_atom (concat atom
+   (cons (Support.support _ x) .. (cons (Support.support _ z) nil) ..))).
 
 (**  Here we define finitely supported permuatations of atoms.  Such
      permutations play an important role in the developement of nominal types.
