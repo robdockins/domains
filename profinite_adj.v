@@ -649,6 +649,7 @@ Proof.
   apply adj_counit_rel_elem; auto.
 Qed.
 
+
 Lemma adj_inv_eq : forall A B (f:A → liftPPLT B),
   (forall a, exists b, (a, Some b) ∈ PLT.hom_rel f) ->
   adj_counit_inv_hom B ∘ adj_counit B ∘ forgetPLT·f ≈ forgetPLT·f.
@@ -672,6 +673,33 @@ Proof.
   exists y. split.
   apply adj_counit_rel_elem. auto.
   apply adj_unit_rel_elem. hnf. auto.
+Qed.
+
+Lemma adj_inv_eq_converse : forall A B (f:A → liftPPLT B),
+  adj_counit_inv_hom B ∘ adj_counit B ∘ forgetPLT·f ≥ forgetPLT·f ->
+  (forall a, exists b, (a, Some b) ∈ PLT.hom_rel f).
+Proof.
+  repeat intro.
+  destruct (PLT.hom_directed false A (liftPPLT B) f a nil).
+  hnf; auto.
+  red; intros. apply nil_elem in H0. elim H0.
+  destruct H0 as [_ ?].
+  apply erel_image_elem in H0.
+  generalize (H _ H0).
+  intros.
+  rewrite (PLT.compose_hom_rel true _ _ _
+    (forgetPLT·f) 
+    (adj_counit_inv_hom B ∘ adj_counit B)
+    a x) in H1.
+  destruct H1 as [q [??]].
+  simpl in H1.
+  apply PLT.compose_hom_rel in H2.
+  destruct H2 as [y [??]].
+  simpl in H2.
+  apply adj_counit_rel_elem in H2.
+  destruct q.
+  eauto.
+  elim H2.
 Qed.
 
 
@@ -1047,6 +1075,8 @@ Qed.
 Arguments lift_prod [A B].
 Arguments lift_prod' [A B].
 
+
+
 Section strictify.
   Variables X Y:ob ∂PLT.
   Variable f: U X → U Y.  
@@ -1136,6 +1166,204 @@ Qed.
 
 Definition lift (X:PLT) : PLT := U (L X).
 Definition colift (X:∂PLT) : ∂PLT := L (U X).
+
+Definition smash_prod (A B:∂PLT) : U A × U B → U (A ⊗ B)
+  := U·(PLT.pair_map ε ε ∘ lift_prod') ∘ η.
+
+Definition unsmash_prod (A B:∂PLT) : U (A ⊗ B) → U A × U B
+  := 〈 U·π₁, U·π₂ 〉.
+
+
+Inductive smash_prod_spec (A B:∂PLT) :  U A × U B -> U (A ⊗ B) -> Prop :=
+  | smash_some : forall x x' y y',
+         x' ≤ x -> y' ≤ y ->
+         smash_prod_spec A B (Some x, Some y) (Some (x',y'))
+  | smash_none : forall m, smash_prod_spec A B m None.
+
+
+Lemma smash_prod_iff (A B:∂PLT) m n :
+  (m,n) ∈ PLT.hom_rel (smash_prod A B) <-> smash_prod_spec A B m n.
+Proof.
+  unfold smash_prod. split; intro.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [y [??]].
+  simpl in H. apply adj_unit_rel_elem in H.
+  apply U_hom_rel in H0.
+  destruct H0.
+  subst n.
+  apply smash_none.
+  destruct H0 as [a' [b' [?[??]]]]. subst y n.
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [q [??]].
+  unfold PLT.pair_map in H1.
+  destruct b'.
+  rewrite (PLT.pair_hom_rel true _ _ _ _ _ q c c0) in H1.
+  destruct H1.
+  destruct m.
+  destruct H. simpl in *.
+  destruct a'. simpl in *.
+  apply ident_elem in H0.
+  apply PLT.compose_hom_rel in H1.
+  apply PLT.compose_hom_rel in H2.
+  destruct H1 as [q1 [??]].
+  destruct H2 as [q2 [??]].
+  simpl in H4. simpl in H5.
+  apply adj_counit_rel_elem in H4.
+  apply adj_counit_rel_elem in H5.
+  destruct q.
+  simpl in *.
+  apply (pi1_rel_elem  _ _ _ _ o1 o2 q1) in H1.
+  apply (pi2_rel_elem  _ _ _ _ o1 o2 q2) in H2.
+  destruct H0. simpl in *.
+  assert (Some c ≤ c1).  
+  rewrite H4. rewrite H1. rewrite H0. auto.
+  assert (Some c0 ≤ c2).
+  rewrite H5. rewrite H2. rewrite H6. auto.
+  destruct c1. destruct c2.
+  apply smash_some; auto.
+  elim H8. elim H7.
+  
+  inversion H. subst.
+  apply PLT.compose_hom_rel.
+  exists (Some (Some x, Some y)).
+  split. simpl.
+  apply adj_unit_rel_elem. auto.
+  apply U_hom_rel. right.
+  exists (Some x, Some y).
+  exists (x',y'). split; auto.
+  apply PLT.compose_hom_rel.
+  simpl.
+  exists (Some x, Some y).
+  split. apply ident_elem. auto.
+  apply PLT.pair_hom_rel. split.
+  apply PLT.compose_hom_rel.
+  exists (Some x). split.
+  simpl. apply pi1_rel_elem. auto.
+  simpl. apply adj_counit_rel_elem. auto.
+  apply PLT.compose_hom_rel.
+  exists (Some y). split.
+  simpl. apply pi2_rel_elem. auto.
+  simpl. apply adj_counit_rel_elem. auto.
+  subst m0 n.
+  apply PLT.compose_hom_rel.
+  exists None.
+  split. simpl.
+  apply adj_unit_rel_elem. hnf. auto.
+  apply U_hom_rel. auto.
+Qed.
+
+
+Lemma smash_unsmash (A B:∂PLT) :
+  smash_prod A B ∘ unsmash_prod A B ≈ id.
+Proof.
+  split; hnf; intros.
+  destruct a.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]].
+  rewrite smash_prod_iff in H0.
+  destruct q.
+  unfold unsmash_prod in H.
+  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
+  apply U_hom_rel in H.
+  apply U_hom_rel in H1.
+  simpl. apply ident_elem.
+  inversion H0; subst.
+  destruct H1. discriminate.
+  destruct H. discriminate.
+  destruct H1 as [?[?[?[??]]]].
+  destruct H as [?[?[?[??]]]].
+  rewrite H2 in H5. inversion H5. subst x0.
+  inversion H3.   subst x1.
+  subst c.
+  destruct x2.
+  inversion H7. subst x3.
+  simpl in H.
+  apply (pi1_rel_elem _ _ _ _ c c0 x) in H.
+  simpl in H1.
+  apply (pi2_rel_elem _ _ _ _ c c0 y) in H1.
+  split; simpl.
+  rewrite H4. auto.
+  rewrite H6. auto.
+  hnf. auto.
+
+  destruct a.
+  simpl in H. apply ident_elem in H.
+  apply PLT.compose_hom_rel.
+  destruct c.
+  destruct c.
+  exists (Some c, Some c1).
+  split.
+  unfold unsmash_prod.
+  apply PLT.pair_hom_rel.
+  split.
+  apply U_hom_rel.
+  right.
+  exists (c,c1). exists c.
+  split; auto.
+  simpl. apply pi1_rel_elem. auto.
+  apply U_hom_rel.
+  right.
+  exists (c,c1). exists c1.
+  split; auto.
+  simpl. apply pi2_rel_elem. auto.
+  apply smash_prod_iff.
+  destruct c0.
+  destruct c0.
+  destruct H. apply smash_some; auto.
+  apply smash_none.
+  destruct c0. elim H.
+  exists (None,None).
+  split.
+  unfold unsmash_prod.
+  apply PLT.pair_hom_rel.
+  split; apply U_hom_rel; auto.
+  apply smash_prod_iff.
+  apply smash_none.  
+Qed.
+
+Lemma unsmash_smash (A B:∂PLT) :
+  unsmash_prod A B ∘ smash_prod A B ≤ id.
+Proof.
+  hnf; intros. destruct a. simpl. apply ident_elem.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]].
+  apply smash_prod_iff in H.
+  unfold unsmash_prod in H0.
+  destruct c0.
+  apply (PLT.pair_hom_rel _ _ _ _ _ _ q c0 c1) in H0.
+  destruct H0.
+  apply U_hom_rel in H0.
+  apply U_hom_rel in H1.
+  destruct c.
+  destruct H0. destruct H1. subst.
+  split; hnf; auto.
+  subst c0. split; simpl. hnf; auto.
+  destruct H1 as [?[?[?[??]]]].
+  subst.
+  inversion H; subst.
+  simpl in H0.
+  rewrite (pi2_rel_elem _ _ _ _ x' y' x0) in H0.
+  transitivity (Some y'); auto.
+  destruct H1. subst c1.
+  split; simpl. 2: hnf; auto.
+  destruct H0 as [?[?[?[??]]]].
+  subst. inversion H; subst.
+  simpl in H0.
+  rewrite (pi1_rel_elem _ _ _ _ x' y' x0) in H0.
+  transitivity (Some x'); auto.
+  destruct H0 as [?[?[?[??]]]].
+  destruct H1 as [?[?[?[??]]]].
+  subst.
+  inversion H4; subst.
+  inversion H; subst.
+  simpl in *.
+  rewrite (pi1_rel_elem _ _ _ _ x' y' x0) in H0.
+  rewrite (pi2_rel_elem _ _ _ _ x' y' x2) in H1.
+  split; simpl.
+  transitivity (Some x'); auto.
+  transitivity (Some y'); auto.
+Qed.
+
 
 Global Opaque liftPPLT.
 Global Opaque forgetPLT.
