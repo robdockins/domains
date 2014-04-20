@@ -94,7 +94,6 @@ Proof.
   apply adj_unit_rel_elem. auto.
 Qed.
 
-
 Lemma strict_curry_app2 D (Γ:PLT) (A B:∂PLT) 
   (f : Γ×U A → U B) (g : D → U A) (h:D → Γ)
   (Hg : semvalue g) :
@@ -146,6 +145,7 @@ Proof.
   rewrite (PLT.curry_apply3 true).
   repeat rewrite <- (cat_assoc ∂PLT).
   rewrite <- (PLT.pair_map_pair true).
+
   assert (PLT.pair (id ∘ L·h)
              (adj_counit_inv_hom A ∘ (adj_counit_hom A ∘ L·g)) 
              ≈
@@ -153,7 +153,7 @@ Proof.
   apply PLT.pair_eq.
   apply cat_ident2.
   rewrite (cat_assoc ∂PLT).
-  apply adj_inv_eq. auto.
+  apply adj_inv_eq. apply Hg.
   etransitivity.
   apply cat_respects. 2: reflexivity.
   apply Functor.respects.
@@ -170,6 +170,72 @@ Proof.
   simpl. intros. rewrite H0.
   apply cat_ident2.
 Qed.  
+
+
+
+Lemma strict_curry_app_converse (Γ:PLT) (A:∂PLT) 
+  (g : Γ → U A) :
+  (forall B (f : Γ×U A → U B),
+    strict_app ∘ 〈strict_curry f, g〉 ≈ f ∘ 〈id, g〉) ->
+  semvalue g.
+Proof.
+  intros.
+  generalize (H 1 (plt_const false (Γ × U A) (U 1) (Some tt))).
+  intros.
+  intro x.
+  destruct (PLT.hom_directed false Γ (U A) g x nil).
+  hnf; auto.
+  hnf; intros. apply nil_elem in H1. elim H1.
+  destruct H1. clear H1.
+  apply erel_image_elem in H2.
+  assert ((x, Some tt) ∈ PLT.hom_rel (plt_const false (Γ × U A) (U 1) (Some tt) ∘ 〈id,g〉)).
+  rewrite (PLT.compose_hom_rel false _ _ (U 1) _ _ x (Some tt)).
+  exists (x,x0). split.
+  apply PLT.pair_hom_rel.
+  split. simpl. apply ident_elem; auto.
+  auto.
+  rewrite (plt_const_rel_elem _ (Γ × U A) (U 1) (Some tt)).
+  auto.
+  destruct H0.
+  apply H3 in H1.
+  clear H0 H3.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [[??][??]].
+  rewrite (PLT.pair_hom_rel false _ _ _ _ _ x c c0) in H0.
+  destruct H0.
+  unfold strict_app in H1.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [?[??]].
+  simpl in H1.
+  apply adj_unit_rel_elem in H1.
+  apply U_hom_rel in H4.
+  destruct H4. discriminate.
+  destruct H4 as [?[?[?[??]]]]. subst x1. inversion H6. subst.
+  apply PLT.compose_hom_rel in H4.
+  destruct H4 as [?[??]].
+  simpl in H4. apply ident_elem in H4.
+  apply PLT.compose_hom_rel in H5.
+  destruct H5 as [?[??]].
+  destruct x3.
+  apply (PLT.pair_hom_rel true _ _ _ _ _ x1 c1 c2) in H5.
+  destruct H5.
+  destruct x2. destruct x1.
+  apply PLT.compose_hom_rel in H8.
+  destruct H8 as [?[??]].
+  simpl in H8. 
+  apply (pi2_rel_elem _ _ _ _ c5 c6 x1) in H8.
+  simpl in H9.
+  apply adj_counit_rel_elem in H9.
+  rewrite H8 in H9.
+  destruct H4. simpl in *.
+  rewrite H10 in H9.
+  destruct H1. simpl in *.
+  rewrite H11 in H9.
+  destruct c0. eauto.
+  elim H9.
+Qed.  
+  
+
 
 Lemma strict_curry_app (Γ:PLT) (A B:∂PLT) 
   (f : Γ×U A → U B) (g : Γ → U A)
