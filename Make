@@ -4,6 +4,7 @@ notations.v
 pairing.v
 basics.v
 categories.v
+bicategories.v
 preord.v
 sets.v
 finsets.v

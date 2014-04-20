@@ -112,6 +112,7 @@ VFILES:=st_lam_fix.v\
   finsets.v\
   sets.v\
   preord.v\
+  bicategories.v\
   categories.v\
   basics.v\
   pairing.v\
