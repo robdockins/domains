@@ -3881,6 +3881,7 @@ Proof.
   apply (pdom_elem_eq_eq false Y sort). simpl. auto.
 Qed.
 
+
 Lemma union_commute_le hf sort (X Y:PLT.PLT hf) (f g:X → pdomain hf sort Y) :
   union hf sort Y ∘ PLT.pair f g ≤
   union hf sort Y ∘ PLT.pair g f.
@@ -3911,10 +3912,470 @@ Proof.
   split; apply union_commute_le; auto.
 Qed.
 
+Lemma union_assoc_le hf sort (X Y:PLT.PLT hf) (f g h:X → pdomain hf sort Y) :
+  union hf sort Y ∘ PLT.pair (union hf sort Y ∘ PLT.pair f g) h ≤
+  union hf sort Y ∘ PLT.pair f (union hf sort Y ∘ PLT.pair g h).
+Proof.
+  hnf; intros [??] ?.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [[q1 q2] [??]].
+  apply (PLT.pair_hom_rel hf _ _ _ _ _ c q1 q2) in H. destruct H.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [[q3 q4] [??]].
+  apply (PLT.pair_hom_rel hf _ _ _ _ _ c q3 q4) in H. destruct H.
+  simpl in H0, H2.
+  rewrite (union_rel_elem hf sort Y) in H0.
+  rewrite (union_rel_elem hf sort Y) in H2.
+  apply PLT.compose_hom_rel.  
+  exists (q3, union_elem hf Y q4 q2).
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.  
+  exists (q4, q2). split.
+  apply PLT.pair_hom_rel; auto.
+  simpl. apply union_rel_elem. auto.
+  simpl. apply union_rel_elem.
+  rewrite H0.
+  clear -H2.
+  destruct sort.
+
+  hnf; simpl; intros.
+  apply app_elem in H. destruct H.
+  destruct (H2 x) as [y [??]]; auto.
+  simpl in H0. rewrite <- app_ass.
+  exists y. split; auto.
+  apply app_elem; auto.
+  exists x. split; auto.
+  rewrite <- app_ass.  
+  apply app_elem; auto.
+
+  hnf; simpl; intros.
+  rewrite <- app_ass in H.
+  apply app_elem in H.
+  destruct H.
+  destruct (H2 y) as [x [??]]; auto.
+  exists x; split; auto.
+  apply app_elem; auto.
+  exists y. split; auto.
+  apply app_elem; auto.  
+
+  split.
+  destruct H2 as [H2 _].
+  hnf; simpl; intros.
+  apply app_elem in H. destruct H.
+  destruct (H2 x) as [y [??]]; auto.
+  simpl in H0. rewrite <- app_ass.
+  exists y. split; auto.
+  apply app_elem; auto.
+  exists x. split; auto.
+  rewrite <- app_ass.  
+  apply app_elem; auto.
+
+  destruct H2 as [_ H2].
+  hnf; simpl; intros.
+  rewrite <- app_ass in H.
+  apply app_elem in H.
+  destruct H.
+  destruct (H2 y) as [x [??]]; auto.
+  exists x; split; auto.
+  apply app_elem; auto.
+  exists y. split; auto.
+  apply app_elem; auto.
+Qed.
+
+Lemma union_assoc hf sort (X Y:PLT.PLT hf) (f g h:X → pdomain hf sort Y) :
+  union hf sort Y ∘ PLT.pair (union hf sort Y ∘ PLT.pair f g) h ≈
+  union hf sort Y ∘ PLT.pair f (union hf sort Y ∘ PLT.pair g h).
+Proof.
+  intros; split. apply union_assoc_le.
+  etransitivity. eapply union_commute_le.
+  etransitivity. 
+  apply PLT.compose_mono. apply PLT.pair_mono.
+  apply union_commute_le. reflexivity. reflexivity.
+  etransitivity. eapply union_assoc_le.
+  etransitivity. eapply union_commute_le.
+  apply PLT.compose_mono. apply PLT.pair_mono.
+  apply union_commute_le. reflexivity. reflexivity.
+Qed.
+
 Lemma empty_unit2 sort (X Y:PLT) (f:X → pdomain false sort Y) :
   f ≈ union false sort Y ∘ 〈 f, empty sort X Y 〉.
 Proof.
   rewrite union_commute. apply empty_unit.
+Qed.
+
+Lemma union_join hf sort (X:PLT.PLT hf) :
+  join hf sort X ∘ union hf sort (pdomain hf sort X) ≈
+  union hf sort X ∘ PLT.pair_map (join hf sort X) (join hf sort X).
+Proof.
+  simpl. split; hnf; intros [[x y] z] ?.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]].
+  rewrite (union_rel_elem hf sort (powerdomain hf sort X)) in H.
+  simpl in H0.
+  apply (join_rel_elem hf sort X) in H0.
+  apply PLT.compose_hom_rel.
+  exists ( concat_elem hf sort X (elem _ _ x) (elem_inh _ _ x)
+         , concat_elem hf sort X (elem _ _ y) (elem_inh _ _ y)).
+  split.
+  unfold PLT.pair_map.
+  apply PLT.pair_hom_rel. split.
+  apply PLT.compose_hom_rel.
+  exists x. split.
+  simpl. apply (pi1_rel_elem _ _ _ _ x y x). auto.
+  simpl.
+  apply (join_rel_elem hf sort X). auto.
+  apply PLT.compose_hom_rel.
+  exists y. split.
+  simpl. apply (pi2_rel_elem _ _ _ _ x y y). auto.
+  simpl.
+  apply (join_rel_elem hf sort X). auto.
+  apply (union_rel_elem hf sort X).
+  rewrite H0.
+  clear -H.
+  destruct sort.
+
+  hnf; simpl; intros.
+  destruct H0 as [x0' [??]].
+  apply concat_in in H0. destruct H0 as [t [??]].
+  apply in_map_iff in H0. destruct H0 as [t' [??]]. subst t.
+  destruct (H t') as [s [??]].
+  exists t'; split; auto.
+  simpl in H0.
+  destruct H0 as [s' [??]].
+  rewrite H5 in H4.
+  destruct (H4 x0') as [r [??]].
+  exists x0'; split; auto.
+  exists r. split; auto.
+  destruct H6 as [r' [??]].
+  exists r'; split; auto.
+  apply in_app_or in H0.
+  apply in_or_app.
+  destruct H0. 
+  left.
+  apply concat_in. exists (elem _ _ s'). split; auto.
+  apply in_map. auto.
+  right.
+  apply concat_in. exists (elem _ _ s'). split; auto.
+  apply in_map. auto.
+  rewrite H1; auto.  
+
+  hnf; simpl; intros.
+  destruct H0 as [x0' [??]].
+  apply in_app_or in H0. destruct H0.
+  apply concat_in in H0.
+  destruct H0 as [r [??]].
+  apply in_map_iff in H0. destruct H0 as [m [??]]. subst r.
+  destruct (H m) as [t [??]].
+  exists m. split; simpl; auto. apply in_or_app; auto.
+  destruct H0 as [t' [??]].
+  rewrite H5 in H4.
+  destruct (H4 x0') as [p [??]].
+  exists x0'; split; auto.
+  destruct H6 as [p' [??]].
+  exists p'. split.
+  exists p'. split; auto.
+  apply concat_in.
+  exists (elem _ _ t'). split; auto.
+  apply in_map. auto.
+  rewrite <- H8; auto.
+  rewrite H1; auto.
+  apply concat_in in H0.
+  destruct H0 as [r [??]].
+  apply in_map_iff in H0. destruct H0 as [m [??]]. subst r.
+  destruct (H m) as [t [??]].
+  exists m. split; simpl; auto. apply in_or_app; auto.
+  destruct H0 as [t' [??]].
+  rewrite H5 in H4.
+  destruct (H4 x0') as [p [??]].
+  exists x0'; split; auto.
+  destruct H6 as [p' [??]].
+  exists p'. split.
+  exists p'. split; auto.
+  apply concat_in.
+  exists (elem _ _ t'). split; auto.
+  apply in_map. auto.
+  rewrite <- H8; auto.
+  rewrite H1; auto.
+
+  split.
+  destruct H as [H _].
+    
+  hnf; simpl; intros.
+  destruct H0 as [x0' [??]].
+  apply concat_in in H0. destruct H0 as [t [??]].
+  apply in_map_iff in H0. destruct H0 as [t' [??]]. subst t.
+  destruct (H t') as [s [??]].
+  exists t'; split; auto.
+  simpl in H0.
+  destruct H0 as [s' [??]].
+  rewrite H5 in H4.
+  destruct H4 as [? _].
+  destruct (H4 x0') as [r [??]].
+  exists x0'; split; auto.
+  exists r. split; auto.
+  destruct H6 as [r' [??]].
+  exists r'; split; auto.
+  apply in_app_or in H0.
+  apply in_or_app.
+  destruct H0. 
+  left.
+  apply concat_in. exists (elem _ _ s'). split; auto.
+  apply in_map. auto.
+  right.
+  apply concat_in. exists (elem _ _ s'). split; auto.
+  apply in_map. auto.
+  rewrite H1; auto.  
+
+  destruct H as [_ H].
+  hnf; simpl; intros.
+  destruct H0 as [x0' [??]].
+  apply in_app_or in H0. destruct H0.
+  apply concat_in in H0.
+  destruct H0 as [r [??]].
+  apply in_map_iff in H0. destruct H0 as [m [??]]. subst r.
+  destruct (H m) as [t [??]].
+  exists m. split; simpl; auto. apply in_or_app; auto.
+  destruct H0 as [t' [??]].
+  rewrite H5 in H4.
+  destruct H4 as [_ ?].
+  destruct (H4 x0') as [p [??]].
+  exists x0'; split; auto.
+  destruct H6 as [p' [??]].
+  exists p'. split.
+  exists p'. split; auto.
+  apply concat_in.
+  exists (elem _ _ t'). split; auto.
+  apply in_map. auto.
+  rewrite <- H8; auto.
+  rewrite H1; auto.
+  apply concat_in in H0.
+  destruct H0 as [r [??]].
+  apply in_map_iff in H0. destruct H0 as [m [??]]. subst r.
+  destruct (H m) as [t [??]].
+  exists m. split; simpl; auto. apply in_or_app; auto.
+  destruct H0 as [t' [??]].
+  rewrite H5 in H4.
+  destruct H4 as [_ ?].
+  destruct (H4 x0') as [p [??]].
+  exists x0'; split; auto.
+  destruct H6 as [p' [??]].
+  exists p'. split.
+  exists p'. split; auto.
+  apply concat_in.
+  exists (elem _ _ t'). split; auto.
+  apply in_map. auto.
+  rewrite <- H8; auto.
+  rewrite H1; auto.
+
+  apply PLT.compose_hom_rel in H.
+  destruct H as [[q1 q2] [??]].
+  unfold PLT.pair_map in H.
+  apply (PLT.pair_hom_rel hf 
+    (powerdomain hf sort X)
+    (powerdomain hf sort X)
+    (PLT.prod (powerdomain hf sort (powerdomain hf sort X))
+      (powerdomain hf sort (powerdomain hf sort X)))
+     _ _ (x,y) q1 q2) in H.
+  destruct H.
+  apply PLT.compose_hom_rel in H.
+  apply PLT.compose_hom_rel in H1.
+  destruct H as [r1 [??]].
+  destruct H1 as [r2 [??]].
+  simpl in H.
+  apply (pi1_rel_elem _ _ _ _ x y r1) in H.
+  simpl in H1.
+  apply (pi2_rel_elem _ _ _ _ x y r2) in H1.
+  apply PLT.compose_hom_rel.
+  exists (union_elem hf _ x y).
+  split.
+  simpl. apply union_rel_elem. auto.
+  simpl. apply join_rel_elem.
+  simpl in H0.
+  apply (union_rel_elem hf sort X) in H0. rewrite H0.
+  simpl in H2, H3.
+  rewrite (join_rel_elem hf sort) in H2.
+  rewrite (join_rel_elem hf sort) in H3.
+  clear z H0.
+
+  destruct sort.
+
+  hnf; simpl; intros.
+  apply app_elem in H0. destruct H0.
+  destruct (H2 x0) as [m [??]]; auto.
+  destruct H4 as [m' [??]]. simpl in H4.
+  apply concat_in in H4.
+  destruct H4 as [t [??]].
+  apply in_map_iff in H4. destruct H4 as [t' [??]]. subst t.
+  destruct (H t') as [s [??]].
+  exists t'; split; auto.
+  destruct H4 as [s' [??]].
+  rewrite H10 in H9.
+  destruct (H9 m') as [n [??]].
+  exists m'; split; auto.
+  destruct H11 as [n' [??]].
+  exists n'. split.
+  exists n'; split; simpl; auto.
+  apply concat_in. exists (elem _ _ s'); split; auto.
+  apply in_map. apply in_or_app. auto.
+  rewrite <- H13.
+  rewrite <- H12.
+  rewrite <- H6.
+  auto.
+
+  destruct (H3 x0) as [m [??]]; auto.
+  destruct H4 as [m' [??]]. simpl in H4.
+  apply concat_in in H4.
+  destruct H4 as [t [??]].
+  apply in_map_iff in H4. destruct H4 as [t' [??]]. subst t.
+  destruct (H1 t') as [s [??]].
+  exists t'; split; auto.
+  destruct H4 as [s' [??]].
+  rewrite H10 in H9.
+  destruct (H9 m') as [n [??]].
+  exists m'; split; auto.
+  destruct H11 as [n' [??]].
+  exists n'. split.
+  exists n'; split; simpl; auto.
+  apply concat_in. exists (elem _ _ s'); split; auto.
+  apply in_map. apply in_or_app. auto.
+  rewrite <- H13.
+  rewrite <- H12.
+  rewrite <- H6.
+  auto.
+
+  hnf; simpl; intros.
+  destruct H0 as [y0' [??]].  
+  apply concat_in in H0. destruct H0 as [r [??]].
+  apply in_map_iff in H0. destruct H0 as [s [??]]. subst r.
+  apply in_app_or in H6. destruct H6.
+  destruct (H s) as [t [??]].
+  exists s; split; auto.
+  destruct H6 as [t' [??]].
+  rewrite H8 in H7.
+  destruct (H7 y0') as [p [??]].
+  exists y0'; split; auto.
+  destruct H9 as [p' [??]].
+  destruct (H2 p') as [f [??]].
+  exists p'; split; auto. simpl.
+  apply concat_in. exists (elem _ _ t'). split; auto.
+  apply in_map. simpl. auto.
+  exists f. split.
+  apply app_elem; auto.
+  rewrite H13. rewrite <- H11.
+  rewrite H10; auto.
+  
+  destruct (H1 s) as [t [??]].
+  exists s; split; auto.
+  destruct H6 as [t' [??]].
+  rewrite H8 in H7.
+  destruct (H7 y0') as [p [??]].
+  exists y0'; split; auto.
+  destruct H9 as [p' [??]].
+  destruct (H3 p') as [f [??]].
+  exists p'; split; auto. simpl.
+  apply concat_in. exists (elem _ _ t'). split; auto.
+  apply in_map. simpl. auto.
+  exists f. split.
+  apply app_elem; auto.
+  rewrite H13. rewrite <- H11.
+  rewrite H10; auto.
+
+  split. 
+  destruct H as [H _].
+  destruct H2 as [H2 _].
+  destruct H1 as [H1 _].
+  destruct H3 as [H3 _].
+
+  hnf; simpl; intros.
+  apply app_elem in H0. destruct H0.
+  destruct (H2 x0) as [m [??]]; auto.
+  destruct H4 as [m' [??]]. simpl in H4.
+  apply concat_in in H4.
+  destruct H4 as [t [??]].
+  apply in_map_iff in H4. destruct H4 as [t' [??]]. subst t.
+  destruct (H t') as [s [??]].
+  exists t'; split; auto.
+  destruct H4 as [s' [??]].
+  rewrite H10 in H9.
+  destruct H9 as [? _].
+  destruct (H9 m') as [n [??]].
+  exists m'; split; auto.
+  destruct H11 as [n' [??]].
+  exists n'. split.
+  exists n'; split; simpl; auto.
+  apply concat_in. exists (elem _ _ s'); split; auto.
+  apply in_map. apply in_or_app. auto.
+  rewrite <- H13.
+  rewrite <- H12.
+  rewrite <- H6.
+  auto.
+
+  destruct (H3 x0) as [m [??]]; auto.
+  destruct H4 as [m' [??]]. simpl in H4.
+  apply concat_in in H4.
+  destruct H4 as [t [??]].
+  apply in_map_iff in H4. destruct H4 as [t' [??]]. subst t.
+  destruct (H1 t') as [s [??]].
+  exists t'; split; auto.
+  destruct H4 as [s' [??]].
+  rewrite H10 in H9.
+  destruct H9 as [? _]. 
+  destruct (H9 m') as [n [??]].
+  exists m'; split; auto.
+  destruct H11 as [n' [??]].
+  exists n'. split.
+  exists n'; split; simpl; auto.
+  apply concat_in. exists (elem _ _ s'); split; auto.
+  apply in_map. apply in_or_app. auto.
+  rewrite <- H13.
+  rewrite <- H12.
+  rewrite <- H6.
+  auto.
+
+  destruct H as [_ H].
+  destruct H2 as [_ H2].
+  destruct H1 as [_ H1].
+  destruct H3 as [_ H3].
+ 
+  hnf; simpl; intros.
+  destruct H0 as [y0' [??]].  
+  apply concat_in in H0. destruct H0 as [r [??]].
+  apply in_map_iff in H0. destruct H0 as [s [??]]. subst r.
+  apply in_app_or in H6. destruct H6.
+  destruct (H s) as [t [??]].
+  exists s; split; auto.
+  destruct H6 as [t' [??]].
+  rewrite H8 in H7.
+  destruct H7 as [_ ?].
+  destruct (H7 y0') as [p [??]].
+  exists y0'; split; auto.
+  destruct H9 as [p' [??]].
+  destruct (H2 p') as [f [??]].
+  exists p'; split; auto. simpl.
+  apply concat_in. exists (elem _ _ t'). split; auto.
+  apply in_map. simpl. auto.
+  exists f. split.
+  apply app_elem; auto.
+  rewrite H13. rewrite <- H11.
+  rewrite H10; auto.
+  
+  destruct (H1 s) as [t [??]].
+  exists s; split; auto.
+  destruct H6 as [t' [??]].
+  rewrite H8 in H7.
+  destruct H7 as [_ ?].
+  destruct (H7 y0') as [p [??]].
+  exists y0'; split; auto.
+  destruct H9 as [p' [??]].
+  destruct (H3 p') as [f [??]].
+  exists p'; split; auto. simpl.
+  apply concat_in. exists (elem _ _ t'). split; auto.
+  apply in_map. simpl. auto.
+  exists f. split.
+  apply app_elem; auto.
+  rewrite H13. rewrite <- H11.
+  rewrite H10; auto.
 Qed.
 
 Lemma union_idem hf sort (X Y:PLT.PLT hf) (f:X → pdomain hf sort Y) :
