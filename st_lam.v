@@ -18,7 +18,7 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
-Require Import finprod.
+Require Import finprod2.
 Require Import discrete.
 
 Require Import List.
@@ -43,12 +43,18 @@ Fixpoint tydom (τ:ty) : PLT :=
   | (τ₁ ⇒ τ₂)%ty => tydom τ₁ ⇒ tydom τ₂
   end.
 
+Lemma ty_dec : forall x y:ty, {x=y}+{x<>y}.
+Proof.
+  decide equality.
+Qed.
+
 Module env_input <: FINPROD_INPUT.
   Definition A := ty.
+  Definition Adec := ty_dec.
   Definition F := tydom.    
 End env_input.
 
-Module ENV := finprod.finprod(env_input).
+Module ENV := finprod2.finprod(env_input).
 
 Notation env := ENV.env.
 Canonical Structure ENV.env_supported.
@@ -127,48 +133,6 @@ Fixpoint raw (Γ:env) (τ:ty) (m:term Γ τ) : rawterm :=
   | tlam x σ₁ σ₂ m' => rawlam x σ₁ (raw ((x,σ₁)::Γ) σ₂ m')
   end.
 
-Fixpoint term_wk (Γ₁ Γ₂:env) (σ:ty)
-  (H:forall x τ, inenv Γ₁ x τ -> inenv Γ₂ x τ)
-  (m:term Γ₁ σ) : term Γ₂ σ :=
-
-  match m with
-  | tvar x σ IN => tvar Γ₂ x σ (H x σ IN)
-  | tbool b => tbool Γ₂ b
-  | tapp σ₁ σ₂ m₁ m₂ =>
-        @tapp Γ₂ σ₁ σ₂ (term_wk Γ₁ Γ₂ (σ₁ ⇒ σ₂) H m₁) (term_wk Γ₁ Γ₂ σ₁ H m₂)
-  | tif σ x y z =>
-        tif Γ₂ σ (term_wk Γ₁ Γ₂ ty_bool H x)
-                 (term_wk Γ₁ Γ₂ σ H y)
-                 (term_wk Γ₁ Γ₂ σ H z)
-  | tlam x σ₁ σ₂ m' =>
-        tlam Γ₂ x σ₁ σ₂ 
-            (term_wk ((x,σ₁)::Γ₁) ((x,σ₁)::Γ₂) σ₂
-              (ENV.env_incl_wk Γ₁ Γ₂ x σ₁ H) m')
-  end.
-
-Fixpoint term_subst
-  (Γ Γ':env) (τ:ty)
-  (VAR:ENV.varmap term Γ Γ')
-  (m:term Γ τ) : term Γ' τ :=
-
-  match m with
-  | tvar x σ IN => VAR x σ IN
-  | tbool b => tbool Γ' b
-  | tapp σ₁ σ₂ m₁ m₂ =>
-      @tapp Γ' σ₁ σ₂
-          (term_subst Γ Γ' (σ₁ ⇒ σ₂) VAR m₁)
-          (term_subst Γ Γ' σ₁ VAR m₂)
-  | tif σ x y z =>
-      tif Γ' σ (term_subst Γ Γ' ty_bool VAR x)
-            (term_subst Γ Γ' σ VAR y)
-            (term_subst Γ Γ' σ VAR z)
-  | tlam x σ₁ σ₂ m' =>
-      let x' := fresh[ Γ' ] in
-      tlam Γ' x' σ₁ σ₂
-          (term_subst ((x,σ₁)::Γ) ((x',σ₁)::Γ') σ₂
-            (ENV.shift_vars' term term_wk tvar Γ Γ' x σ₁ VAR) 
-            m')
-  end.
 
 Notation cxt := ENV.finprod.
 Notation castty := (cast ENV.ty).
@@ -188,12 +152,106 @@ Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
 
-Program Definition term_model : ENV.termmodel :=
-  ENV.TermModel term term_wk term_subst tvar denote _.
+
+Section traverse.
+  Variable thingy:env -> atom -> ty -> Type.
+  Variable thingy_term : forall Γ x σ, thingy Γ x σ -> term Γ σ.
+  Variable rename_var : env -> atom -> atom.
+  Variable weaken_vars : forall Γ₁ Γ₂ y τ,
+    (forall x σ, inenv Γ₁ x σ -> thingy Γ₂ x σ) ->
+    (forall x σ, inenv ((y,τ)::Γ₁) x σ -> thingy ((rename_var Γ₂ y,τ)::Γ₂) x σ).
+
+  Fixpoint traverse
+    (Γ₁ Γ₂:env) (σ:ty)
+    (VAR : forall x σ, inenv Γ₁ x σ -> thingy Γ₂ x σ)
+    (m:term Γ₁ σ) : term Γ₂ σ :=
+
+    match m with
+    | tvar x σ IN => thingy_term Γ₂ x σ (VAR x σ IN)
+    | tbool b => tbool Γ₂ b
+    | tapp σ₁ σ₂ m₁ m₂ =>
+        @tapp Γ₂ σ₁ σ₂ (traverse Γ₁ Γ₂ (σ₁ ⇒ σ₂) VAR m₁)
+                       (traverse Γ₁ Γ₂ σ₁ VAR m₂)
+    | tif σ x y z =>
+           tif Γ₂ σ (traverse Γ₁ Γ₂ ty_bool VAR x)
+                    (traverse Γ₁ Γ₂ σ VAR y)
+                    (traverse Γ₁ Γ₂ σ VAR z)
+    | tlam x σ₁ σ₂ m' =>
+           let x' := rename_var Γ₂ x in
+           tlam Γ₂ x' σ₁ σ₂
+                (traverse ((x,σ₁)::Γ₁) ((x',σ₁)::Γ₂) σ₂
+                  (weaken_vars Γ₁ Γ₂ x σ₁ VAR)
+                  m')
+    end.
+
+  Hypothesis weaken_sem_bind : forall Γ₁ Γ₂ x σ VAR,
+    bind Γ₁ x σ ∘ PLT.pair_map (ENV.varmap_denote term denote thingy thingy_term Γ₁ Γ₂ VAR) id
+    ≈ ENV.varmap_denote term denote thingy thingy_term ((x,σ)::Γ₁) ((rename_var Γ₂ x,σ)::Γ₂) 
+       (weaken_vars Γ₁ Γ₂ x σ VAR) ∘ bind Γ₂ (rename_var Γ₂ x) σ.
+
+  Hypothesis varmap_denote_proj : forall Γ₁ Γ₂ VAR x σ i,
+    〚 thingy_term Γ₂ x σ (VAR x σ i) 〛
+    ≈ castty i ∘ proj Γ₁ x ∘ ENV.varmap_denote term denote thingy thingy_term Γ₁ Γ₂ VAR.
+
+  Lemma traverse_correct
+    (Γ₁ Γ₂:env) (σ:ty)
+    (m:term Γ₁ σ) : forall
+    (VAR : forall x σ, inenv Γ₁ x σ -> thingy Γ₂ x σ),
+
+    denote _ _ (traverse Γ₁ Γ₂ σ VAR m) ≈ 
+    denote _ _ m ∘ ENV.varmap_denote term denote thingy thingy_term Γ₁ Γ₂ VAR.
+  Proof.
+    revert Γ₂. induction m; simpl; intros.
+    apply varmap_denote_proj.
+
+    rewrite <- (cat_assoc PLT). apply cat_respects; auto.
+    symmetry. apply plt_terminate_univ.
+    rewrite <- (cat_assoc PLT). apply cat_respects; auto.
+    rewrite (PLT.pair_compose_commute false).
+    apply PLT.pair_eq.
+    apply IHm1; auto.
+    apply IHm2; auto.
+
+    rewrite <- (cat_assoc PLT).
+    rewrite (PLT.pair_compose_commute false).
+    rewrite (cat_ident2 PLT).
+    
+    symmetry.
+    rewrite (disc_cases_commute _ _ _ _ _ (ENV.varmap_denote _ _ _ _ _ _ _)).
+    apply cat_respects; auto.
+    symmetry.
+    apply disc_cases_univ.
+    intros. rewrite disc_cases_elem'.
+    rewrite (cat_ident1 PLT).
+    destruct x; auto.
+    rewrite IHm1. auto.
+
+    symmetry.
+    rewrite PLT.curry_compose_commute.
+    apply PLT.curry_eq.
+    rewrite <- (cat_assoc PLT).
+    rewrite IHm.
+    rewrite <- (cat_assoc PLT). apply cat_respects; auto.
+    rewrite weaken_sem_bind.
+    apply cat_respects; auto.
+  Qed.
+
+End traverse.
+
+Program Definition lam_termmodel := ENV.TermModel term tvar traverse denote traverse_correct _.
 Next Obligation.
   simpl. auto.
 Qed.
-Existing Instance term_model.
+
+Existing Instance lam_termmodel.
+
+Notation subst := (ENV.subst term).
+
+Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
+   〚 n₁ 〛 ∘ bind Γ x σ₁ ∘ 〈id, 〚 n₂ 〛〉 ≈ 〚 subst Γ σ₂ σ₁ x n₁ n₂ 〛.
+Proof.
+  generalize (ENV.subst_soundness term). simpl. auto.
+Qed.
 
 (*
 Program Definition term1 :=
@@ -283,7 +341,7 @@ Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
   | eapp : forall x σ₁ σ₂ m₁ m₂ n₁ n₂ z,
                m₁ ⇓ (tlam Γ x σ₁ σ₂ n₁) ->
                m₂ ⇓ n₂ ->
-               ENV.subst Γ σ₂ σ₁ x n₁ n₂ ⇓ z ->
+               subst Γ σ₂ σ₁ x n₁ n₂ ⇓ z ->
                m₁ • m₂ ⇓ z
  where "m ⇓ z" := (eval _ _ m z)
   and "m ↓" := (eval _ _ m m).
@@ -406,87 +464,6 @@ Proof.
   inv H0; auto.
 Qed.
 
-Lemma weaken_term_denote Γ a m : forall Γ' H,
-  〚m〛 ∘ ENV.weaken_denote Γ Γ' H ≈〚 term_wk Γ Γ' a H m 〛.
-Proof.
-  induction m; simpl; intros.
-  apply ENV.proj_weaken. decide equality.
-
-  rewrite <- (cat_assoc PLT). apply cat_respects; auto.
-  apply plt_terminate_univ.
-  rewrite <- (cat_assoc PLT). apply cat_respects; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_eq.
-  apply IHm1; auto.
-  apply IHm2; auto.
-
-  rewrite <- (cat_assoc PLT).
-  rewrite (PLT.pair_compose_commute false).
-  rewrite (cat_ident2 PLT).
-  rewrite (disc_cases_commute _ _ _ _ _ (ENV.weaken_denote Γ Γ' H)).
-  rewrite IHm1. apply cat_respects; auto.
-  apply disc_cases_univ.
-  intros. rewrite disc_cases_elem'.
-  rewrite (cat_ident1 PLT).
-  destruct x; auto.
-
-  rewrite PLT.curry_compose_commute.
-  apply PLT.curry_eq.
-  rewrite <- IHm.
-  do 2 rewrite <- (cat_assoc PLT). apply cat_respects; auto.
-  apply ENV.bind_weaken. decide equality.
-Qed.
-
-
-Lemma term_subst_soundness Γ τ m : forall Γ' (VAR:ENV.varmap term Γ Γ'),
-  〚 term_subst Γ Γ' τ VAR m 〛 ≈ 〚m〛 ∘ ENV.varmap_denote Γ Γ' VAR.
-Proof.
-  induction m; simpl; intros.
-
-  refine (ENV.varmap_denote_proj _ Γ Γ' VAR x σ i i). decide equality.
-
-  rewrite <- (cat_assoc PLT).
-  apply cat_respects. auto.
-  symmetry. apply plt_terminate_univ.
-
-  rewrite <- (cat_assoc PLT).
-  apply cat_respects. auto.
-  rewrite (PLT.pair_compose_commute false).
-  rewrite IHm1. rewrite IHm2. auto.
-
-  rewrite <- (cat_assoc PLT).
-  rewrite (PLT.pair_compose_commute false).
-  rewrite (cat_ident2 PLT).
-  rewrite (disc_cases_commute _ _ _ _ _ (ENV.varmap_denote Γ Γ' VAR)).
-  apply cat_respects.
-  2: apply PLT.pair_eq; auto.
-  apply disc_cases_univ. intros.
-  rewrite disc_cases_elem'.
-  rewrite (cat_ident1 PLT).
-  destruct x; auto.
-
-  rewrite IHm.
-  rewrite PLT.curry_compose_commute.
-  apply PLT.curry_eq.
-  rewrite <- (cat_assoc PLT).
-  rewrite <- (cat_assoc PLT).
-  apply cat_respects; auto.
-  refine (ENV.varmap_shift_bind _ Γ Γ' x σ₁ VAR _).
-  decide equality.
-  intros. apply weaken_term_denote.
-Qed.  
-
-Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
-   〚 n₁ 〛 ∘ bind Γ x σ₁ ∘ 〈id, 〚 n₂ 〛〉 ≈ 〚 ENV.subst Γ σ₂ σ₁ x n₁ n₂ 〛.
-Proof.
-  unfold ENV.subst.
-  rewrite term_subst_soundness.
-  rewrite <- (cat_assoc PLT).
-  apply cat_respects; auto.
-  rewrite ENV.varmap_extend_bind.
-  rewrite ENV.varmap_var_id. auto.
-Qed.
-
 
 (**  Evaluation preserves the denotation of terms. *)
 Theorem soundness : forall Γ τ (m z:term Γ τ),
@@ -585,6 +562,9 @@ Proof.
   apply acong_lam; eauto.
 Qed.
 
+
+Notation term_wk := (ENV.tm_wk term).
+
 Lemma alpha_cong_wk : forall (Γm Γn Γm' Γn':env) τ m n H₁ H₂,
   (forall a b, var_cong Γm Γn a b -> var_cong Γm' Γn' a b) ->
   alpha_cong Γm Γn τ m n ->
@@ -596,7 +576,13 @@ Proof.
   apply acong_var. apply H0. auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply IHalpha_cong1. auto.
+  apply IHalpha_cong2. auto.
   apply acong_if; auto.
+  apply IHalpha_cong1. auto.
+  apply IHalpha_cong2. auto.
+  apply IHalpha_cong3. auto.
+
   apply acong_lam. apply IHalpha_cong.
   intros. inv H1.
   apply vcong_here; auto.
@@ -742,7 +728,9 @@ Proof.
   apply IHΓ in H.
   unfold Support.support. simpl.
   apply cons_elem; auto.
-Qed.  
+Qed.
+
+Notation term_subst := (ENV.tm_subst term).
 
 Lemma term_subst_cong : forall Γ τ (m:term Γ τ) Γ' (n:term Γ' τ) Γ₁ Γ₂
   (VAR1 : ENV.varmap term Γ Γ₁) (VAR2 : ENV.varmap term Γ' Γ₂),
@@ -764,9 +752,13 @@ Proof.
   apply acong_bool.
   inv H0.
   apply acong_app; auto.
-
+  apply IHm1; auto.
+  apply IHm2; auto.
   inv H0. simpl.
   apply acong_if; auto.
+  apply IHm1; auto.
+  apply IHm2; auto.
+  apply IHm3; auto.
 
   inv H0. simpl.
   apply acong_lam; auto.
@@ -833,7 +825,7 @@ Proof.
   destruct (IHeval1 Γ' n₁0 H8) as [z1' [??]].
   destruct (IHeval2 Γ' n₂0 H11) as [z2' [??]].
   inv H4.
-  destruct (IHeval3 Γ' (ENV.subst Γ' σ₂ σ₁ x₂ m₂0 z2')) as [z' [??]].
+  destruct (IHeval3 Γ' (subst Γ' σ₂ σ₁ x₂ m₂0 z2')) as [z' [??]].
   unfold ENV.subst.
   apply term_subst_cong.
   intros. 
@@ -898,9 +890,9 @@ Proof.
   intros until m; induction m; simpl; intros; auto.
   f_equal.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
-  f_equal; auto.
-  f_equal; auto.
-  f_equal; auto.
+  f_equal; auto. apply IHm1. apply IHm2.
+  f_equal; auto. apply IHm1. apply IHm2. apply IHm3.
+  f_equal; auto. apply IHm.
 Qed.  
 
 Lemma term_wk_compose : forall Γ₁ σ m Γ₂ Γ₃ H1 H2 H3,
@@ -909,9 +901,9 @@ Proof.
   intros until m. induction m; simpl; intros; auto.
   f_equal.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
-  rewrite (IHm1 Γ₂ Γ₃ H1 H2 H3).
-  rewrite (IHm2 Γ₂ Γ₃ H1 H2 H3).
-  auto.
+  f_equal.
+  apply (IHm1 Γ₂ Γ₃ H1 H2 H3).
+  apply (IHm2 Γ₂ Γ₃ H1 H2 H3).
   f_equal.
   apply IHm1.
   apply IHm2.
@@ -927,6 +919,13 @@ Proof.
   intros. eapply term_wk_compose; eauto.
 Qed.
 
+Lemma alpha_cong_eq Γ σ x y :
+  x = y ->
+  alpha_cong Γ Γ σ x y.
+Proof.
+  intro. subst y. apply alpha_eq_refl.
+Qed.
+
 Lemma term_subst_wk_cong : forall Γ τ (m:term Γ τ) Γ₁ Γ₂ Γ₃ Γ₄ 
   (VAR1 : ENV.varmap term Γ Γ₁) (VAR2:ENV.varmap term Γ₃ Γ₄) H₁ H₂,
 
@@ -940,9 +939,14 @@ Proof.
   intros until m. induction m; simpl; intros; auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply IHm1; auto. 
+  apply IHm2; auto.
   apply acong_if; auto.
-  apply acong_lam.
+  apply IHm1; auto. 
+  apply IHm2; auto.
+  apply IHm3; auto.
 
+  apply acong_lam.
   apply IHm; clear IHm.
   intros. unfold ENV.shift_vars'. unfold ENV.shift_vars.
   unfold ENV.extend_map. simpl. unfold ENV.weaken_map. simpl.
@@ -959,10 +963,14 @@ Proof.
   apply Eqdep_dec.UIP_dec. decide equality. decide equality.
 
   intros.  
-  rewrite term_wk_compose'.
+
+  eapply alpha_eq_trans.
+  apply alpha_cong_eq.
+  apply term_wk_compose'.
+  unfold ENV.tm_wk. simpl.
   match goal with [ |- alpha_cong _ _ _
-    (term_wk _ _ _ ?Q1 _)
-    (term_wk _ _ _ ?Q2 _) ] =>
+    (traverse _ _ _ _ _ _ _ ?Q1 _)
+    (traverse _ _ _ _ _ _ _ ?Q2 _) ] =>
     generalize Q1 Q2; intros
   end.
   assert (forall x τ, inenv Γ₂ x τ -> inenv ((fresh[Γ₂],σ₁)::Γ₂) x τ).
@@ -1035,7 +1043,7 @@ Qed.
 Lemma compose_term_subst : forall Γ₁ τ (m:term Γ₁ τ),
   forall (Γ₂ Γ₃:env) (g:ENV.varmap term Γ₂ Γ₃) (f:ENV.varmap term Γ₁ Γ₂),
   alpha_cong _ _ _ 
-    (term_subst Γ₁ Γ₃ τ (ENV.varmap_compose _ _ _ g f) m)
+    (term_subst Γ₁ Γ₃ τ (ENV.varmap_compose term _ _ _ g f) m)
     (term_subst Γ₂ Γ₃ τ g (term_subst Γ₁ Γ₂ τ f m)).
 Proof.
   unfold ENV.varmap_compose.
@@ -1046,6 +1054,9 @@ Proof.
   apply IHm1; auto.
   apply IHm2; auto.
   apply acong_if; auto.
+  apply IHm1; auto.
+  apply IHm2; auto.
+  apply IHm3; auto.
 
   apply acong_lam.
   eapply alpha_eq_trans. 2: apply IHm. clear IHm.
@@ -1148,7 +1159,12 @@ Proof.
   apply H1. auto.
   apply acong_bool.
   apply acong_app; auto.
+  apply IHalpha_cong1; auto.
+  apply IHalpha_cong2; auto.
   apply acong_if; auto.
+  apply IHalpha_cong1; auto.
+  apply IHalpha_cong2; auto.
+  apply IHalpha_cong3; auto.
   apply acong_lam; auto.
   apply IHalpha_cong. intros.
   unfold ENV.shift_vars'.
@@ -1216,7 +1232,7 @@ Lemma extend_shift_alpha : forall
    var_cong ((x, σ₁) :: Γ) ((x, σ₁) :: Γ) a1 a2 ->
 
    alpha_cong nil nil σ
-     (ENV.varmap_compose ((x, σ₁) :: Γ) ((x', σ₁) :: nil) nil
+     (ENV.varmap_compose term ((x, σ₁) :: Γ) ((x', σ₁) :: nil) nil
         (ENV.extend_map term  nil nil (tvar nil) x' σ₁ n)
         (ENV.shift_vars term term_wk tvar Γ nil x x' σ₁ Hx VAR) a1 σ IN1)
      (ENV.extend_map term Γ nil VAR x σ₁ n a2 σ IN2).
@@ -1318,7 +1334,7 @@ Proof.
   destruct (eval_alpha _ _ _ _ H14 _ _ H1) as [q1 [??]].
   destruct (eval_alpha _ _ _ _ H15 _ _ H4) as [q2 [??]].
   inv H10. 
-  assert (alpha_cong _ _ _ (ENV.subst nil σ₂ σ₁ x n₁ n₂) (ENV.subst nil σ₂ σ₁ _ m₂ q2)).
+  assert (alpha_cong _ _ _ (subst nil σ₂ σ₁ x n₁ n₂) (subst nil σ₂ σ₁ _ m₂ q2)).
 
   unfold ENV.subst. simpl.
   apply term_subst_cong. intros.
@@ -1439,7 +1455,7 @@ Proof.
   destruct H2 as [?[??]].
   assert (alpha_cong _ _ _ 
     (term_subst ((x, σ₁) :: Γ) nil σ₂ VAR' m)
-    (ENV.subst nil σ₂ σ₁ (fresh_atom nil)
+    (subst nil σ₂ σ₁ (fresh_atom nil)
       (term_subst ((x, σ₁) :: Γ) (((fresh_atom nil), σ₁) :: nil) σ₂
              (ENV.shift_vars' term term_wk tvar Γ nil x σ₁ VAR) m)
       n)).
