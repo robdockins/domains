@@ -94,6 +94,28 @@ Proof.
   apply adj_unit_rel_elem. auto.
 Qed.
 
+(**  Bottom is not a semantic value. *)
+Lemma plt_semvalue_bot (Γ:PLT) (A:∂PLT) (x:Γ) :
+  semvalue (⊥ : Γ → U A) -> False.
+Proof.  
+  intros.
+  red in H.
+  destruct (H x).
+  simpl in H0.
+  unfold plt_hom_adj' in H0.
+  rewrite (PLT.compose_hom_rel false _ _ _ η (U·(cppo_bot (PLT.homset_cpo true (L Γ) A)))) in H0.
+  destruct H0 as [y [??]].
+  simpl in H0. apply adj_unit_rel_elem in H0.
+  rewrite (U_hom_rel _ _ (cppo_bot (PLT.homset_cpo true (L Γ) A))) in H1.
+  destruct H1. discriminate.
+  destruct H1 as [?[?[?[??]]]].
+  simpl in H1.
+  apply union_axiom in H1.
+  destruct H1 as [?[??]].
+  apply image_axiom2 in H1.
+  destruct H1 as [?[??]]. apply empty_elem in H1. auto.
+Qed.
+
 Lemma strict_curry_app2 D (Γ:PLT) (A B:∂PLT) 
   (f : Γ×U A → U B) (g : D → U A) (h:D → Γ)
   (Hg : semvalue g) :

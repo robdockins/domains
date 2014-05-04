@@ -27,8 +27,22 @@ Require Import strict_utils.
 Require Import List.
 
 (** * The simply-typed λ-calculus with booleans and fixpoints
+
+      This file develops the call-by-value simply-typed λ-calculus
+      with named variables and a fixpoint operator.
+      Types are interpreted as pointed domains in ∂PLT.
+
+      Soundness and adequacy of the denotational semantics
+      are proved with respect to a standard big-step operational
+      semantics.  This uses the standard logical relation
+      approach.
   *)
 
+
+(**  ** Types and type denotations
+
+     We have a boolean base type and functions.
+  *)
 Inductive ty :=
   | ty_bool
   | ty_arrow : ty -> ty -> ty.
@@ -41,17 +55,31 @@ Bind Scope ty_scope with ty.
 Delimit Scope lam_scope with lam.
 Open Scope lam_scope.
 
+(**  Types are interpreted via a straightforward
+     translation into ∂PLT domains.
+  *)
 Fixpoint tydom (τ:ty) : ∂PLT :=
   match τ with
-  | ty_bool => flat enumbool
-  | ty_arrow τ₁ τ₂ => colift (tydom τ₁ ⊸ tydom τ₂)
+  | 2%ty => flat enumbool
+  | (τ₁ ⇒ τ₂)%ty => colift (tydom τ₁ ⊸ tydom τ₂)
   end.
 
+(**  The syntax of types has decidable equality.  This is
+     important because it allows us to work around some
+     problems that arise with dependent types.
+  *)
 Lemma ty_dec : forall x y:ty, {x=y}+{x<>y}.
 Proof.
   decide equality.
 Qed.
 
+(**  ** Type contexts
+
+     Now we instantiate a module for finite products.
+     This gives us a domain in PLT for representing
+     type contexts, and provides operations and lemmas
+     we need for working with them.
+  *)
 Module env_input <: FINPROD_INPUT.
   Definition A := ty.
   Definition Adec := ty_dec.
@@ -64,27 +92,35 @@ Notation env := ENV.env.
 Notation inenv := ENV.inenv.
 Canonical Structure ENV.env_supported.
 
+Notation cxt := ENV.finprod.
+Notation castty := (cast ENV.ty).
+Notation proj := ENV.proj.
+Notation bind := ENV.bind.
 
-Inductive rawterm : Type :=
-  | rawvar : atom -> rawterm
-  | rawbool : bool -> rawterm
-  | rawapp : rawterm -> rawterm -> rawterm
-  | rawif : rawterm -> rawterm -> rawterm -> rawterm
-  | rawfix : atom -> rawterm -> rawterm
-  | rawlam : atom -> ty -> rawterm -> rawterm.
 
+(**  ** Terms and term denotations
+
+     Terms are intrinsicly-typed, carrying both
+     a type environment for their free variables
+     and the final type of the term.
+
+     Variables carry a name (atom) and a proof
+     that (x,σ) appears in the type environment.
+     Lambdas and the fixpoint operator extend the
+     type environment in the standard way.
+  *)
 Inductive term (Γ:env) : ty -> Type :=
   | tvar : forall x σ,
                 inenv Γ x σ ->
                 term Γ σ
   | tbool : forall n:bool,
-                term Γ ty_bool
+                term Γ 2
   | tapp : forall σ₁ σ₂,
                 term Γ (σ₁ ⇒ σ₂) ->
                 term Γ σ₁ ->
                 term Γ σ₂
   | tif : forall σ,
-                term Γ ty_bool ->
+                term Γ 2 ->
                 term Γ σ ->
                 term Γ σ ->
                 term Γ σ
@@ -99,60 +135,13 @@ Arguments tapp [_ _ _] _ _.
 Notation "x • y" := (tapp x y) 
   (at level 52, left associativity, format "x • y") : lam_scope.
 
+Notation subst := (ENV.subst term).
+Notation term_wk := (ENV.tm_wk term).
+Notation term_subst := (ENV.tm_subst term).
 
-Inductive var_cong : env -> env -> atom -> atom -> Prop :=
- | vcong_here : forall Γ₁ Γ₂ x₁ x₂ y₁ y₂ τ, 
-                   x₁ = y₁ -> x₂ = y₂ ->
-                   var_cong ((x₁,τ)::Γ₁) ((x₂,τ)::Γ₂) y₁ y₂
- | vcong_there : forall Γ₁ Γ₂ x₁ x₂ y₁ y₂ τ,
-                   x₁ <> y₁ -> x₂ <> y₂ ->
-                   var_cong Γ₁ Γ₂ y₁ y₂ ->
-                   var_cong ((x₁,τ)::Γ₁) ((x₂,τ)::Γ₂) y₁ y₂.
-
-Inductive alpha_cong : forall Γ Γ' (τ:ty), term Γ τ -> term Γ' τ -> Prop :=
-
-  | acong_var : forall Γ Γ' τ x₁ x₂ H₁ H₂,
-                  var_cong Γ Γ' x₁ x₂ ->
-                  alpha_cong Γ Γ' τ (tvar Γ x₁ τ H₁) (tvar Γ' x₂ τ H₂)
-
-  | acong_bool : forall Γ Γ' b,
-                  alpha_cong Γ Γ' ty_bool (tbool Γ b) (tbool Γ' b)
-
-  | acong_app : forall Γ Γ' σ₁ σ₂ m₁ m₂ n₁ n₂,
-                  alpha_cong Γ Γ' (σ₁ ⇒ σ₂) m₁ n₁ ->
-                  alpha_cong Γ Γ' σ₁ m₂ n₂ ->
-                  alpha_cong Γ Γ' σ₂ (m₁ • m₂) (n₁ • n₂)
-
-  | acong_if : forall Γ Γ' σ x1 x2 y1 y2 z1 z2,
-                  alpha_cong Γ Γ' ty_bool x1 x2 ->
-                  alpha_cong Γ Γ' σ y1 y2 ->
-                  alpha_cong Γ Γ' σ z1 z2 ->
-                  alpha_cong Γ Γ' σ (tif Γ σ x1 y1 z1) (tif Γ' σ x2 y2 z2)
-  
-  | acong_fix : forall (Γ Γ':env) (x₁ x₂:atom) σ m₁ m₂,
-                  alpha_cong ((x₁,σ)::Γ) ((x₂,σ)::Γ') σ m₁ m₂ ->
-                  alpha_cong Γ Γ' σ (tfix Γ x₁ σ m₁) (tfix Γ' x₂ σ m₂)
-
-  | acong_lam : forall (Γ Γ':env) (x₁ x₂:atom) σ₁ σ₂ m₁ m₂,
-                  alpha_cong ((x₁,σ₁)::Γ) ((x₂,σ₁)::Γ') σ₂ m₁ m₂ ->
-                  alpha_cong Γ Γ' (σ₁ ⇒ σ₂) (tlam Γ x₁ σ₁ σ₂ m₁) (tlam Γ' x₂ σ₁ σ₂ m₂).
-
-Fixpoint raw (Γ:env) (τ:ty) (m:term Γ τ) : rawterm :=
-  match m with
-  | tvar x _ _ => rawvar x
-  | tbool b => rawbool b
-  | tapp σ₁ σ₂ t1 t2 => rawapp (raw Γ (σ₁ ⇒ σ₂) t1) (raw Γ σ₁ t2)
-  | tif σ x y z => rawif (raw Γ ty_bool x) (raw Γ σ y) (raw Γ σ z)
-  | tlam x σ₁ σ₂ m' => rawlam x σ₁ (raw ((x,σ₁)::Γ) σ₂ m')
-  | tfix x σ m' => rawfix x (raw ((x,σ)::Γ) σ m')
-  end.
-
-
-Notation cxt := ENV.finprod.
-Notation castty := (cast ENV.ty).
-Notation proj := ENV.proj.
-Notation bind := ENV.bind.
-
+(**  The terms in environment [Γ] with type [τ] are interpreted
+     as ∂PLT-homs from [cxt Γ] to [U (tydom τ)].
+  *)
 Definition dom (Γ:env) (τ:ty) : Type := cxt Γ → U (tydom τ).
 
 Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
@@ -167,6 +156,12 @@ Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
 
+(**  Here we define a generic traversal function.  This traversal
+     is uniformly used to define both weakening and substitution
+     by exploiting the finprod library.  Defining this traversal
+     and its correctness proof is sufficent to get out a 
+     definition of substitution and a proof of correctness.
+  *)
 Section traverse.
   Variable thingy:env -> atom -> ty -> Type.
   Variable thingy_term : forall Γ x σ, thingy Γ x σ -> term Γ σ.
@@ -262,74 +257,133 @@ Section traverse.
     do 2 rewrite <- (cat_assoc PLT). apply cat_respects; auto.
     symmetry. apply weaken_sem_bind.
   Qed.
-
 End traverse.
 
-Program Definition lam_termmodel := ENV.TermModel term tvar traverse denote traverse_correct _.
+(**  Register terms together with the denotation and traversal functions
+     as a term model.  This gives us access to the generic substitution
+     definition in finprod.
+  *)
+Program Definition lam_termmodel 
+  := ENV.TermModel term tvar traverse denote traverse_correct _.
 Next Obligation.
   simpl. auto.
 Qed.
-
 Existing Instance lam_termmodel.
 
-Notation subst := (ENV.subst term).
-Notation term_wk := (ENV.tm_wk term).
-Notation term_subst := (ENV.tm_subst term).
 
+(**  Restate the substitution correctness lemma. *)
 Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
    〚 n₁ 〛 ∘ bind Γ x σ₁ ∘ 〈id, 〚 n₂ 〛〉 ≈ 〚 subst Γ σ₂ σ₁ x n₁ n₂ 〛.
 Proof.
   generalize (ENV.subst_soundness term). simpl. auto.
 Qed.
 
+(**  ** Operational semantics and soundness
 
-(*
-Program Definition subst (Γ:env) (τ₁ τ₂:ty) (a:atom)
-  (m:term ((a,τ₂)::Γ) τ₁) (z:term Γ τ₂) : term Γ τ₁ :=
+     This is a standard call-by-value operational semantics.
 
-  term_subst ((a,τ₂)::Γ) Γ τ₁ (extend_map Γ Γ (tvar Γ) a τ₂ z) m.
-*)
-(*
-Program Definition term1 :=
-  tlam (("x",ty_bool)::nil) "y" ty_bool ty_bool
-    (tvar (("y",ty_bool)::("x",ty_bool)::nil) "x" ty_bool (Logic.refl_equal _)).
+     Notation: [m⇓z] means that [m] evaluates to [z].
+     [m↓] means that [m] evaluates to itself; i.e., [m] is a value.
+  *)
+Reserved Notation "m ⇓ z" (at level 82, left associativity).
+Reserved Notation "m ↓" (at level 82, left associativity).
 
-Program Definition term1' :=
-  tlam (("x",ty_bool)::nil) "x" ty_bool ty_bool
-    (tvar (("x",ty_bool)::("x",ty_bool)::nil) "x" ty_bool (Logic.refl_equal _)).
+Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
+  | ebool : forall b,
+               tbool Γ b ↓
+  | eif : forall σ x y z b q,
+               x ⇓ (tbool Γ b) ->
+               (if b then y else z) ⇓ q ->
+               (tif Γ σ x y z) ⇓ q
+  | elam : forall x σ₁ σ₂ m,
+               tlam Γ x σ₁ σ₂ m ↓
+  | efix : forall x σ m z,
+               subst Γ σ σ x m (tfix Γ x σ m) ⇓ z ->
+               tfix Γ x σ m ⇓ z
+  | eapp : forall x σ₁ σ₂ m₁ m₂ n₁ n₂ z,
+               m₁ ⇓ (tlam Γ x σ₁ σ₂ n₁) ->
+               m₂ ⇓ n₂ ->
+               subst Γ σ₂ σ₁ x n₁ n₂ ⇓ z ->
+               m₁ • m₂ ⇓ z
+ where "m ⇓ z" := (eval _ _ m z)
+  and "m ↓" := (eval _ _ m m).
 
-Program Definition term2 :=
-  tbool nil false.
 
-Definition term3 := subst nil _ _ "x" term1 term2.
-Definition term3' := subst nil _ _ "x" term1' term2.
+(**  Every syntactic value is a semantic value.
+  *)
+Lemma value_semvalue Γ τ (m z:term Γ τ) : m ⇓ z -> semvalue 〚z〛.
+Proof.
+  intro H; induction H; auto.
+  simpl. apply flat_elem'_semvalue.
+  simpl. apply strict_curry'_semvalue.
+Qed.
 
-Program Definition term1'' :=
-  tlam nil "x" ty_bool ty_bool
-    (tvar (("x",ty_bool)::nil) "x" ty_bool (Logic.refl_equal _)).
 
-Definition term4 := subst nil _ _ "x" term1 (term1'' • tbool _ true).
-Definition term4' := subst nil _ _ "x" term1' (term1'' • tbool _ true).
 
-Program Definition term5 :=
-  tlam (("y",ty_bool ⇒ ty_bool)%ty::("x",ty_bool)%ty::nil) "x" ty_bool _
-    (tvar (("x",ty_bool)::("y",ty_bool ⇒ ty_bool)%ty::("x",ty_bool)%ty::nil) 
-       "y" (ty_bool ⇒ ty_bool) (Logic.refl_equal _)).
+(** Applications, if/then/else, and fixpoints are nonvalues. *)
+Lemma app_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall σ₂ (m:term Γ (σ₂ ⇒ σ)) n, y = m•n -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
 
-Definition term6 := subst (("x",ty_bool)%ty::nil) _ _ "y" term5 term1.
-Definition term6' := subst (("x",ty_bool)%ty::nil) _ _ "y" term5 term1'.
+Lemma if_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall a b c, y = tif Γ σ a b c -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
 
-Eval vm_compute in (raw _ _ term1).
-Eval vm_compute in (raw _ _ term1').
-Eval vm_compute in (raw _ _ term2).
-Eval vm_compute in (raw _ _ term3).
-Eval vm_compute in (raw _ _ term3').
-Eval vm_compute in (raw _ _ term4).
-Eval vm_compute in (raw _ _ term4').
-Eval vm_compute in (raw _ _ term5).
-Eval vm_compute in (raw _ _ term6).
-Eval vm_compute in (raw _ _ term6').
-*)
+Lemma fix_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall x m, y = tfix Γ x σ m -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
+
+(**  Evaluation preserves the denotation of terms. *)
+Theorem soundness : forall Γ τ (m z:term Γ τ),
+  m ⇓ z -> 〚m〛 ≈ 〚z〛.
+Proof.
+  intros. induction H; simpl; auto.
+
+  rewrite IHeval1.
+  simpl.
+  rewrite flat_cases_elem'.
+  rewrite (cat_ident1 PLT).
+  destruct b; auto.
+
+  rewrite fixes_unroll.
+  rewrite PLT.curry_apply2.
+  rewrite <- IHeval.
+  apply (subst_soundness Γ x σ σ m (tfix Γ x σ m)).
+
+  rewrite IHeval1.
+  rewrite IHeval2.
+  rewrite <- IHeval3.
+  simpl.
+  rewrite strict_curry_app'.
+  apply subst_soundness.
+  eapply value_semvalue; eauto.
+Qed.
+
+
+(**  ** Misc technical lemmas
+  *)
+
 
 (**  Syntactic types have decicable equality, which
      implies injectivity for dependent pairs with
@@ -363,29 +417,178 @@ Ltac inv H :=
   inversion H; subst; inj_ty; repeat subst.
 
 
-Reserved Notation "m ⇓ z" (at level 82, left associativity).
-Reserved Notation "m ↓" (at level 82, left associativity).
+(**  We will need a variety of technical results about the operational semantics.
+  *)
+Lemma eval_value Γ τ x y :
+  eval Γ τ x y -> eval Γ τ y y.
+Proof.
+  intro H. induction H.
+  apply ebool.
+  auto.
+  apply elam.
+  auto.
+  auto.
+Qed.
 
-Inductive eval (Γ:env) : forall τ, term Γ τ -> term Γ τ -> Prop :=
-  | ebool : forall b,
-               tbool Γ b ↓
-  | eif : forall σ x y z b q,
-               x ⇓ (tbool Γ b) ->
-               (if b then y else z) ⇓ q ->
-               (tif Γ σ x y z) ⇓ q
-  | elam : forall x σ₁ σ₂ m,
-               tlam Γ x σ₁ σ₂ m ↓
-  | efix : forall x σ m z,
-               subst Γ σ σ x m (tfix Γ x σ m) ⇓ z ->
-               tfix Γ x σ m ⇓ z
-  | eapp : forall x σ₁ σ₂ m₁ m₂ n₁ n₂ z,
-               m₁ ⇓ (tlam Γ x σ₁ σ₂ n₁) ->
-               m₂ ⇓ n₂ ->
-               subst Γ σ₂ σ₁ x n₁ n₂ ⇓ z ->
-               m₁ • m₂ ⇓ z
- where "m ⇓ z" := (eval _ _ m z)
-  and "m ↓" := (eval _ _ m m).
+Lemma eval_eq Γ τ x y1 y2 :
+  eval Γ τ x y1 -> eval Γ τ x y2 -> y1 = y2.
+Proof.
+  intro H. revert y2.
+  induction H.
 
+  intros. inv H.  auto.
+  intros. inv H1.
+  assert (tbool Γ b = tbool Γ b0).
+  apply IHeval1. auto.
+  inv H2.
+  apply IHeval2; auto.
+  intros. inv H. auto.
+
+  intros. inv H0.
+  apply IHeval; auto.
+
+  intros. inv H2.
+  apply IHeval1 in H8.
+  apply IHeval2 in H9.
+  inv H8.
+  apply IHeval3; auto.
+Qed.
+
+Lemma eval_trans Γ τ x y z :
+  eval Γ τ x y -> eval Γ τ y z -> eval Γ τ x z.
+Proof.
+  intros.
+  replace z with y; auto.
+  eapply eval_eq with y; auto.
+  eapply eval_value; eauto.
+Qed.
+
+
+(**  ** Alpha congruence
+
+     Here we define alpha congruence of terms.
+  *)
+Inductive var_cong : env -> env -> atom -> atom -> Prop :=
+ | vcong_here : forall Γ₁ Γ₂ x₁ x₂ y₁ y₂ τ, 
+                   x₁ = y₁ -> x₂ = y₂ ->
+                   var_cong ((x₁,τ)::Γ₁) ((x₂,τ)::Γ₂) y₁ y₂
+ | vcong_there : forall Γ₁ Γ₂ x₁ x₂ y₁ y₂ τ,
+                   x₁ <> y₁ -> x₂ <> y₂ ->
+                   var_cong Γ₁ Γ₂ y₁ y₂ ->
+                   var_cong ((x₁,τ)::Γ₁) ((x₂,τ)::Γ₂) y₁ y₂.
+
+Inductive alpha_cong : forall Γ Γ' (τ:ty), term Γ τ -> term Γ' τ -> Prop :=
+
+  | acong_var : forall Γ Γ' τ x₁ x₂ H₁ H₂,
+                  var_cong Γ Γ' x₁ x₂ ->
+                  alpha_cong Γ Γ' τ (tvar Γ x₁ τ H₁) (tvar Γ' x₂ τ H₂)
+
+  | acong_bool : forall Γ Γ' b,
+                  alpha_cong Γ Γ' ty_bool (tbool Γ b) (tbool Γ' b)
+
+  | acong_app : forall Γ Γ' σ₁ σ₂ m₁ m₂ n₁ n₂,
+                  alpha_cong Γ Γ' (σ₁ ⇒ σ₂) m₁ n₁ ->
+                  alpha_cong Γ Γ' σ₁ m₂ n₂ ->
+                  alpha_cong Γ Γ' σ₂ (m₁ • m₂) (n₁ • n₂)
+
+  | acong_if : forall Γ Γ' σ x1 x2 y1 y2 z1 z2,
+                  alpha_cong Γ Γ' ty_bool x1 x2 ->
+                  alpha_cong Γ Γ' σ y1 y2 ->
+                  alpha_cong Γ Γ' σ z1 z2 ->
+                  alpha_cong Γ Γ' σ (tif Γ σ x1 y1 z1) (tif Γ' σ x2 y2 z2)
+  
+  | acong_fix : forall (Γ Γ':env) (x₁ x₂:atom) σ m₁ m₂,
+                  alpha_cong ((x₁,σ)::Γ) ((x₂,σ)::Γ') σ m₁ m₂ ->
+                  alpha_cong Γ Γ' σ (tfix Γ x₁ σ m₁) (tfix Γ' x₂ σ m₂)
+
+  | acong_lam : forall (Γ Γ':env) (x₁ x₂:atom) σ₁ σ₂ m₁ m₂,
+                  alpha_cong ((x₁,σ₁)::Γ) ((x₂,σ₁)::Γ') σ₂ m₁ m₂ ->
+                  alpha_cong Γ Γ' (σ₁ ⇒ σ₂) (tlam Γ x₁ σ₁ σ₂ m₁) (tlam Γ' x₂ σ₁ σ₂ m₂).
+
+
+(** Alpha congruence is reflexive, transitive and symmetric.
+  *)
+Lemma var_cong_refl Γ x τ:
+  inenv Γ x τ ->
+  var_cong Γ Γ x x.
+Proof.
+  induction Γ; intro H.
+  inv H.
+  hnf in H. simpl in H.
+  destruct a.
+  destruct (string_dec s x). inv H.
+  apply vcong_here; auto.
+  apply vcong_there; auto.
+Qed.
+
+Lemma var_cong_sym Γ₁ Γ₂ x y :
+  var_cong Γ₁ Γ₂ x y ->
+  var_cong Γ₂ Γ₁ y x.
+Proof.
+  intro H. induction H.
+  apply vcong_here; auto.
+  apply vcong_there; auto.
+Qed.
+
+Lemma var_cong_trans Γ₁ Γ₂ x y z :
+  var_cong Γ₁ Γ₂ x y ->
+  forall Γ₃,
+  var_cong Γ₂ Γ₃ y z ->
+  var_cong Γ₁ Γ₃ x z.
+Proof.
+  intro H; induction H; intros.
+  subst. inv H1.
+  apply vcong_here; auto.
+  elim H3; auto.
+  inv H2.
+  elim H0. auto.
+  apply vcong_there; auto.
+Qed.
+
+Lemma alpha_eq_refl Γ σ (m:term Γ σ) :
+  alpha_cong Γ Γ σ m m.
+Proof.
+  induction m.
+  apply acong_var.
+  eapply var_cong_refl; eauto.
+  apply acong_bool.
+  apply acong_app; auto.
+  apply acong_if; auto.
+  apply acong_lam; auto.
+  apply acong_fix; auto.
+Qed.
+
+Lemma alpha_eq_sym Γ₁ Γ₂ τ m n :
+  alpha_cong Γ₁ Γ₂ τ m n ->
+  alpha_cong Γ₂ Γ₁ τ n m.
+Proof.
+  intro H; induction H.
+  apply acong_var. apply var_cong_sym. auto.
+  apply acong_bool.
+  apply acong_app; auto.
+  apply acong_if; auto.
+  apply acong_fix; auto.
+  apply acong_lam; auto.
+Qed.
+
+Lemma alpha_eq_trans Γ₁ τ (m:term Γ₁ τ) : 
+  forall Γ₂ Γ₃ (n:term Γ₂ τ) (o:term Γ₃ τ),
+  alpha_cong Γ₁ Γ₂ τ m n ->
+  alpha_cong Γ₂ Γ₃ τ n o ->
+  alpha_cong Γ₁ Γ₃ τ m o.
+Proof.
+  induction m; intros; inv H; inv H0.
+  apply acong_var.
+  eapply var_cong_trans; eauto.
+  apply acong_bool.
+  apply acong_app; eauto.
+  apply acong_if; eauto.
+  apply acong_lam; eauto.
+  apply acong_fix; eauto.
+Qed.
+
+(**  Alpha congruent terms have equal denotations.
+  *)
 Lemma alpha_cong_denote (Γ₁ Γ₂:env) τ (m:term Γ₁ τ) (n:term Γ₂ τ) :
   alpha_cong Γ₁ Γ₂ τ m n -> 
 
@@ -568,119 +771,14 @@ Proof.
   inv H0; auto.
 Qed.
 
-Lemma value_semvalue Γ τ (m z:term Γ τ) : m ⇓ z -> semvalue 〚z〛.
-Proof.
-  intro H; induction H; auto.
-  simpl. apply flat_elem'_semvalue.
-  simpl. apply strict_curry'_semvalue.
-Qed.
 
-(**  Evaluation preserves the denotation of terms. *)
-Theorem soundness : forall Γ τ (m z:term Γ τ),
-  m ⇓ z -> 〚m〛 ≈ 〚z〛.
-Proof.
-  intros. induction H; simpl; auto.
+(**  We'll end up needing quite a few facts about alpha congruence.
+     Here we collect them together before defining the logical relation
+     and tackling the fundamental lemma.
+  *)
 
-  rewrite IHeval1.
-  simpl.
-  rewrite flat_cases_elem'.
-  rewrite (cat_ident1 PLT).
-  destruct b; auto.
-
-  rewrite fixes_unroll.
-  rewrite PLT.curry_apply2.
-  rewrite <- IHeval.
-  apply (subst_soundness Γ x σ σ m (tfix Γ x σ m)).
-
-  rewrite IHeval1.
-  rewrite IHeval2.
-  rewrite <- IHeval3.
-  simpl.
-  rewrite strict_curry_app'.
-  apply subst_soundness.
-  eapply value_semvalue; eauto.
-Qed.
-
-
-Lemma var_cong_refl Γ x τ:
-  inenv Γ x τ ->
-  var_cong Γ Γ x x.
-Proof.
-  induction Γ; intro H.
-  inv H.
-  hnf in H. simpl in H.
-  destruct a.
-  destruct (string_dec s x). inv H.
-  apply vcong_here; auto.
-  apply vcong_there; auto.
-Qed.
-
-Lemma var_cong_sym Γ₁ Γ₂ x y :
-  var_cong Γ₁ Γ₂ x y ->
-  var_cong Γ₂ Γ₁ y x.
-Proof.
-  intro H. induction H.
-  apply vcong_here; auto.
-  apply vcong_there; auto.
-Qed.
-
-Lemma var_cong_trans Γ₁ Γ₂ x y z :
-  var_cong Γ₁ Γ₂ x y ->
-  forall Γ₃,
-  var_cong Γ₂ Γ₃ y z ->
-  var_cong Γ₁ Γ₃ x z.
-Proof.
-  intro H; induction H; intros.
-  subst. inv H1.
-  apply vcong_here; auto.
-  elim H3; auto.
-  inv H2.
-  elim H0. auto.
-  apply vcong_there; auto.
-Qed.
-
-Lemma alpha_eq_refl Γ σ (m:term Γ σ) :
-  alpha_cong Γ Γ σ m m.
-Proof.
-  induction m.
-  apply acong_var.
-  eapply var_cong_refl; eauto.
-  apply acong_bool.
-  apply acong_app; auto.
-  apply acong_if; auto.
-  apply acong_lam; auto.
-  apply acong_fix; auto.
-Qed.
-
-Lemma alpha_eq_sym Γ₁ Γ₂ τ m n :
-  alpha_cong Γ₁ Γ₂ τ m n ->
-  alpha_cong Γ₂ Γ₁ τ n m.
-Proof.
-  intro H; induction H.
-  apply acong_var. apply var_cong_sym. auto.
-  apply acong_bool.
-  apply acong_app; auto.
-  apply acong_if; auto.
-  apply acong_fix; auto.
-  apply acong_lam; auto.
-Qed.
-
-Lemma alpha_eq_trans Γ₁ τ (m:term Γ₁ τ) : 
-  forall Γ₂ Γ₃ (n:term Γ₂ τ) (o:term Γ₃ τ),
-  alpha_cong Γ₁ Γ₂ τ m n ->
-  alpha_cong Γ₂ Γ₃ τ n o ->
-  alpha_cong Γ₁ Γ₃ τ m o.
-Proof.
-  induction m; intros; inv H; inv H0.
-  apply acong_var.
-  eapply var_cong_trans; eauto.
-  apply acong_bool.
-  apply acong_app; eauto.
-  apply acong_if; eauto.
-  apply acong_lam; eauto.
-  apply acong_fix; eauto.
-Qed.
-
+(**  Congruence is preserved by weakening.
+  *)
 Lemma alpha_cong_wk : forall (Γm Γn Γm' Γn':env) τ m n H₁ H₂,
   (forall a b, var_cong Γm Γn a b -> var_cong Γm' Γn' a b) ->
   alpha_cong Γm Γn τ m n ->
@@ -709,89 +807,8 @@ Proof.
   apply vcong_there; auto.
 Qed.
 
-(**  Now we move on to the more difficult adequacy proof.
-     For this we will first need a variety of technical results
-     about the operational semantics.
+(**  Variable congruence is closely related the [inenv] relation.
   *)
-
-Lemma eval_value Γ τ x y :
-  eval Γ τ x y -> eval Γ τ y y.
-Proof.
-  intro H. induction H.
-  apply ebool.
-  auto.
-  apply elam.
-  auto.
-  auto.
-Qed.
-
-Lemma eval_eq Γ τ x y1 y2 :
-  eval Γ τ x y1 -> eval Γ τ x y2 -> y1 = y2.
-Proof.
-  intro H. revert y2.
-  induction H.
-
-  intros. inv H.  auto.
-  intros. inv H1.
-  assert (tbool Γ b = tbool Γ b0).
-  apply IHeval1. auto.
-  inv H2.
-  apply IHeval2; auto.
-  intros. inv H. auto.
-
-  intros. inv H0.
-  apply IHeval; auto.
-
-  intros. inv H2.
-  apply IHeval1 in H8.
-  apply IHeval2 in H9.
-  inv H8.
-  apply IHeval3; auto.
-Qed.
-
-Lemma eval_trans Γ τ x y z :
-  eval Γ τ x y -> eval Γ τ y z -> eval Γ τ x z.
-Proof.
-  intros.
-  replace z with y; auto.
-  eapply eval_eq with y; auto.
-  eapply eval_value; eauto.
-Qed.
-
-
-(**  Now we define the logical relation.  It is defined by induction
-     on the structure of types, in a standard way.
-  *)
-Fixpoint LR (τ:ty) : term nil τ -> (cxt nil → U (tydom τ)) -> Prop :=
-  match τ as τ' return term nil τ' -> (cxt nil → U (tydom τ')) -> Prop
-  with
-  | ty_bool => fun m h =>
-        exists b:bool, m = tbool nil b /\ h ≈ flat_elem' b
-  | ty_arrow σ₁ σ₂ => fun m h =>
-        forall n h', 
-          LR σ₁ n h' -> n↓ -> semvalue h' ->
-          semvalue (strict_app' ∘ 〈 h, h' 〉) ->
-          exists z1 z2, 
-            eval _ _ (m•n) z1 /\
-            alpha_cong nil nil σ₂ z1 z2 /\
-            LR σ₂ z2 (strict_app' ∘ 〈h, h'〉)
-  end.
-
-Lemma LR_equiv τ : forall m h h',
-  h ≈ h' -> LR τ m h -> LR τ m h'.
-Proof.
-  induction τ; simpl. intros.
-  destruct H0 as [b [??]]. exists b; split; auto.
-  rewrite <- H; auto.
-  simpl; intros.
-  destruct (H0 n h'0 H1 H2) as [z1 [z2 [?[??]]]]; auto.
-  rewrite H. auto.
-  exists z1; exists z2; split; auto. split; auto.
-  revert H7. apply IHτ2.
-  apply cat_respects; auto.
-  apply PLT.pair_eq; auto.
-Qed.
-
 Lemma varcong_inenv1 Γ₁ Γ₂ a b :
   var_cong Γ₁ Γ₂ a b -> exists τ, inenv Γ₁ a τ.
 Proof.
@@ -855,6 +872,9 @@ Proof.
   apply cons_elem; auto.
 Qed.  
 
+(**  When congruent substitutions are applied to congruence terms,
+     the resulting terms are congruent.
+  *)
 Lemma term_subst_cong : forall Γ τ (m:term Γ τ) Γ' (n:term Γ' τ) Γ₁ Γ₂
   (VAR1 : ENV.varmap term Γ Γ₁) (VAR2 : ENV.varmap term Γ' Γ₂),
   
@@ -969,6 +989,8 @@ Proof.
 Qed.
 
 
+(**  Evaluation commutes with alpha congruence.
+  *)
 Lemma eval_alpha Γ τ (m z:term Γ τ) :
   (m ⇓ z) -> forall Γ' (n:term Γ' τ),
   alpha_cong Γ Γ' τ m n -> 
@@ -1058,39 +1080,10 @@ Proof.
   eapply eapp; eauto.
 Qed.
 
-Lemma app_not_value Γ σ (x y:term Γ σ) :
-  x⇓y -> forall σ₂ (m:term Γ (σ₂ ⇒ σ)) n, y = m•n -> False.
-Proof.
-  intro H. induction H; intros; try discriminate.
-  eapply IHeval2; eauto.
-  subst z.
-  eapply IHeval; eauto.
-  subst z.
-  eapply IHeval3; eauto.
-Qed.
 
-Lemma if_not_value Γ σ (x y:term Γ σ) :
-  x⇓y -> forall a b c, y = tif Γ σ a b c -> False.
-Proof.
-  intro H. induction H; intros; try discriminate.
-  eapply IHeval2; eauto.
-  subst z.
-  eapply IHeval; eauto.
-  subst z.
-  eapply IHeval3; eauto.
-Qed.
-
-Lemma fix_not_value Γ σ (x y:term Γ σ) :
-  x⇓y -> forall x m, y = tfix Γ x σ m -> False.
-Proof.
-  intro H. induction H; intros; try discriminate.
-  eapply IHeval2; eauto.
-  subst z.
-  eapply IHeval; eauto.
-  subst z.
-  eapply IHeval3; eauto.
-Qed.
-
+(**  The property of being a value is preserved
+     by alpha congruence.
+  *)
 Lemma alpha_cong_value Γ Γ' σ x y :
   alpha_cong Γ Γ' σ x y -> x↓ -> y↓.
 Proof.
@@ -1142,7 +1135,16 @@ Proof.
   intros. eapply term_wk_compose; eauto.
 Qed.
 
+Lemma alpha_cong_eq Γ σ x y :
+  x = y ->
+  alpha_cong Γ Γ σ x y.
+Proof.
+  intro. subst y. apply alpha_eq_refl.
+Qed.
 
+
+(**  Weakening commutes with substition, up to alpha congruence.
+  *)
 Lemma term_subst_wk_cong : forall Γ τ (m:term Γ τ) Γ₁ Γ₂ Γ₃ Γ₄ 
   (VAR1 : ENV.varmap term Γ Γ₁) (VAR2:ENV.varmap term Γ₃ Γ₄) H₁ H₂,
 
@@ -1184,13 +1186,6 @@ Proof.
   intros.  
 
   eapply alpha_eq_trans.
-Lemma alpha_cong_eq Γ σ x y :
-  x = y ->
-  alpha_cong Γ Γ σ x y.
-Proof.
-  intro. subst y. apply alpha_eq_refl.
-Qed.
-
   apply alpha_cong_eq.
   apply term_wk_compose'.
   unfold ENV.tm_wk. simpl.
@@ -1363,6 +1358,9 @@ Qed.
 (* end use lemma *)
 Qed.
 
+(**  A sequence of substitutions is equal to a single composed substitution,
+     up to alpha equivalance.
+  *)
 Lemma compose_term_subst : forall Γ₁ τ (m:term Γ₁ τ),
   forall (Γ₂ Γ₃:env) (g:ENV.varmap term Γ₂ Γ₃) (f:ENV.varmap term Γ₁ Γ₂),
   alpha_cong _ _ _ 
@@ -1553,6 +1551,9 @@ Proof.
 Qed.  
 
 
+(**  This technical lemma allows us to prove that applying the identity
+     subtitution is alpha congruent to the original term.
+  *)
 Lemma subst_weaken_alpha Γ Γ' σ
   (x:term Γ σ) (y:term Γ' σ) :
 
@@ -1652,6 +1653,9 @@ Proof.
 (* end lemma *)
 Qed.
 
+(**  Applying the identity substuition is alpha congruenct
+     to the original term.
+  *)
 Lemma subst_alpha_ident Γ Γ' σ
   (x:term Γ σ) (y:term Γ' σ) :
   alpha_cong Γ Γ' σ x y ->
@@ -1668,6 +1672,9 @@ Proof.
   apply subst_weaken_alpha; auto.
 Qed.
 
+(**  This lemma show that extending a substitution is alpha congruent
+     to first shifting and then extending.
+  *)
 Lemma extend_shift_alpha : forall
   (Γ : env)
   (x : atom)
@@ -1743,6 +1750,47 @@ Proof.
   inv H.
 Qed.
 
+
+(**  ** Logical relation and the fundamental lemma
+
+     Now we define the logical relation.  It is defined by induction
+     on the structure of types, in a standard way.  Note that
+     alpha congruence is explicitly built-in.
+  *)
+Fixpoint LR (τ:ty) : term nil τ -> (cxt nil → U (tydom τ)) -> Prop :=
+  match τ as τ' return term nil τ' -> (cxt nil → U (tydom τ')) -> Prop
+  with
+  | ty_bool => fun m h =>
+        exists b:bool, m = tbool nil b /\ h ≈ flat_elem' b
+  | ty_arrow σ₁ σ₂ => fun m h =>
+        forall n h', 
+          LR σ₁ n h' -> n↓ -> semvalue h' ->
+          semvalue (strict_app' ∘ 〈 h, h' 〉) ->
+          exists z1 z2, 
+            eval _ _ (m•n) z1 /\
+            alpha_cong nil nil σ₂ z1 z2 /\
+            LR σ₂ z2 (strict_app' ∘ 〈h, h'〉)
+  end.
+
+(**  The logical relation respects hom equality.
+  *)
+Lemma LR_equiv τ : forall m h h',
+  h ≈ h' -> LR τ m h -> LR τ m h'.
+Proof.
+  induction τ; simpl. intros.
+  destruct H0 as [b [??]]. exists b; split; auto.
+  rewrite <- H; auto.
+  simpl; intros.
+  destruct (H0 n h'0 H1 H2) as [z1 [z2 [?[??]]]]; auto.
+  rewrite H. auto.
+  exists z1; exists z2; split; auto. split; auto.
+  revert H7. apply IHτ2.
+  apply cat_respects; auto.
+  apply PLT.pair_eq; auto.
+Qed.
+
+
+(** The logical relation respects alpha congruence. *)
 Lemma LR_alpha_cong τ : forall m1 m2 h,
   alpha_cong nil nil τ m1 m2 ->
   LR τ m1 h -> LR τ m2 h.
@@ -1760,7 +1808,10 @@ Proof.
   apply alpha_eq_sym; auto.
 Qed.
 
-(* FIXME: move this somewhere else; share with skiy.v ? *)
+
+(**  If the supremum of a set of closed denotations is a semantic value,
+     there exists some value denotation in the set.
+  *)
 Lemma semvalue_sup (B:∂PLT) (XS:dirset (PLT.homset_cpo _ (cxt nil) (U B))) : 
   semvalue (∐XS) -> exists x, x ∈ XS /\ semvalue x.
 Proof.
@@ -1781,27 +1832,11 @@ Proof.
   apply ENV.empty_cxt_le.
 Qed.
 
-Lemma plt_semvalue_bot (Γ:PLT) (A:∂PLT) (x:Γ) :
-  semvalue (⊥ : Γ → U A) -> False.
-Proof.  
-  intros.
-  red in H.
-  destruct (H x).
-  simpl in H0.
-  unfold plt_hom_adj' in H0.
-  rewrite (PLT.compose_hom_rel false _ _ _ η (U·(cppo_bot (PLT.homset_cpo true (L Γ) A)))) in H0.
-  destruct H0 as [y [??]].
-  simpl in H0. apply adj_unit_rel_elem in H0.
-  rewrite (U_hom_rel _ _ (cppo_bot (PLT.homset_cpo true (L Γ) A))) in H1.
-  destruct H1. discriminate.
-  destruct H1 as [?[?[?[??]]]].
-  simpl in H1.
-  apply union_axiom in H1.
-  destruct H1 as [?[??]].
-  apply image_axiom2 in H1.
-  destruct H1 as [?[??]]. apply empty_elem in H1. auto.
-Qed.
 
+(**  The logical relation is closed under the directed
+     suprema of semantic values.  This is key for proving
+     the fundamental lemma case for fixpoints.
+  *)
 Lemma LR_admissible τ : 
   forall m (XS:dirset (PLT.homset_cpo _ _ (U (tydom τ)))),
   semvalue (∐XS) ->
@@ -1938,7 +1973,9 @@ Qed.
 
 
 (**  The fundamental lemma states that every term stands in the logical relation
-     with its denotation when applied to related substitutions.
+     (up to alpha congruence) with its denotation when applied to related substitutions.
+
+     This lemma is the linchpin of the adequacy proof.
   *)
 Lemma fundamental_lemma : forall Γ τ (m:term Γ τ) 
   (VAR:ENV.varmap term Γ nil) (VARh : cxt nil → cxt Γ),
@@ -2324,19 +2361,9 @@ Proof.
   apply cat_ident1.
 Qed.
 
-Lemma closed_bools_semvalue : forall Γ τ (m z:term Γ τ),
-  m ⇓ z -> Γ = nil -> τ = 2%ty -> semvalue 〚z〛.
-Proof.
-  do 4 intro. 
-  revert m; case z; intros; subst; simpl.
-  inv i.
-  apply flat_elem'_semvalue.
-  elimtype False. eapply app_not_value; eauto.
-  elimtype False. eapply if_not_value; eauto.
-  discriminate.
-  elimtype False. eapply fix_not_value; eauto.
-Qed.
 
+(**  ** Contextual equivalance and adequacy
+  *)
 
 (**  Now we define contextual equivalance.  Contexts here are
      given in "inside-out" form, which makes the induction in the
@@ -2380,13 +2407,11 @@ Definition cxt_eq τ Γ σ (m n:term Γ σ):=
   forall (C:context τ Γ σ) (z:term nil τ),
     eval nil τ (plug τ Γ σ C m) z <-> eval nil τ (plug τ Γ σ C n) z.
 
-
-
 (**  Adequacy means that terms with equivalant denotations
      are contextually equivalant in any boolean context.
   *)
 Theorem adequacy : forall Γ τ (m n:term Γ τ),
-  〚m〛 ≈ 〚n〛 -> cxt_eq ty_bool Γ τ m n.
+  〚m〛 ≈ 〚n〛 -> cxt_eq 2 Γ τ m n.
 Proof.
   intros. intro.
   revert n m H.
@@ -2397,13 +2422,13 @@ Proof.
 
   destruct (fundamental_lemma' _ m) as [zm [??]]. 
   assert (semvalue 〚z〛).
-  eapply closed_bools_semvalue; eauto.
+  eapply value_semvalue; eauto.
   apply soundness in H0.
   rewrite H0. auto.
   destruct (fundamental_lemma' _ n) as [zn [??]].
   rewrite <- H.
   assert (semvalue 〚z〛).
-  eapply closed_bools_semvalue; eauto.
+  eapply value_semvalue; eauto.
   apply soundness in H0.
   rewrite H0. auto.
   destruct H2 as [bm [??]].
@@ -2421,12 +2446,12 @@ Proof.
 
   destruct (fundamental_lemma' _ m) as [zm [??]].
   assert (semvalue 〚z〛).
-  eapply closed_bools_semvalue; eauto.
+  eapply value_semvalue; eauto.
   apply soundness in H0.
   rewrite H. rewrite H0. auto.
   destruct (fundamental_lemma' _ n) as [zn [??]]. 
   assert (semvalue 〚z〛).
-  eapply closed_bools_semvalue; eauto.
+  eapply value_semvalue; eauto.
   apply soundness in H0.
   rewrite H0. auto.
   simpl in *.
@@ -2471,6 +2496,9 @@ Proof.
   apply cat_respects; auto.
 Qed.
 
+(**  As a corollary of the fundamental lemma, we learn that
+     a term fails to evaluate iff its denotation is ⊥.
+  *)
 Corollary denote_bottom_nonvalue : forall τ (m:term nil τ),
   (~exists z, eval nil τ m z) <-> 〚m〛 ≈ ⊥.
 Proof.
@@ -2499,21 +2527,9 @@ Proof.
   eapply eval_value; eauto.
   apply value_semvalue in H2.
 
-  destruct (H2 ENV.empty_cxt_inh) as [x ?].
-  destruct H1. apply H1 in H3.
-
-  simpl bottom in H3.
-  apply (PLT.compose_hom_rel) in H3.
-  destruct H3 as [q [??]].
-  apply U_hom_rel in H5.
-  destruct H5.
-  inversion H5.
-  destruct H5 as [q' [?[??]]].
-  simpl in H5.
-  apply union_axiom in H5.
-  destruct H5 as [?[??]].
-  apply image_axiom2 in H5. destruct H5 as [? [??]].
-  apply empty_elem in H5. elim H5.
+  rewrite H1 in H2.
+  apply plt_semvalue_bot in H2; auto.
+  exact ENV.empty_cxt_inh.
 Qed.
 
 
