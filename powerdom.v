@@ -828,59 +828,6 @@ Section powerdom.
       | Convex => fmap_convex x y
       end.
 
-Lemma swelling_lemma (A:preord) (HA:effective_order A)
-  (M:finset A)
-  (INV : finset A -> Prop)
-  (P : finset A -> Prop) 
-
-  (HP : forall z, z ⊆ M -> INV z -> 
-    P z \/ exists q, q ∈ M /\ q ∉ z /\ INV (q::z)) :
-
-  (exists z0, z0 ⊆ M /\ INV z0) ->
-  exists z, z ⊆ M /\ INV z /\ P z.
-Proof.
-  intros [z [??]].
-  assert (exists M0:finset A,
-    (forall q, q ∈ M0 <-> q ∈ M /\ q ∉ z)).
-  assert (forall q, {q ∉ z}+{~q ∉ z}).
-  intros. 
-  destruct (finset_in_dec A (OrdDec A (eff_ord_dec A HA)) z q); auto.
-  set (M0 := finsubset A (fun q => q ∉ z) X0 M).
-  exists M0. intro q.
-  unfold M0. rewrite finsubset_elem. split; auto.
-  repeat intro. apply H2. rewrite H1; auto.
-  destruct H1 as [M0 ?].
-  revert z H H0 H1.  
-
-  induction M0 using 
-    (well_founded_induction (Wf_nat.well_founded_ltof _ (@length _))); intros.
-
-  destruct (HP z); eauto.
-  destruct H3 as [q [?[??]]].
-  set (x' := @finset_remove A HA x q).
-  apply (H x') with (q::z).
-  red; simpl. unfold x'.
-  apply finset_remove_length2.
-  apply H2. split; auto.
-  apply cons_subset; auto.
-  auto.
-  intros. split; intros.
-  apply finset_remove_elem in H6.
-  destruct H6.
-  apply H2 in H6.
-  destruct H6; split; auto.
-  intro.
-  apply cons_elem in H9. destruct H9.
-  apply H7; auto.
-  apply H8; auto.
-  apply finset_remove_elem.
-  destruct H6. split.
-  apply H2.
-  split; auto.
-  intro. apply H7. apply cons_elem; auto.
-  intro. apply H7. apply cons_elem; auto.
-Qed.
-
     Lemma fmap_convex_swell 
       (z : powerdomain Convex X)
       (x y: powerdomain Convex Y) :
