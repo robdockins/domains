@@ -18,7 +18,7 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
-Require Import finprod2.
+Require Import finprod.
 Require Import flat.
 Require Import profinite_adj.
 Require Import fixes.
@@ -58,7 +58,7 @@ Module env_input <: FINPROD_INPUT.
   Definition F τ := U (tydom τ).
 End env_input.
 
-Module ENV := finprod2.finprod(env_input).
+Module ENV := finprod.finprod(env_input).
 
 Notation env := ENV.env.
 Notation inenv := ENV.inenv.

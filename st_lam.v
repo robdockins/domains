@@ -18,7 +18,7 @@ Require Import joinable.
 Require Import approx_rels.
 Require Import cpo.
 Require Import profinite.
-Require Import finprod2.
+Require Import finprod.
 Require Import discrete.
 
 Require Import List.
@@ -54,7 +54,7 @@ Module env_input <: FINPROD_INPUT.
   Definition F := tydom.    
 End env_input.
 
-Module ENV := finprod2.finprod(env_input).
+Module ENV := finprod.finprod(env_input).
 
 Notation env := ENV.env.
 Canonical Structure ENV.env_supported.
