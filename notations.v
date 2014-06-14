@@ -11,6 +11,9 @@ Reserved Notation "y ≥ x" (at level 70).
 Reserved Notation "x ≰ y" (at level 70).
 Reserved Notation "y ≱ x" (at level 70).
 
+Reserved Notation "f # x"
+  (at level 55, arguments at next level).
+
 Reserved Notation "x ∘ y"
   (at level 40, left associativity,
   format

@@ -1267,7 +1267,6 @@ Record concrete (C:category) :=
   }.
 
 Notation "f # x" := (hommap _ _ f x) 
-  (at level 33, right associativity)
   : category_hom_scope.
 
 Canonical Structure CONCRETE_EQ (CAT:category) (CC:concrete CAT) (A:ob CAT) :=
