@@ -1072,7 +1072,7 @@ Lemma LR_Ybody σ₁ σ₂
     exists z:term σ₂,
       eval _ (tY σ₁ σ₂ • f • x) z /\
       LR _ z (strict_app' ∘ 〈fixes _ _ (Ybody σ₁ σ₂) ∘ hf, hx〉).
-Proof.      
+Proof.
   intros Hf1 Hf2 Hf3. unfold fixes.
   apply scott_induction.
   split.
@@ -1080,7 +1080,7 @@ Proof.
   intros.
   apply semvalue_app_out1' in H2.
   destruct (H2 tt) as [q ?].
-  rewrite (PLT.compose_hom_rel _ _ _ _ hf ⊥ tt (Some q)) in H3.
+  apply (PLT.compose_hom_rel _ _ _ _ hf ⊥ tt (Some q)) in H3.
   destruct H3 as [?[??]].  
   elimtype False. revert H4.
   clear. simpl bottom.
