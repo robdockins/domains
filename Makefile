@@ -99,6 +99,7 @@ VFILES:=st_lam_fix.v\
   exp_functor.v\
   profinite_adj.v\
   embed.v\
+  realdom.v\
   profinite.v\
   bilimit.v\
   approx_rels.v\
