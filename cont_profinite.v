@@ -983,8 +983,8 @@ Proof.
   rewrite <- (cplt_hom_eq false A (unit false)). simpl.
   do 2 rewrite (cat_ident2 PLT).
   etransitivity.
-  apply plt_terminate_univ.
-  symmetry. apply plt_terminate_univ.
+  apply PLT.terminate_univ.
+  symmetry. apply PLT.terminate_univ.
 Qed.
 
 Definition terminated_mixin

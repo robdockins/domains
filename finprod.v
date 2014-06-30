@@ -1723,8 +1723,8 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     rewrite (cat_ident2 PLT); auto.
     etransitivity.
 
-    apply plt_terminate_univ.
-    symmetry. apply plt_terminate_univ.
+    apply PLT.terminate_univ.
+    symmetry. apply PLT.terminate_univ.
 
     rewrite (cat_ident2 PLT). auto.
 
@@ -2042,7 +2042,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       destruct (lookup i Γ); intros.
       rewrite (H a (refl_equal _)).
       rewrite cast_refl. rewrite (cat_ident2 PLT); auto.
-      apply plt_terminate_univ.
+      apply PLT.terminate_univ.
       apply tm_denote_var.
     Qed.
 
@@ -2071,7 +2071,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       match goal with [ |- _ ≈ _ ?X ] => generalize X end.
       pattern (lookup i Γ₁) at 2 3 4 5 9.
       case (lookup i Γ₁); intros.
-      2: apply plt_terminate_univ.
+      2: apply PLT.terminate_univ.
       unfold varmap_compose.
       symmetry. 
       apply H.
@@ -2120,7 +2120,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       simpl. 
       pattern (lookup i Γ) at 2 3 4 5 9.
       case (lookup i Γ); intros.
-      2: apply plt_terminate_univ.
+      2: apply PLT.terminate_univ.
       rewrite <- H.
       apply cat_respects. auto.
       apply finprod_universal.
@@ -2188,12 +2188,12 @@ cut (forall HASDF,
      generalize (eq_sym Hx').
      pattern (lookup x' Γ') at 1 3 4 5 9 10 11.
      rewrite Hx'.
-     intros. symmetry. apply plt_terminate_univ.
+     intros. symmetry. apply PLT.terminate_univ.
 
      intros.
      destruct (lookup i0 Γ').
      rewrite H0. rewrite cast_refl. auto.
-     symmetry. apply plt_terminate_univ.
+     symmetry. apply PLT.terminate_univ.
     Qed.
     
 
@@ -2343,9 +2343,9 @@ Proof.
   refine (cast_dec_id false _ ty _ _ i1).
   decide equality. apply Adec.
   etransitivity.
-  apply plt_terminate_univ.
+  apply PLT.terminate_univ.
   symmetry.
-  apply plt_terminate_univ.
+  apply PLT.terminate_univ.
 Qed.
 
 Lemma proj_weaken Γ Γ' x σ H i :

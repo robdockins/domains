@@ -209,7 +209,7 @@ Section traverse.
     apply varmap_denote_proj.
 
     rewrite <- (cat_assoc PLT). apply cat_respects; auto.
-    symmetry. apply plt_terminate_univ.
+    symmetry. apply PLT.terminate_univ.
     rewrite <- (cat_assoc PLT). apply cat_respects; auto.
     rewrite (PLT.pair_compose_commute false).
     apply PLT.pair_eq.
@@ -526,9 +526,9 @@ Proof.
   do 2 rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
   transitivity (PLT.terminate false A).
-  apply plt_terminate_univ.
+  apply PLT.terminate_univ.
   symmetry.
-  apply plt_terminate_univ.
+  apply PLT.terminate_univ.
   simpl; intros.
   do 2 rewrite <- (cat_assoc PLT).
   apply cat_respects; auto.
@@ -1381,7 +1381,7 @@ Proof.
   split. apply acong_bool.
   exists n. split; auto.
   rewrite <- (cat_assoc PLT). apply cat_respects; auto.
-  apply plt_terminate_univ.
+  apply PLT.terminate_univ.
 
   (* application case *)  
   destruct (IHm1 VAR VARh H) as [z1 [z1' [?[??]]]].
