@@ -390,7 +390,8 @@ Definition QDom : ∂PLT :=
   PLT.Ob true Q
      (PLT.Class true Q Qpreord_mixin Qpreord_eff Q_plotkin).
 
-Definition RealDom : ∂PLT := 
+
+Definition PreRealDom : ∂PLT :=
   PLT.Ob true rational_interval
      (PLT.Class true rational_interval rint_preord_mixin rint_eff rint_plotkin).
 
@@ -447,8 +448,8 @@ Proof.
   red in H1; omega.
 Qed.
 
-Definition canon_rel : erel RealDom RealDom :=
-  esubset_dec (prod_preord RealDom RealDom)
+Definition canon_rel : erel PreRealDom PreRealDom :=
+  esubset_dec (prod_preord PreRealDom PreRealDom)
      (fun x => way_inside (fst x) (snd x))
      (fun x => way_inside_dec (fst x) (snd x))
      (eprod rint_enum rint_enum).
@@ -481,8 +482,8 @@ Qed.
 
 Require Import Qminmax.
 
-Program Definition canon : RealDom → RealDom :=
-  PLT.Hom true RealDom RealDom canon_rel _ _.
+Program Definition canon : PreRealDom → PreRealDom :=
+  PLT.Hom true PreRealDom PreRealDom canon_rel _ _.
 Next Obligation.
   intros.
   apply canon_rel_elem in H1. apply canon_rel_elem.
@@ -594,6 +595,11 @@ Proof.
 Qed.
 
 
+Require Import cont_profinite.
+
+Definition RealDom : c∂PLT :=
+  cPLT.Ob true PreRealDom canon canon_idem.
+
 Definition injq_rel (q:Q) : erel unitpo RealDom :=
   esubset_dec (prod_preord unitpo RealDom)
      (fun x => in_interior q (snd x))
@@ -621,9 +627,8 @@ Proof.
 Qed.
 
 
-
-Program Definition injq (q:Q) : 1 → RealDom :=
-  PLT.Hom true 1 RealDom (injq_rel q) _ _.
+Program Definition injq (q:Q) : PLT.unit true → PreRealDom :=
+  PLT.Hom true _ PreRealDom (injq_rel q) _ _.
 Next Obligation.
   intros. apply injq_rel_elem in H1. apply injq_rel_elem.
   apply rint_ord_test in H0. destruct H0.
@@ -700,8 +705,8 @@ Proof.
   simpl. split; apply Qopp_le_compat; auto.
 Qed.
 
-Program Definition real_opp : RealDom → RealDom :=
-  PLT.Hom true RealDom RealDom real_opp_rel _ _.
+Program Definition real_opp : PreRealDom → PreRealDom :=
+  PLT.Hom true PreRealDom PreRealDom real_opp_rel _ _.
 Next Obligation.
   simpl; intros.
   apply real_opp_rel_elem in H1. apply real_opp_rel_elem.
@@ -747,8 +752,8 @@ Proof.
   apply rint_ord_test in H1; destruct H1. auto.
 Qed.
 
-Program Definition real_plus : (RealDom ⊗ RealDom) → RealDom :=
-  PLT.Hom true (RealDom ⊗ RealDom) RealDom real_plus_rel _ _.
+Program Definition real_plus : (PreRealDom ⊗ PreRealDom)%plt → PreRealDom :=
+  PLT.Hom true (PreRealDom ⊗ PreRealDom)%plt PreRealDom real_plus_rel _ _.
 Next Obligation.
   intros. 
   destruct x. destruct x'.
@@ -771,9 +776,8 @@ Next Obligation.
   apply real_plus_rel_elem. auto.
 Qed.
 
-
-Lemma real_plus_comm_le A (g h:A → RealDom) :
-  real_plus ∘ 《 g, h 》 ≤ real_plus ∘ 《 h, g 》.
+Lemma real_plus_comm_le A (g h:A → PreRealDom) :
+  real_plus ∘ 《 g, h 》%plt ≤ real_plus ∘ 《 h, g 》%plt.
 Proof.
   red; intros [x y] H.
   apply PLT.compose_hom_rel in H. apply PLT.compose_hom_rel.
@@ -788,20 +792,20 @@ Proof.
   rewrite Qplus_comm; apply Qle_refl.
 Qed.
 
-Lemma real_plus_comm A (g h:A → RealDom) :
-  real_plus ∘ 《 g, h 》 ≈ real_plus ∘ 《 h, g 》.
+Lemma real_plus_comm A (g h:A → PreRealDom) :
+  real_plus ∘ 《 g, h 》%plt ≈ real_plus ∘ 《 h, g 》%plt.
 Proof.
   split; apply real_plus_comm_le; auto.
 Qed.
 
-Lemma real_plus_assoc A (f g h:A → RealDom) :
-  real_plus ∘ 《 f, real_plus ∘ 《 g, h 》 》 ≈
-  real_plus ∘ 《 real_plus ∘ 《 f, g 》, h 》.
+Lemma real_plus_assoc A (f g h:A → PreRealDom) :
+  (real_plus ∘ 《 f, real_plus ∘ 《 g, h 》 》 ≈
+   real_plus ∘ 《 real_plus ∘ 《 f, g 》, h 》)%plt.
 Proof.
   split; intros [x y] H.  
   apply PLT.compose_hom_rel in H. apply PLT.compose_hom_rel.
   destruct H as [[a b] [??]].
-  rewrite (PLT.pair_hom_rel _ _ _ _ f (real_plus ∘ 《g,h》)) in H. destruct H.
+  rewrite (PLT.pair_hom_rel _ _ _ _ f (real_plus ∘ 《g,h》%plt)) in H. destruct H.
   apply PLT.compose_hom_rel in H1.
   destruct H1 as [[c d] [??]].
   rewrite (PLT.pair_hom_rel _ _ _ _ g h) in H1. destruct H1.
@@ -827,7 +831,7 @@ Proof.
   
   apply PLT.compose_hom_rel in H.  
   destruct H as [[a b][??]].
-  apply (PLT.pair_hom_rel _ _ _ _ (real_plus ∘ 《f, g》) h) in H.
+  apply (PLT.pair_hom_rel _ _ _ _ (real_plus ∘ 《f, g》%plt) h) in H.
   destruct H.
   apply PLT.compose_hom_rel in H.  
   destruct H as [[c d][??]].
@@ -855,10 +859,10 @@ Proof.
   apply Qle_refl.
 Qed.
 
-Lemma real_plus_0 A (h: A → RealDom) :
-  real_plus ∘ 《 h, injq 0 ∘ PLT.terminate true A 》 ≈ h.
+Lemma real_plus_0_le A (h: A → PreRealDom) :
+  real_plus ∘ 《 h, injq 0 ∘ PLT.terminate true A 》%plt ≤ h.
 Proof.
-  split; hnf; simpl; intros.
+  hnf; simpl; intros.
   destruct a as [a r].
   apply PLT.compose_hom_rel in H.
   destruct H as [[m n] [??]]. simpl in *.
@@ -876,7 +880,8 @@ Proof.
   apply Qlt_le_weak; auto.
   apply Qlt_le_weak; auto.
   ring.
-
+Qed.
+(*
   destruct a as [a r]; simpl.
   apply PLT.compose_hom_rel.
   exists (r, (RatInt 0 0 (Qle_refl 0))%Q).
@@ -892,9 +897,11 @@ Proof.
   apply rint_ord_test; simpl.
   split; ring_simplify; apply Qle_refl.
 Qed.
+*)
 
-Lemma real_opp_0 A (h : A → RealDom) :
-  real_plus ∘ 《 h, real_opp ∘ h 》 ≤ injq 0 ∘ PLT.terminate true A.
+(*
+Lemma real_opp_0 A (h : A → PreRealDom) :
+  real_plus ∘ 《 h, real_opp ∘ h 》%plt ≤ injq 0 ∘ PLT.terminate true A.
 Proof.
   intros [??] ?.
   apply PLT.compose_hom_rel in H.
@@ -910,6 +917,7 @@ Proof.
   destruct H1 as [q [??]].
   simpl in H2.
   apply real_opp_rel_elem in H2.
+  
   apply H0. hnf; simpl.
   apply rint_ord_test in H2. simpl in H2.
   destruct H2.
@@ -940,7 +948,9 @@ Proof.
   apply Qle_trans with (rint_start z); auto. apply rint_proper.
   apply Qplus_le_compat; auto.
 Qed.
+*)
 
+(*
 Lemma Q_real_opp_compat q :
   real_opp ∘ injq q ≈ injq (Qopp q).
 Proof.
@@ -951,7 +961,13 @@ Proof.
   apply injq_rel_elem in H.
   apply real_opp_rel_elem in H0.
   apply injq_rel_elem.
-  apply H0.
+  apply rint_ord_test in H0.
+  destruct H; destruct H0.
+  split.
+  eapply Qle_lt_trans; eauto.
+  simpl.
+
+
   apply rint_opp_correct. auto.
   
   intros [??] ?. apply PLT.compose_hom_rel.
@@ -968,7 +984,9 @@ Proof.
   rewrite Qopp_involutive.
   split; apply Qle_refl.
 Qed.
+*)
 
+(*
 Lemma Q_real_plus_compat q q1 q2 :
   real_plus ∘ 《 injq q1, injq q2 》 ≈ injq q <-> q1 + q2 == q.
 Proof.
@@ -1037,3 +1055,4 @@ Proof.
   apply rint_ord_test. simpl.
   rewrite H. auto.
 Qed.
+*)
