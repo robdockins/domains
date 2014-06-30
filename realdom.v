@@ -23,12 +23,16 @@ Record rational_interval
   ; rint_proper : rint_start <= rint_end
   }.
 
-
-Definition ininterval (q:Q) (ri:rational_interval) :=
+Definition in_interval (q:Q) (ri:rational_interval) :=
   rint_start ri <= q <= rint_end ri.
 
+Definition in_interior (q:Q) (ri:rational_interval) :=
+  rint_start ri < q /\ q < rint_end ri.
+
+
 Definition rint_ord (i1 i2:rational_interval) :=
-  forall q, ininterval q i2 -> ininterval q i1.
+  forall q, in_interval q i2 -> in_interval q i1.
+
 
 Lemma rint_ord_test (i1 i2:rational_interval) :
   rint_ord i1 i2 <->
@@ -70,7 +74,7 @@ Next Obligation.
 Qed.
 
 Lemma rint_opp_correct r q :
-  ininterval (Qopp q) (rint_opp r) <-> ininterval q r.
+  in_interval (Qopp q) (rint_opp r) <-> in_interval q r.
 Proof.
   split; intros [??]; split.
   simpl in H0.
@@ -86,9 +90,9 @@ Proof.
 Qed.
 
 Lemma rint_plus_correct r1 r2 q:
-  ininterval q (rint_plus r1 r2) <-> 
+  in_interval q (rint_plus r1 r2) <-> 
   exists q1 q2,
-    ininterval q1 r1 /\ ininterval q2 r2 /\ q == q1 + q2.
+    in_interval q1 r1 /\ in_interval q2 r2 /\ q == q1 + q2.
 Proof.
   split; intros.
   destruct H. simpl in *.
@@ -241,7 +245,7 @@ Proof.
   rewrite H1. split; auto.
   destruct i as [m n R]. simpl in *.
   red. simpl. split; hnf; simpl;
-    unfold ininterval; simpl; intros; auto.
+    unfold in_interval; simpl; intros; auto.
 Qed.
 
 
@@ -390,7 +394,9 @@ Definition RealDom : ∂PLT :=
   PLT.Ob true rational_interval
      (PLT.Class true rational_interval rint_preord_mixin rint_eff rint_plotkin).
 
-Definition ininterval_dec (q:Q) (r:rational_interval) : { ininterval q r } + { ~ininterval q r }.
+
+Definition in_interval_dec (q:Q) (r:rational_interval) :
+  { in_interval q r } + { ~in_interval q r }.
 Proof.
   destruct (Qlt_le_dec q (rint_start r)).    
   right; intros [??].
@@ -405,14 +411,197 @@ Proof.
   left. split; auto.
 Defined.
 
+Definition in_interior_dec (q:Q) (r:rational_interval) :
+  { in_interior q r } + { ~in_interior q r }.
+Proof.
+  destruct (Qlt_le_dec (rint_start r) q).
+  destruct (Qlt_le_dec q (rint_end r)).
+  left; split; auto.
+  right; intros [??].
+  assert (q < q).
+  apply Qlt_le_trans with (rint_end r); auto.
+  red in H1. abstract omega.
+  right; intros [??].
+  assert (rint_start r < rint_start r).
+  apply Qlt_le_trans with q; auto.
+  red in H1. abstract omega.
+Defined.
+
+
+Definition way_inside (x y:rational_interval) :=
+  rint_start y < rint_start x /\
+  rint_end x < rint_end y.
+
+Lemma way_inside_dec x y : { way_inside x y } + { ~way_inside x y }.
+Proof.
+  destruct (Qlt_le_dec (rint_start y) (rint_start x)).
+  destruct (Qlt_le_dec (rint_end x) (rint_end y)).
+  left. split; auto.
+  right; intros [??].
+  assert (rint_end x < rint_end x).
+  eapply Qlt_le_trans; eauto.
+  red in H1; omega.
+  right; intros [??].
+  assert (rint_start y < rint_start y).
+  eapply Qlt_le_trans; eauto.
+  red in H1; omega.
+Qed.
+
+Definition canon_rel : erel RealDom RealDom :=
+  esubset_dec (prod_preord RealDom RealDom)
+     (fun x => way_inside (fst x) (snd x))
+     (fun x => way_inside_dec (fst x) (snd x))
+     (eprod rint_enum rint_enum).
+
+Lemma canon_rel_elem x y :
+   (x,y) ∈ canon_rel <-> way_inside x y.
+Proof.
+  unfold canon_rel. rewrite esubset_dec_elem.
+  simpl. intuition.
+  apply eprod_elem; split.
+  destruct (rint_enum_complete x) as [n [r' [??]]]; auto.
+  exists n. rewrite H0. auto.
+  destruct (rint_enum_complete y) as [n [r' [??]]]; auto.
+  exists n. rewrite H0. auto.
+  simpl; intros.
+  destruct H. destruct H0.
+  destruct H. destruct H1.
+  apply rint_ord_test in H.
+  apply rint_ord_test in H1.
+  apply rint_ord_test in H3.
+  apply rint_ord_test in H4.
+  split.
+  intuition.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
+  intuition.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
+Qed.
+
+Require Import Qminmax.
+
+Program Definition canon : RealDom → RealDom :=
+  PLT.Hom true RealDom RealDom canon_rel _ _.
+Next Obligation.
+  intros.
+  apply canon_rel_elem in H1. apply canon_rel_elem.
+  apply rint_ord_test in H.
+  apply rint_ord_test in H0. red in H1. red.
+  intuition.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
+Qed.
+Next Obligation.
+  intro q. apply prove_directed; auto.
+  intros r1 r2 ? ?.
+  rewrite erel_image_elem in H.
+  rewrite erel_image_elem in H0.
+  apply canon_rel_elem in H.
+  apply canon_rel_elem in H0.
+  destruct H. destruct H0.
+  assert (Qmax (rint_start r1) (rint_start r2) <= Qmin (rint_end r1) (rint_end r2)).
+  apply Q.max_case; intros.
+  rewrite <- H3; auto.
+  apply Q.min_case; intros.
+  rewrite <- H3; auto.
+  apply rint_proper.
+  apply Qlt_le_weak.
+  apply Qlt_trans with (rint_start q); auto.
+  apply Qle_lt_trans with (rint_end q); auto.
+  apply rint_proper.
+  apply Q.min_case; intros.
+  rewrite <- H3; auto.
+  apply Qlt_le_weak.
+  apply Qlt_trans with (rint_start q); auto.
+  apply Qle_lt_trans with (rint_end q); auto.
+  apply rint_proper.
+  apply rint_proper.
+  exists (RatInt _ _ H3).
+  split; simpl.
+  apply rint_ord_test; split; simpl.
+  apply Q.le_max_l.
+  apply Q.le_min_l.
+  split; simpl.
+  apply rint_ord_test; split; simpl.
+  apply Q.le_max_r.
+  apply Q.le_min_r.
+  apply erel_image_elem.
+  apply canon_rel_elem.
+  split; simpl.
+  apply Q.max_case; intros; auto.
+  rewrite <- H4; auto.
+  apply Q.min_case; intros; auto.
+  rewrite <- H4; auto.
+Qed.
+
+Lemma Q_dense (q1 q2:Q) :
+  q1 < q2 -> exists q', q1 < q' /\ q' < q2.
+Proof.
+  intros.
+  exists ((q1+q2) / (2#1)).
+  split.
+  rewrite <- (Qmult_lt_r _ _ (2#1)). 2: reflexivity.
+  field_simplify.
+  apply Qle_lt_trans with (q1 + q1)%Q.
+  field_simplify. apply Qle_refl.
+  apply Qlt_le_trans with (q1 + q2)%Q.
+  apply Qplus_lt_r; auto.
+  field_simplify.
+  field_simplify.
+  apply Qle_refl.
+  rewrite <- (Qmult_lt_r _ _ (2#1)). 2: reflexivity.
+  field_simplify.
+  apply Qlt_le_trans with (q2 + q2)%Q.
+  apply Qle_lt_trans with (q1 + q2)%Q.
+  field_simplify.
+  field_simplify.
+  apply Qle_refl.
+  apply Qplus_lt_l; auto.
+  field_simplify.
+  apply Qle_refl.
+Qed.
+
+Lemma canon_idem : canon ∘ canon ≈ canon.
+Proof.
+  split; hnf; simpl; intros.
+  destruct a as [a b].
+  apply PLT.compose_hom_rel in H.
+  destruct H as [q [??]].
+  simpl in *.
+  rewrite canon_rel_elem in H.
+  rewrite canon_rel_elem in H0.
+  rewrite canon_rel_elem.
+  red in H, H0. red. intuition.
+  eapply Qlt_trans; eauto.
+  eapply Qlt_trans; eauto.
+  destruct a as [a b]. simpl. apply PLT.compose_hom_rel.
+  apply canon_rel_elem in H.
+  destruct H.
+  destruct (Q_dense (rint_start b) (rint_start a)) as [m [??]]; auto.
+  destruct (Q_dense (rint_end a) (rint_end b)) as [n [??]]; auto.
+  assert (m <= n).
+  apply Qlt_le_weak.
+  eapply Qlt_trans; eauto.
+  eapply Qle_lt_trans; eauto.
+  apply rint_proper.
+  exists (RatInt m n H5).
+  split; simpl; rewrite canon_rel_elem.
+  split; simpl; auto.
+  split; simpl; auto.
+Qed.
+
+
 Definition injq_rel (q:Q) : erel unitpo RealDom :=
   esubset_dec (prod_preord unitpo RealDom)
-     (fun x => ininterval q (snd x))
-     (fun x => ininterval_dec q (snd x))
+     (fun x => in_interior q (snd x))
+     (fun x => in_interior_dec q (snd x))
      (eprod (single tt) rint_enum).
 
 Lemma injq_rel_elem (q:Q) (u:unit) (r:rational_interval) :
-  (u, r) ∈ injq_rel q <-> ininterval q r.
+  (u, r) ∈ injq_rel q <-> in_interior q r.
 Proof.
   destruct u.
   unfold injq_rel. rewrite esubset_dec_elem.
@@ -425,31 +614,61 @@ Proof.
   intros. destruct H. 
   destruct H. destruct H1.
   destruct x. destruct y. simpl in *.
-  apply H3. auto.
+  apply rint_ord_test in H3. destruct H3.
+  destruct H0. split.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
 Qed.
+
+
 
 Program Definition injq (q:Q) : 1 → RealDom :=
   PLT.Hom true 1 RealDom (injq_rel q) _ _.
 Next Obligation.
   intros. apply injq_rel_elem in H1. apply injq_rel_elem.
-  apply H0. auto.
+  apply rint_ord_test in H0. destruct H0.
+  destruct H1. split.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
 Qed.
 Next Obligation.
-  repeat intro.
-  exists (RatInt q q (Qle_refl q)).
-  split.
-  red; intros.
-  apply H in H0.
+  intros. intro.
+  apply prove_directed; simpl; auto.
+  intros r1 r2 ? ?.
+  apply erel_image_elem in H.
   apply erel_image_elem in H0.
+  apply injq_rel_elem in H.
   apply injq_rel_elem in H0.
-  hnf; simpl; intros.
-  destruct H1; simpl in *.
-  destruct H0; split.
-  apply Qle_trans with q; auto.
-  apply Qle_trans with q; auto.
+  destruct H. destruct H0.
+  assert (Qmax (rint_start r1) (rint_start r2) <= Qmin (rint_end r1) (rint_end r2)).
+  apply Q.max_case; intros.
+  rewrite <- H3; auto.
+  apply Q.min_case; intros.
+  rewrite <- H3; auto.
+  apply rint_proper.
+  apply Qlt_le_weak.
+  apply Qlt_trans with q; auto.
+  apply Q.min_case; intros.
+  rewrite <- H3; auto.
+  apply Qlt_le_weak.
+  apply Qlt_trans with q; auto.
+  apply rint_proper.
+  exists (RatInt _ _ H3).
+  split; simpl.
+  apply rint_ord_test; split; simpl.
+  apply Q.le_max_l.
+  apply Q.le_min_l.
+  split; simpl.
+  apply rint_ord_test; split; simpl.
+  apply Q.le_max_r.
+  apply Q.le_min_r.
   apply erel_image_elem.
   apply injq_rel_elem.
-  split; simpl; apply Qle_refl.
+  split; simpl.
+  apply Q.max_case; intros; auto.
+  rewrite <- H4; auto.
+  apply Q.min_case; intros; auto.
+  rewrite <- H4; auto.
 Qed.
 
 
@@ -653,6 +872,9 @@ Proof.
   hnf; simpl; intros. apply H0.
   apply rint_plus_correct.
   exists q. exists 0%Q. split; auto. split; auto.
+  destruct H2; split.
+  apply Qlt_le_weak; auto.
+  apply Qlt_le_weak; auto.
   ring.
 
   destruct a as [a r]; simpl.
