@@ -182,7 +182,7 @@ Section cPLT.
   Program Definition sum (A B:ob) : ob :=
     Ob (PLT.sum (cplt_ob A) (cplt_ob B))
        (PLT.sum_cases 
-          (PLT.iota1 ∘ cplt_retract A) (PLT.iota2 _ _ _ ∘ cplt_retract B))
+          (PLT.iota1 ∘ cplt_retract A) (PLT.iota2 ∘ cplt_retract B))
        _. 
   Next Obligation.
     intros. apply PLT.sum_cases_universal.
@@ -238,7 +238,7 @@ Section cPLT.
     Hom A (sum A B) (PLT.iota1).
 
   Definition iota2 A B : B → (sum A B) :=
-    Hom B (sum A B) (PLT.iota2 _ _ _).
+    Hom B (sum A B) (PLT.iota2).
 
   Definition sum_cases {C A B} (f:A → C) (g:B → C) : (sum A B) → C :=
     Hom (sum A B) C (PLT.sum_cases (cplt_hom f) (cplt_hom g)).

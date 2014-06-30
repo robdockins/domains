@@ -357,6 +357,15 @@ Section PLT.
     apply (hom_order _ _ CASES).
   Qed.
 
+  Theorem pair_universal_le C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
+    pi1 ∘ PAIR ≤ f -> pi2 ∘ PAIR ≤ g -> PAIR ≤ pair f g.
+  Proof.
+    apply pair_rel_universal_le.
+    apply hom_order.
+    apply hom_order.
+    apply hom_order.
+  Qed.
+
   Theorem pair_universal C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
     pi1 ∘ PAIR ≈ f -> pi2 ∘ PAIR ≈ g -> PAIR ≈ pair f g.
   Proof.
@@ -367,14 +376,6 @@ Section PLT.
     apply hom_directed.
   Qed.
 
-  Theorem pair_universal_le C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
-    pi1 ∘ PAIR ≤ f -> pi2 ∘ PAIR ≤ g -> PAIR ≤ pair f g.
-  Proof.
-    apply pair_rel_universal_le.
-    apply hom_order.
-    apply hom_order.
-    apply hom_order.
-  Qed.
 
   Theorem pair_le_commute1 C A B (f:C → A) (g:C → B) :
     pi1 ∘ pair f g ≤ f.
@@ -801,22 +802,23 @@ Proof.
   apply PLT.hom_directed.
 Qed.
 
-
-Program Definition terminated_mixin
-  := Terminated.Mixin (ob false) (hom false) 
-       (hom_eq_mixin false)
-       (unit false) (terminate false) _.
-Next Obligation.
+Lemma terminate_univ : forall (A:PLT false) (f:A → unit false),
+  f ≈ PLT.terminate false A.
+Proof.
   intros. split.
-  apply terminate_le_univ.
+  apply PLT.terminate_le_univ.
   hnf; simpl; intros.
   destruct a.
-  destruct (hom_directed _ _ _ f c nil). hnf; auto.
-  simpl. red; intros. apply nil_elem in H0. elim H0.
-  destruct H0. apply erel_image_elem in H1.
-  revert H1; apply hom_order; auto.
-  hnf. auto.
+  destruct u.
+  destruct (PLT.hom_directed false _ _ f c nil); auto.
+  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
+  destruct H0. apply erel_image_elem in H1. destruct x. auto.
 Qed.
+
+Definition terminated_mixin
+  := Terminated.Mixin (ob false) (hom false) 
+       (hom_eq_mixin false)
+       (unit false) (terminate false) terminate_univ.
 
 Program Definition cartesian_mixin
   := Cartesian.Mixin (ob false) (hom false) 
@@ -900,7 +902,7 @@ Arguments PLT.pi1 [hf] [A] [B].
 Arguments PLT.pi2 [hf] [A] [B].
 Arguments PLT.pair [hf] [C] [A] [B] f g.
 Arguments PLT.iota1 [hf] [A] [B].
-Arguments PLT.iota1 [hf] [A] [B].
+Arguments PLT.iota2 [hf] [A] [B].
 Arguments PLT.sum_cases [hf] [C] [A] [B] f g.
 Arguments PLT.prod [hf] A B.
 Arguments PLT.sum [hf] A B.
@@ -1000,18 +1002,6 @@ Proof.
   intros. apply PLT.curry_eq; auto.
 Qed.
 
-Lemma plt_terminate_univ : forall (A:PLT) (f:A → 1),
-  f ≈ PLT.terminate false A.
-Proof.
-  intros. split.
-  apply PLT.terminate_le_univ.
-  hnf; simpl; intros.
-  destruct a.
-  destruct u.
-  destruct (PLT.hom_directed false _ _ f c nil); auto.
-  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
-  destruct H0. apply erel_image_elem in H1. destruct x. auto.
-Qed.
 
 Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :
   (x,y,(x',y')) ∈ PLT.hom_rel (PLT.pair_map f g) <->
@@ -1185,7 +1175,7 @@ Definition nonbottom (A B:∂PLT) (f:A → B) :=
   exists x, x ∈ PLT.hom_rel f.
 Arguments nonbottom [A B] f.
 
-Lemma antistrict_nonbottom (A B C:∂PLT) (f:A → B) :
+Lemma antistrict_nonbottom (A B:∂PLT) (f:A → B) :
   antistrict f <-> (forall C (g:C → A), nonbottom g -> nonbottom (f ∘ g)).
 Proof.
   split; intros.

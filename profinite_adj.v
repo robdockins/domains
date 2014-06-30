@@ -1081,7 +1081,7 @@ Section strictify.
   Variables X Y:ob ∂PLT.
   Variable f: U X → U Y.  
 
-  Let strictify := ε ∘ L·f ∘ γ.
+  Definition strictify := ε ∘ L·f ∘ γ.
 
   Lemma f_explode : U·(ε ∘ L·f) ∘ η ≈ f.
   Proof.

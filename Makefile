@@ -97,6 +97,7 @@ VFILES:=st_lam_fix.v\
   cont_adj.v\
   sumprod_functor.v\
   exp_functor.v\
+  cont_profinite.v\
   profinite_adj.v\
   embed.v\
   realdom.v\

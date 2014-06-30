@@ -22,6 +22,7 @@ profinite.v
 realdom.v
 embed.v
 profinite_adj.v
+cont_profinite.v
 exp_functor.v
 sumprod_functor.v
 cont_adj.v
