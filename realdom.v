@@ -448,6 +448,11 @@ Proof.
   red in H1; omega.
 Qed.
 
+Definition canonical (A:∂PLT) (f : A → PreRealDom) :=
+  forall a x, (a,x) ∈ PLT.hom_rel f  ->
+    exists x', (a,x') ∈ PLT.hom_rel f /\ way_inside x' x.
+
+
 Definition canon_rel : erel PreRealDom PreRealDom :=
   esubset_dec (prod_preord PreRealDom PreRealDom)
      (fun x => way_inside (fst x) (snd x))
@@ -593,6 +598,297 @@ Proof.
   split; simpl; auto.
   split; simpl; auto.
 Qed.
+
+
+Lemma canon_canonical (A:∂PLT) (f:A → PreRealDom) :
+  canonical A (canon ∘ f).
+Proof.
+  red. intros.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [x' [??]].
+  simpl in H0.
+  apply canon_rel_elem in H0.
+  destruct H0.
+  destruct (Q_dense _ _ H0) as [q1 [??]].
+  destruct (Q_dense _ _ H1) as [q2 [??]].
+  assert (q1 <= q2).
+  apply Qlt_le_weak.
+  apply Qlt_trans with (rint_start x'); auto.
+  apply Qle_lt_trans with (rint_end x'); auto.
+  apply rint_proper.
+  exists (RatInt q1 q2 H6).
+  split; simpl.
+  apply PLT.compose_hom_rel.
+  exists x'. split; auto.
+  simpl. apply canon_rel_elem.
+  split; simpl; auto.
+  split; simpl; auto.
+Qed.
+
+Lemma canon_canonical_iff (A:∂PLT) (f:A → PreRealDom) :
+  canonical A f  <-> f ≈ canon ∘ f.
+Proof.
+  split; intros.
+  split; hnf; intros.
+  destruct a as [a x].
+  hnf in H.
+  destruct (H a x H0) as [x' [??]].
+  apply PLT.compose_hom_rel.
+  exists x'. split; auto.
+  simpl. apply canon_rel_elem; auto.
+  destruct a as [a x].
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [x' [??]].
+  simpl in H1. apply canon_rel_elem in H1.
+  apply PLT.hom_order with a x'; auto.
+  apply rint_ord_test.
+  destruct H1; split; apply Qlt_le_weak; auto.
+  
+  hnf; simpl; intros.
+  destruct H.
+  apply H in H0.
+  apply PLT.compose_hom_rel in H0.
+  destruct  H0 as [x' [??]].
+  exists x'. split; auto.
+  simpl in H2. apply canon_rel_elem in H2; auto.
+Qed.
+
+Definition realdom_lt (A:∂PLT) (f g:A → PreRealDom) :=
+  forall a, exists x y,
+    (a,x) ∈ PLT.hom_rel f /\ 
+    (a,y) ∈ PLT.hom_rel g /\
+    rint_end x < rint_start y.
+
+Definition realdom_apart (A:∂PLT) (f g:A → PreRealDom) :=
+  realdom_lt A f g \/ realdom_lt A g f.
+
+Definition realdom_converges (A:∂PLT) (f:A → PreRealDom) :=
+  forall a ε, ε > 0 ->
+    exists x, (a,x) ∈ PLT.hom_rel f /\
+      rint_end x - rint_start x <= ε.
+
+Lemma realdom_napart_common (f g:1 → PreRealDom) :
+  ~realdom_apart 1 f g -> 
+  forall a x y,
+    (a,x) ∈ PLT.hom_rel f ->
+    (a,y) ∈ PLT.hom_rel g ->
+    exists q,
+      in_interval q x /\
+      in_interval q y.
+Proof.
+  intros.
+  destruct (Qlt_le_dec (rint_end x) (rint_start y)).
+  elim H.
+  left. hnf.
+  intros. destruct a0. destruct a.
+  exists x. exists y. split; auto.
+  destruct (Qlt_le_dec (rint_end y) (rint_start x)).
+  elim H.
+  right. hnf.
+  intros. destruct a0. destruct a.
+  exists y. exists x. split; auto.
+  exists (Qmax (rint_start x) (rint_start y)).
+  split.
+  hnf; split.
+  apply Q.le_max_l.
+  apply Q.max_case; auto.
+  intros. rewrite <- H2; auto.
+  apply rint_proper.
+  split.
+  apply Q.le_max_r.
+  apply Q.max_case; auto.
+  intros. rewrite <- H2; auto.
+  apply rint_proper.
+Qed.
+
+
+Lemma realdom_napart_le (f g:1 → PreRealDom) :
+  canonical 1 f ->
+  realdom_converges 1 g ->
+  ~realdom_apart 1 f g -> 
+  f ≤ g.
+Proof.
+  repeat intro.
+  destruct a as [a x].
+  destruct (H a x) as [x' [??]]; auto.
+  set (ε := Qmin (rint_start x' - rint_start x) (rint_end x - rint_end x')).
+  destruct (H0 a ε) as [y [??]].
+  destruct H4.
+  unfold ε.
+  apply Q.min_case_strong; intros.
+  rewrite <- H6; auto.
+  rewrite <- (Qplus_lt_r _ _ (rint_start x)). ring_simplify. auto.
+  rewrite <- (Qplus_lt_r _ _ (rint_end x')). ring_simplify. auto.
+
+  destruct (realdom_napart_common f g H1 a x' y) as [q [??]]; auto.
+  destruct H7. destruct H8.
+  apply PLT.hom_order with a y; auto.
+  apply rint_ord_test.
+  destruct H4.
+  split.
+
+  rewrite <- (Qplus_le_l _ _ ε).
+  apply Qle_trans with (rint_start x').
+  unfold ε.
+  apply Q.min_case_strong. intros. rewrite <- H12; auto.
+  intros. ring_simplify. apply Qle_refl.
+  intros. 
+  eapply Qle_trans.
+  apply Qplus_le_r. apply H12.
+  ring_simplify. apply Qle_refl.
+  apply Qle_trans with q; auto.
+  apply Qle_trans with (rint_end y); auto.
+  rewrite <- (Qplus_le_l _ _ (- rint_start y)).
+  ring_simplify.
+  ring_simplify in H6.
+  auto.
+
+  rewrite <- (Qplus_le_l _ _ (- ε)).
+  apply Qle_trans with (rint_end x').
+  apply Qle_trans with q; auto.
+  apply Qle_trans with (rint_start y); auto.
+  rewrite <- (Qplus_le_l _ _ (- rint_start y)).
+  rewrite <- (Qplus_le_l _ _ ε).
+  ring_simplify.
+  ring_simplify in H6.
+  auto.
+  unfold ε.
+  apply Q.min_case_strong. intros. rewrite <- H12; auto.
+  intros.
+  rewrite <- (Qplus_le_l _ _ (rint_start x' - rint_start x)).
+  eapply Qle_trans.
+  apply Qplus_le_r. apply H12.
+  ring_simplify. apply Qle_refl.
+  intros.
+  ring_simplify. apply Qle_refl.
+Qed.
+
+
+Lemma realdom_napart_eq (f g:1 → PreRealDom) :
+  canonical 1 f ->
+  canonical 1 g ->
+  realdom_converges 1 f ->
+  realdom_converges 1 g ->
+  ~realdom_apart 1 f g -> 
+  f ≈ g.
+Proof.
+  intros; split; apply realdom_napart_le; auto.
+  intro. apply H3.
+  destruct H4; hnf; auto.
+Qed.
+
+Lemma realdom_le_nlt (f g:1 → PreRealDom) :
+  canonical 1 f ->
+  canonical 1 g ->
+  realdom_converges 1 f ->
+  realdom_converges 1 g ->
+  g ≤ f ->
+  ~realdom_lt 1 f g.
+Proof.
+  intros. red; intros. 
+  destruct (H4 tt) as [x [y [?[??]]]].
+  assert ((tt,y) ∈ PLT.hom_rel f).
+  apply H3; auto.
+  destruct (PLT.hom_directed true _ _ f tt (x::y::nil)%list) as [q [??]].
+  exists x. apply cons_elem; auto.
+  red; intros. apply erel_image_elem.
+  apply cons_elem in H9. destruct H9.
+  apply PLT.hom_order with tt x; auto.
+  apply cons_elem in H9. destruct H9.
+  apply PLT.hom_order with tt y; auto.
+  apply nil_elem in H9. elim H9.
+  apply erel_image_elem in H10.
+  assert (x ≤ q).
+  apply H9. apply cons_elem; auto.
+  assert (y ≤ q).
+  apply H9. apply cons_elem; right. apply cons_elem; auto.
+  apply rint_ord_test in H11.
+  apply rint_ord_test in H12.
+  destruct H11. destruct H12.
+  assert (rint_end q < rint_end q).
+  eapply Qle_lt_trans. apply H13.
+  eapply Qlt_le_trans. apply H7.
+  apply Qle_trans with (rint_start q); auto.
+  apply rint_proper.
+  red in H15. omega.
+Qed.
+
+Lemma realdom_napart_eq_iff (f g:1 → PreRealDom) :
+  canonical 1 f ->
+  canonical 1 g ->
+  realdom_converges 1 f ->
+  realdom_converges 1 g ->
+  (~realdom_apart 1 f g <-> f ≈ g).
+Proof.
+  intuition.
+  apply realdom_napart_eq; auto.
+  destruct H3; destruct H4; revert H4; apply realdom_le_nlt; auto.
+Qed.
+
+
+Lemma realdom_lt_cotransitive (f g h:1 → PreRealDom) :
+  realdom_converges 1 h ->
+  realdom_lt 1 f g ->
+  realdom_lt 1 f h \/ realdom_lt 1 h g.
+Proof.
+  intros.
+  hnf in H0.
+  destruct (H0 tt) as [x [y [?[??]]]].
+  set (ε := (rint_start y - rint_end x) / (2#1)%Q).
+  assert (Hε : 0 < ε).
+    unfold ε.
+    apply Qlt_shift_div_l.
+    compute. auto.
+    rewrite <- (Qplus_lt_l _ _ (rint_end x)).
+    ring_simplify.
+    auto.
+  destruct (H tt ε) as [q [??]]; auto.
+  destruct (Qlt_le_dec (rint_end x) (rint_start q)).
+  left. red; intros. exists x. exists q.
+  intuition.
+  destruct (Qlt_le_dec (rint_end q) (rint_start y)).
+  right. red; intros. exists q. exists y.
+  intuition.
+  exfalso.
+  assert (rint_start y <= ε + rint_end x).
+  apply Qle_trans with (rint_end q); auto.
+  rewrite <- (Qplus_le_l _ _ (- rint_start q)).
+  apply Qle_trans with ε.
+  ring_simplify.
+  ring_simplify in H5; auto.
+  rewrite <- (Qplus_le_l _ _ (rint_start q)).
+  ring_simplify.
+  apply Qplus_le_r. auto.
+  assert (rint_start y - rint_end x <= ε).
+  unfold ε.
+  rewrite <- (Qplus_le_l _ _ (rint_end x)).
+  ring_simplify.
+  unfold ε in H6.
+  rewrite Qplus_comm. auto.
+  assert (ε <= 0).
+  rewrite <- (Qplus_le_l _ _ ε).
+  ring_simplify.
+  eapply Qle_trans. 2: apply H7.
+  unfold ε. field_simplify.
+  apply Qle_refl.
+  assert (ε < ε).
+  apply Qle_lt_trans with 0%Q; auto.
+  red in H9; omega.
+Qed.
+
+
+Lemma realdom_apart_cotransitive (f g h:1 → PreRealDom) :
+  realdom_converges 1 h ->
+  realdom_apart 1 f g ->
+  realdom_apart 1 f h \/ realdom_apart 1 h g.
+Proof.
+  intros.
+  unfold realdom_apart.
+  destruct H0.
+  destruct (realdom_lt_cotransitive f g h); auto.
+  destruct (realdom_lt_cotransitive g f h); auto.
+Qed.
+
 
 
 Require Import cont_profinite.
