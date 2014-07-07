@@ -23,23 +23,20 @@ Section algebraic.
     Mixin
     { basis_inj : basis → ord
     ; basis_dec : forall x y:basis, {x ≤ y}+{x ≰ y}
-(*    ; basis_enum : eset basis*)
-    ; decomp : ord -> cl_eset CL basis
-
-    ; basis_inj_reflects : forall k k',
-          basis_inj#k ≤ basis_inj#k' -> k ≤ k'
-
-    ; basis_inj_compact :
-          forall k:basis, compact CL (basis_inj#k)
-
-(*    ; basis_enum_complete :
+    ; basis_enum : eset basis
+    ; basis_enum_complete :
           forall k:basis, k ∈ basis_enum
-*)
+    ; basis_inj_reflects : forall k k',
+           basis_inj k ≤ basis_inj k' -> k ≤ k'
+
+    ; basis_compact :
+          forall k:basis, compact CL (basis_inj k)
+
+    ; decomp : ord -> cl_eset CL basis
+    ; decomp_complete : forall x k,
+          k ∈ decomp x <-> way_below CL (basis_inj k) x
     ; decomp_axiom : forall x,
           least_upper_bound x (image basis_inj (decomp x))
-
-    ; decomp_complete : forall x k,
-          k ∈ decomp x <-> basis_inj#k ≤ x
     }.
 
   Record type :=
@@ -58,3 +55,4 @@ Canonical Structure basis_dec CL (T:algebraic.type CL) :=
   OrdDec
     (algebraic.basis CL T)
     (algebraic.basis_dec CL _ _ (algebraic.mixin CL T)).
+

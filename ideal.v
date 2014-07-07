@@ -9,17 +9,52 @@ Require Import esets.
 Require Import cpo.
 Require Import algebraic.
 
+Require Import directed.
+Require Import plotkin.
+Require Import effective.
+
 Section ideal_completion.
-  Variable CL:color.
+  Variable hf:bool.
+  Let CL := directed_hf_cl hf.
+
   Variable Ktype:Type.
   Variable Kmixin:Preord.mixin_of Ktype.
   Let K := Preord.Pack Ktype Kmixin.
 
   Variable Kdec : forall x y:K, {x ≤ y}+{x ≰ y}.
+  Variable Kenum : eset K.
+  Variable Kenum_complete : forall k:K, k ∈ Kenum.
 
-  Variable enum_lowerset : K -> cl_eset CL K.
-  Hypothesis enum_complete : forall k x, 
+  Program Definition enum_lowerset (k:K) : cl_eset CL K :=
+    esubset_dec K (fun k' => k' ≤ k) (fun k' => Kdec k' k) Kenum .
+  Next Obligation.
+    simpl. intros.
+    apply prove_directed.
+    destruct hf; auto.
+    exists k. apply esubset_dec_elem.
+    intros. rewrite <- H; auto.
+    split; auto.
+    simpl; intros.
+    rewrite esubset_dec_elem in H.
+    rewrite esubset_dec_elem in H0.
+    exists k. intuition.
+    rewrite esubset_dec_elem. split; auto.
+    intros. rewrite <- H0; auto.
+    intros. rewrite <- H1; auto.
+    intros. rewrite <- H1; auto.
+  Qed.
+
+  Lemma enum_complete : forall k x, 
     x ≤ k <-> x ∈ (enum_lowerset k).
+  Proof.
+    simpl. intros. split; intros.
+    unfold enum_lowerset. simpl.
+    apply esubset_dec_elem; intuition.
+    rewrite <- H0; auto.
+    red in H. simpl in H.
+    apply esubset_dec_elem in H. destruct H; auto.
+    intros. rewrite <- H0; auto.
+  Qed.
   
   Lemma enum_is_lowerset : forall k, lower_set (enum_lowerset k).
   Proof.
@@ -63,35 +98,6 @@ Section ideal_completion.
     eauto.
   Qed.
 
-(*
-  Program Definition basis_inj : K ↣ ideal :=
-    Monomorphism PREORD K ideal principal_ideal _.
-  Next Obligation.
-    intros.
-    intro x; split.
-    destruct (H x).
-    red in H0. simpl in H0.
-    red in H1. simpl in H1.
-    red.
-    red in H0. red in H1.
-    assert (g#x ∈ enum_lowerset (Preord.map X K h x)).
-    apply H0.
-    rewrite <- enum_complete; auto.
-    rewrite <- enum_complete in H2.
-    auto.
-
-    destruct (H x).
-    red in H0. simpl in H0.
-    red in H1. simpl in H1.
-    red.
-    red in H0. red in H1.
-    assert (h#x ∈ enum_lowerset (Preord.map X K g x)).
-    apply H1.
-    rewrite <- enum_complete; auto.
-    rewrite <- enum_complete in H2.
-    auto.
-  Qed.    
-*)
 
   Program Definition ideal_sup (D:cl_eset CL ideal) : ideal :=
     ∪ (image ideal_forget D).
@@ -132,7 +138,7 @@ Section ideal_completion.
     
 
   Lemma ideal_way_below : forall (k:K) (I J:ideal),
-    I ≤ principal_ideal#k -> principal_ideal#k ≤ J ->
+    I ≤ principal_ideal k -> principal_ideal k ≤ J ->
     way_below CL I J.
   Proof.
     intros. red. intros.
@@ -149,7 +155,7 @@ Section ideal_completion.
     intros.
     unfold set.member. simpl.
     apply union_axiom.
-    exists (colored_sets.forget_color _ _ _ #ideal_forget#x).
+    exists (colored_sets.forget_color _ _ _ (ideal_forget x)).
     split; auto.
     apply image_axiom1.
     apply image_axiom1. auto.
@@ -206,7 +212,7 @@ Section ideal_completion.
     red. simpl; intros.
     red. simpl; intros.
     apply union_axiom.
-    exists (colored_sets.forget_color _ _ _ #ideal_forget#x). split; auto.
+    exists (colored_sets.forget_color _ _ _  (ideal_forget x)). split; auto.
     apply image_axiom1. 
     apply image_axiom1. 
     auto.
@@ -251,7 +257,7 @@ Section ideal_completion.
     repeat intro.
     simpl. red; simpl.
     apply union_axiom.
-    exists (colored_sets.forget_color _ _ _#ideal_forget#principal_ideal#a).
+    exists (colored_sets.forget_color _ _ _(ideal_forget (principal_ideal a))).
     split.
     apply image_axiom1.
     apply image_axiom1.
@@ -275,7 +281,7 @@ Section ideal_completion.
     destruct H as [Z [??]].
     apply image_axiom2 in H.
     destruct H as [k [??]].
-    assert (a ∈ proj1_sig (principal_ideal#k)).
+    assert (a ∈ proj1_sig (principal_ideal k)).
     destruct H3. apply H3.
     destruct H2. apply H2.
     destruct H1. apply H1.
@@ -288,7 +294,7 @@ Section ideal_completion.
   Qed.
 
   Lemma ideal_reimage : forall I:ideal,
-    I ≈ ideal_sup (image principal_ideal (ideal_forget#I)).
+    I ≈ ideal_sup (image principal_ideal (ideal_forget I)).
   Proof.
     intros; split.
     apply ideal_reimage1. apply ideal_reimage2.
@@ -296,7 +302,7 @@ Section ideal_completion.
 
   Lemma way_below_ideal : forall (I J:ideal),
     way_below CL I J -> exists k:K,
-      I ≤ principal_ideal#k /\ principal_ideal#k ≤ J.
+      I ≤ principal_ideal k /\ principal_ideal k ≤ J.
   Proof.
     intros. red in H.
     set (D := image principal_ideal (ideal_forget#J)).
@@ -318,7 +324,7 @@ Section ideal_completion.
   Qed.
 
   Lemma principal_ideals_compact : forall k,
-    compact CL (principal_ideal#k).
+    compact CL (principal_ideal k).
   Proof.
     intros. red. apply ideal_way_below with k; auto.
   Qed.    
@@ -332,9 +338,11 @@ Section ideal_completion.
     algebraic.Mixin CL ideal K
       principal_ideal
       Kdec
-      (fun (x:ideal) => proj1_sig x)
+      Kenum
+      Kenum_complete
       _
       principal_ideals_compact
+      (fun (x:ideal) => proj1_sig x)
       _ _.
   Next Obligation.
     simpl; intros.
@@ -346,357 +354,100 @@ Section ideal_completion.
   Qed.
   Next Obligation.
     intros. split.
-    red. simpl. intros.
-    unfold set.member in H. simpl in H.
-    apply image_axiom2 in H.
-    destruct H as [y [??]].
-    destruct H0.
-    rewrite H0.
-    red; simpl. red; simpl; intros.
-    apply enum_complete in H2.
-    destruct x as [x ?].
-    simpl.
-    apply (l a y); auto.
+    intro.
+    apply (ideal_way_below k); auto.
+    hnf; simpl; intros.
+    destruct x as [x Hx]; simpl in *.
+    eapply Hx. 2: apply H.
+    rewrite <- enum_complete in H0. auto.
+
     intros.
-    red. simpl. red. intros.
-    fold ideal in *.
-    generalize (H (principal_ideal#a)).
-    intros.
-    assert (principal_ideal#a ≤ b).
-    apply H1.
-    apply image_axiom1. auto.
-    red in H2.
-    simpl in H2.
-    apply H2.
-    apply enum_complete. auto.
-  Qed.    
+    apply way_below_ideal in H.
+    destruct H as [k' [??]].
+    hnf in H0. simpl in H0.
+    apply H0.
+    rewrite <- enum_complete.
+    hnf in H; simpl in H.
+    rewrite enum_complete. apply H.
+    rewrite <- enum_complete. auto.
+  Qed.
   Next Obligation.
     simpl; intros.
     destruct x as [x ?]. simpl.
-    split. intros.
-    red. simpl.
+    split.
     red; simpl; intros.
-    apply enum_complete in H0.
+    apply image_axiom2 in H. destruct H as [k [??]].
+    rewrite H0. simpl.
+    hnf; simpl; intros.
+    rewrite <- enum_complete in H1.
     apply l with k; auto.
     simpl; intros.
-    red in H; simpl in H.
-    apply (H k).
-    apply enum_complete. auto.
+    hnf; simpl; intros.
+    hnf in H.
+    apply H with (principal_ideal a).
+    apply image_axiom1'.
+    exists a; split; auto.
+    simpl.
+    rewrite <- enum_complete. auto.
   Qed.
 End ideal_completion.
 
-Record abstract_basis (CL:color) :=
-  AbstractBasis
-  { ab_carrier :> Type
-  ; ab_ord_mixin : Preord.mixin_of ab_carrier
-  ; ab_ord := Preord.Pack ab_carrier ab_ord_mixin
-  ; ab_dec : forall x y:ab_ord, {x ≤ y}+{x ≰ y}
-  ; ab_enum : ab_ord -> cl_eset CL ab_ord
-  ; ab_enum_complete : forall k x, x ≤ k <-> x ∈ (ab_enum k)
-  }.
 
-Module alg_cpo.
-  Record class_of CL (A:preord) (K:preord) :=
+
+Module bifinite.
+  Record class_of hf (A:preord) (K:preord) :=
     Class
-    { cpo_mixin : CPO.mixin_of CL A
-    ; alg_mixin : algebraic.mixin_of CL A K
-    }.
+    { cpo_mixin : CPO.mixin_of (directed_hf_cl hf) A
+    ; alg_mixin : algebraic.mixin_of (directed_hf_cl hf) A K
+    ; plt_mixin : plotkin_order hf K
+    }. 
 
-  Record type CL :=
+  Record type (hf:bool) :=
     Pack
     { carrier :> Type
-    ; base : Type
+    ; base_carrier : Type
     ; carrier_ord : Preord.mixin_of carrier
-    ; base_ord : Preord.mixin_of base
+    ; base_ord : Preord.mixin_of base_carrier
+    ; base := Preord.Pack base_carrier base_ord 
     ; ord := Preord.Pack carrier carrier_ord
-    ; basis := Preord.Pack base base_ord
-    ; class : class_of CL ord basis
+    ; class : class_of hf ord base
     }.
 
-  Canonical Structure tocpo CL (T:type CL) : cpo CL :=
-    CPO.Pack CL (carrier CL T) (carrier_ord CL T) (cpo_mixin _ _ _ (class CL T)).
+  Canonical Structure tocpo hf (T:type hf) : CPO.type _ :=
+    CPO.Pack _ (carrier _ T) (carrier_ord _ T) (cpo_mixin _ _ _ (class hf T)).
 
-  Canonical Structure toalg CL (T:type CL) : algebraic.type CL :=
-    algebraic.Pack CL (carrier CL T) (base CL T) (carrier_ord CL T) (base_ord CL T)
-      (alg_mixin _ _ _ (class CL T)).
-End alg_cpo.
-Canonical Structure alg_cpo.tocpo.
-Canonical Structure alg_cpo.toalg.
-Coercion alg_cpo.tocpo : alg_cpo.type >-> CPO.type.
-Coercion alg_cpo.toalg : alg_cpo.type >-> algebraic.type.
+  Canonical Structure toalg hf (T:type hf) : algebraic.type _ :=
+    algebraic.Pack _ (carrier hf T) (base hf T) (carrier_ord hf T) (base_ord hf T)
+      (alg_mixin _ _ _ (class hf T)).
+End bifinite.
 
-Canonical Structure ab_ord.
-Coercion ab_ord : abstract_basis >-> preord.
+Canonical Structure bifinite.tocpo.
+Canonical Structure bifinite.toalg.
+Coercion bifinite.tocpo : bifinite.type >-> CPO.type.
+Coercion bifinite.toalg : bifinite.type >-> algebraic.type.
 
-Program Definition algebraic_basis CL (T:algebraic.type CL) : abstract_basis CL :=
-  AbstractBasis CL
-    (algebraic.base CL T)
-    (algebraic.base_ord CL T)
-    (algebraic.algebraic.basis_dec _ _ _ (algebraic.mixin CL T))
-    (fun k => algebraic.decomp _ _ _ (algebraic.mixin CL T)
-       (algebraic.basis_inj _ _ _ (algebraic.mixin CL T)#k))
-    _.
-Next Obligation.
-  simpl; intros.
-  split; intros.
-  apply algebraic.decomp_complete.
-  apply Preord.axiom. auto.
-  apply algebraic.decomp_complete in H.
-  apply algebraic.basis_inj_reflects in H. auto.
-Qed.  
+Require Import profinite.
+Require Import effective.
 
-Canonical Structure ideal_alg_cpo CL (B:abstract_basis CL) : alg_cpo.type CL :=
-  alg_cpo.Pack CL
-     (ideal_type CL (ab_carrier CL B) (ab_ord_mixin CL B))
-     (ab_carrier CL B)
-     (ideal_mixin CL (ab_carrier CL B) (ab_ord_mixin CL B))
-     (ab_ord_mixin CL B)
-     (alg_cpo.Class _ _ _
-       (ideal_cpo_mixin CL (ab_carrier CL B) (ab_ord_mixin CL B))
-       (ideal_algebraic_mixin CL
-        (ab_carrier CL B)
-        (ab_ord_mixin CL B)
-        (ab_dec CL B)
-        (ab_enum CL B)
-        (ab_enum_complete CL B))).
- 
-(*Canonical Structure ideal_algebraic CL (B:abstract_basis CL) : algebraic.type CL :=
-   algebraic.Pack CL
-     (ideal_type CL (ab_carrier CL B) (ab_ord_mixin CL B))
-     (ab_carrier CL B)
-     (ideal_mixin CL (ab_carrier CL B) (ab_ord_mixin CL B))
-     (ab_ord_mixin CL B)
-     (ideal_algebraic_mixin CL
-       (ab_carrier CL B)
-       (ab_ord_mixin CL B)
-       (ab_dec CL B)
-       (ab_enum CL B)
-       (ab_enum_complete CL B)).
+Section plt_to_bifinite.
+  Variable hf:bool.
+  Variable A:PLT.PLT hf.
 
-Canonical Structure ideal_cpo CL (B:abstract_basis CL) : CPO.type CL :=
-   CPO.Pack CL
-     (ideal_type CL (ab_carrier CL B) (ab_ord_mixin CL B))
-     (ideal_mixin CL (ab_carrier CL B) (ab_ord_mixin CL B))
-     (ideal_cpo_mixin CL (ab_carrier CL B) (ab_ord_mixin CL B)).
-*)
+  Definition plt2bif_class :=
+    bifinite.Class hf
+      (ideal hf _ (Preord.mixin (PLT.ord A)))
+      (PLT.ord A)
+      (ideal_cpo_mixin hf _ (Preord.mixin (PLT.ord A)))
+      (ideal_algebraic_mixin hf _ (Preord.mixin (PLT.ord A))
+          (PLT.dec A)
+          (eff_enum _ (PLT.effective A))
+          (eff_complete _ (PLT.effective A)))
+      (PLT.cls_plotkin hf _ (PLT.class hf A)).
 
-Record approx_rel CL (X Y:abstract_basis CL) :=
-  ApproxRel
-  { apx_rel :> ab_ord CL X → ideal CL _ (ab_ord_mixin CL Y)
-  }.
+  Definition plt2bif :=
+    bifinite.Pack hf _ _
+      (Preord.mixin (ideal hf _ (Preord.mixin (PLT.ord A))))
+      (Preord.mixin (PLT.ord A))
+      plt2bif_class.
 
-Program Definition cont_func_approx_rel CL (X Y:alg_cpo.type CL)
-  (f:CPO.hom CL X Y) 
-  : approx_rel CL (algebraic_basis CL X) (algebraic_basis CL Y)
-
-  := ApproxRel CL _ _
-       (Preord.Hom _ _ 
-         (fun x => 
-           algebraic.decomp _ _ _ (algebraic.mixin _ Y)
-             (CPO.map f (algebraic.basis_inj _ _ _ (algebraic.mixin _ X)#x))) _).
-Next Obligation.           
-  simpl; intros. apply proj2_sig.
-Qed.
-Next Obligation.
-  simpl; intros.
-  red; intros.
-  red in H0. simpl in H0.
-  apply (algebraic.decomp_complete CL (algebraic.ord CL Y) 
-               (algebraic.basis CL Y)
-               (alg_cpo.alg_mixin CL (alg_cpo.ord CL Y) 
-                  (alg_cpo.basis CL Y) (alg_cpo.class CL Y))).
-  transitivity (algebraic.basis_inj CL (algebraic.ord CL Y) (algebraic.basis CL Y)
-     (alg_cpo.alg_mixin CL (alg_cpo.ord CL Y) (alg_cpo.basis CL Y)
-        (alg_cpo.class CL Y)) # b).
-  apply Preord.axiom. auto.
-  apply (algebraic.decomp_complete CL (algebraic.ord CL Y) 
-               (algebraic.basis CL Y)
-               (alg_cpo.alg_mixin CL (alg_cpo.ord CL Y) 
-                  (alg_cpo.basis CL Y) (alg_cpo.class CL Y))).
-  auto.
-Qed.
-Next Obligation.
-  repeat intro. simpl in *.
-  red in H0. red. simpl in *.
-  apply (algebraic.decomp_complete CL (algebraic.ord CL Y) 
-               (algebraic.basis CL Y)
-               (alg_cpo.alg_mixin CL (alg_cpo.ord CL Y) 
-                  (alg_cpo.basis CL Y) (alg_cpo.class CL Y))).
-  transitivity
-    (CPO.map f
-       (Preord.map (algebraic.basis CL X) X
-          (algebraic.basis_inj CL X (algebraic.basis CL X)
-             (alg_cpo.alg_mixin CL (alg_cpo.ord CL X) 
-                (alg_cpo.basis CL X) (alg_cpo.class CL X))) a)).
-  apply (algebraic.decomp_complete CL (algebraic.ord CL Y) 
-               (algebraic.basis CL Y)
-               (alg_cpo.alg_mixin CL (alg_cpo.ord CL Y) 
-                  (alg_cpo.basis CL Y) (alg_cpo.class CL Y))); auto.
-  apply (CPO.mono f).
-  apply Preord.axiom.
-  auto.
-Qed.
-
-Program Definition approx_rel_cont_func CL (X Y:abstract_basis CL) 
-  (R:approx_rel CL X Y) 
-  : CPO.hom CL (ideal_alg_cpo CL X) (ideal_alg_cpo CL Y) :=
-
-  CPO.Hom CL (ideal_alg_cpo CL X) (ideal_alg_cpo CL Y)
-    (fun x => @CPO.sup_op CL (ideal_alg_cpo CL Y) 
-                (image R (proj1_sig x))) _ _.
-Next Obligation.
-  intros.  
-  apply CPO.sup_is_least.
-  red; intros.
-  apply image_axiom2 in H0.
-  destruct H0 as [y[??]].
-  apply CPO.sup_is_ub.
-  rewrite H1.
-  apply image_axiom1.
-  apply H. auto.
-Qed.
-Next Obligation.
-  intros.
-  apply CPO.sup_is_least.
-  red; intros.
-  apply image_axiom2 in H.
-  destruct H as [y [??]].
-  red in H. simpl in H.
-  apply union_axiom in H.
-  destruct H as [Q [??]].
-  apply image_axiom2 in H.
-  destruct H as [Z [??]].
-  apply image_axiom2 in H.
-  destruct H as [W[??]].
-  simpl in H2.
-  simpl in H3.
-  match goal with [ |- x ≤ ∐(image ?Q X0) ] => set (f := Q) end.
-  set (piX := principal_ideal CL (ab_carrier CL X) (ab_ord_mixin CL X) (ab_enum CL X) (ab_enum_complete CL X)).
-  transitivity (f#(piX#y)).
-  simpl.
-  apply CPO.sup_is_ub.
-  rewrite H0.
-  apply image_axiom1.
-  apply ab_enum_complete. auto.
-  transitivity (f#W).
-  apply Preord.axiom.
-  unfold piX. simpl.
-  red; simpl.
-  red; simpl; intros.
-  apply ab_enum_complete in H4.
-  destruct W; simpl.
-  apply l with y; auto.
-  simpl in *.
-  destruct H3. apply H3.
-  destruct H2.
-  apply H2. auto.
-  apply CPO.sup_is_ub.
-  apply image_axiom1.
-  auto.
-Qed.  
-
-
-Program Definition lift_abstract_basis
-  (AB:abstract_basis semidirected)
-  : abstract_basis directed :=
-  AbstractBasis directed
-    (option (ab_carrier _ AB))
-    (lift_mixin (ab_ord _ AB))
-    _
-    (fun x => match x with
-              | None => single (@None (ab_ord _ AB))
-              | Some x' => union2 
-                            (single None)
-                            (image (liftup _) (ab_enum _ AB x'))
-              end)
-    _.
-Next Obligation.
-  simpl. intros.
-  destruct x.
-  destruct y.
-  destruct (ab_dec _ AB a a0).
-  left; auto.
-  right; auto.
-  right. intro. apply H.
-  left. hnf; auto.
-Defined.
-Next Obligation.
-  simpl; intros. intuition. subst x.
-  exists None.
-  apply union2_elem.
-  left. apply single_axiom. auto.
-  apply union2_elem in H.
-  apply union2_elem in H0.
-  intuition.
-  apply single_axiom in H.
-  apply single_axiom in H1.
-  exists None.
-  split.
-  apply union2_elem. left. apply single_axiom. auto.
-  split; auto.
-  apply single_axiom in H1.
-  exists b. split; auto.
-  apply union2_elem. right; auto.
-  split; auto.
-  transitivity (@None (ab_ord _ AB)).
-  destruct H1; auto. hnf. auto.
-  apply single_axiom in H.
-  exists a.
-  split. apply union2_elem. right; auto.
-  split; auto.
-  transitivity (@None (ab_ord _ AB)).
-  destruct H; auto.
-  hnf; auto.
-  apply image_axiom2 in H.
-  apply image_axiom2 in H1.
-  destruct H as [y1 [??]].
-  destruct H1 as [y2 [??]].
-  assert (color_prop semidirected (ab_enum _ AB x')).
-  destruct (ab_enum semidirected AB x'); auto.
-  destruct (H3 y1 y2) as [y3 [?[??]]]; auto.
-  exists (liftup (ab_ord _ AB)#y3).
-  split.
-  apply union2_elem. right.
-  apply image_axiom1. auto.
-  split.
-  transitivity (liftup _#y2).
-  destruct H2; auto.
-  apply Preord.axiom. auto.
-  transitivity (liftup _#y1).
-  destruct H0; auto.
-  apply Preord.axiom. auto.
-Qed.
-Next Obligation.
-  simpl. intuition.
-  destruct k; simpl.
-  red; simpl.
-  apply union2_elem.
-  destruct x. red in H. simpl in H.
-  right.
-  apply (image_axiom1 _ _ _ (liftup _) (proj1_sig (ab_enum _ AB a))).
-  apply ab_enum_complete. auto.
-  left. apply single_axiom; auto.
-  destruct x. elim H.
-  apply single_axiom. auto.
-
-  destruct k; simpl in *.
-  destruct x; simpl; auto.
-  2: hnf; auto.
-  red; simpl.
-  red in H.
-  simpl in H.
-  apply union2_elem in H.
-  destruct H.
-  apply single_axiom in H.
-  destruct H. elim H.
-  apply (image_axiom2) in H.
-  destruct H as [y [??]].
-  destruct H0.
-  simpl in H0.
-  red in H0. simpl in H0.
-  assert (y ≤ a).
-  apply ab_enum_complete; auto.
-  eauto.
-  apply single_axiom in H.
-  destruct H; auto.
-Qed.
+End plt_to_bifinite.
