@@ -101,6 +101,7 @@ VFILES:=st_lam_fix.v\
   profinite_adj.v\
   embed.v\
   realdom.v\
+  rational_intervals.v\
   profinite.v\
   bilimit.v\
   approx_rels.v\

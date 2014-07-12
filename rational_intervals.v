@@ -2,6 +2,33 @@ Require Import QArith.
 Require Import Qminmax.
 Require Import Setoid.
 
+Lemma Q_dense (q1 q2:Q) :
+  q1 < q2 -> exists q', q1 < q' /\ q' < q2.
+Proof.
+  intros.
+  exists ((q1+q2) / (2#1)).
+  split.
+  rewrite <- (Qmult_lt_r _ _ (2#1)). 2: reflexivity.
+  field_simplify.
+  apply Qle_lt_trans with (q1 + q1)%Q.
+  field_simplify. apply Qle_refl.
+  apply Qlt_le_trans with (q1 + q2)%Q.
+  apply Qplus_lt_r; auto.
+  field_simplify.
+  field_simplify.
+  apply Qle_refl.
+  rewrite <- (Qmult_lt_r _ _ (2#1)). 2: reflexivity.
+  field_simplify.
+  apply Qlt_le_trans with (q2 + q2)%Q.
+  apply Qle_lt_trans with (q1 + q2)%Q.
+  field_simplify.
+  field_simplify.
+  apply Qle_refl.
+  apply Qplus_lt_l; auto.
+  field_simplify.
+  apply Qle_refl.
+Qed.
+
 Record rational_interval
   := RatInt
   { rint_start : Q
@@ -43,6 +70,60 @@ Proof.
   split.
   apply Qle_trans with (rint_start i2); auto.
   apply Qle_trans with (rint_end i2); auto.
+Qed.
+
+Definition way_inside (x y:rational_interval) :=
+  rint_start y < rint_start x /\
+  rint_end x < rint_end y.
+
+
+Definition in_interval_dec (q:Q) (r:rational_interval) :
+  { in_interval q r } + { ~in_interval q r }.
+Proof.
+  destruct (Qlt_le_dec q (rint_start r)).    
+  right; intros [??].
+  assert (q < q).
+  apply Qlt_le_trans with (rint_start r); auto.
+  red in H1. abstract omega.
+  destruct (Qlt_le_dec (rint_end r) q).
+  right; intros [??].
+  assert (rint_end r < rint_end r).
+  apply Qlt_le_trans with q; auto.
+  red in H1. abstract omega.
+  left. split; auto.
+Defined.
+
+Definition in_interior_dec (q:Q) (r:rational_interval) :
+  { in_interior q r } + { ~in_interior q r }.
+Proof.
+  destruct (Qlt_le_dec (rint_start r) q).
+  destruct (Qlt_le_dec q (rint_end r)).
+  left; split; auto.
+  right; intros [??].
+  assert (q < q).
+  apply Qlt_le_trans with (rint_end r); auto.
+  red in H1. abstract omega.
+  right; intros [??].
+  assert (rint_start r < rint_start r).
+  apply Qlt_le_trans with q; auto.
+  red in H1. abstract omega.
+Defined.
+
+
+
+Lemma way_inside_dec x y : { way_inside x y } + { ~way_inside x y }.
+Proof.
+  destruct (Qlt_le_dec (rint_start y) (rint_start x)).
+  destruct (Qlt_le_dec (rint_end x) (rint_end y)).
+  left. split; auto.
+  right; intros [??].
+  assert (rint_end x < rint_end x).
+  eapply Qlt_le_trans; eauto.
+  red in H1; omega.
+  right; intros [??].
+  assert (rint_start y < rint_start y).
+  eapply Qlt_le_trans; eauto.
+  red in H1; omega.
 Qed.
 
 Program Definition rint_opp (r:rational_interval) : rational_interval
@@ -871,7 +952,7 @@ Proof.
   rewrite <- (Qopp_involutive (rint_end r2)). apply Qopp_le_compat; auto.
   rewrite H5. ring.
   
-  apply case4; split; intuition.
+  apply case4; repeat split; auto.
 
 
   destruct H as [q1 [q2 [?[??]]]].
