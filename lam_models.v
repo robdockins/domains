@@ -26,16 +26,33 @@ Notation Le := forgetEMBED.
 (**  * Models of untyped λ-calculi
   *)
 
-Definition cbvLamF : functor (EMBED true) (EMBED true)
+Definition eagerLamF : functor (EMBED true) (EMBED true)
   := expF true ∘ pairF id id.
+
+Definition cbvLamF : functor (EMBED true) (EMBED true)
+  := Le ∘ Ue ∘ expF true ∘ pairF id id.
 
 Definition cbnLamF : functor (EMBED true) (EMBED true)
   := Le ∘ expF false ∘ pairF id id ∘ Ue.
+
+Lemma eagerLamF_continuous : continuous_functor eagerLamF.
+Proof.
+  unfold eagerLamF.
+  apply composeF_continuous.
+  apply expF_continuous.
+  apply pairF_continuous.
+  apply identF_continuous.
+  apply identF_continuous.
+Qed.
 
 Lemma cbvLamF_continuous : continuous_functor cbvLamF.
 Proof.
   unfold cbvLamF.
   apply composeF_continuous.
+  apply composeF_continuous.
+  apply composeF_continuous.
+  apply forgetEMBED_continuous.
+  apply liftEMBED_continuous.
   apply expF_continuous.
   apply pairF_continuous.
   apply identF_continuous.
@@ -56,12 +73,21 @@ Proof.
   apply liftEMBED_continuous.
 Qed.
 
+Definition lamModelEager : ∂PLT := fixpoint eagerLamF.
+
 Definition lamModelCBV : ∂PLT := fixpoint cbvLamF.
 
 Definition lamModelCBN : ∂PLT := fixpoint cbnLamF.
 
+Lemma lamModelEager_iso :
+  ((lamModelEager ⊸ lamModelEager) : ob (EMBED true)) ↔ lamModelEager.
+Proof.
+  apply (fixpoint_iso eagerLamF).
+  apply eagerLamF_continuous.
+Qed.
+
 Lemma lamModelCBV_iso :
-  (lamModelCBV ⊸ lamModelCBV : ob (EMBED true)) ↔ lamModelCBV.
+  (colift (lamModelCBV ⊸ lamModelCBV) : ob (EMBED true)) ↔ lamModelCBV.
 Proof.
   apply (fixpoint_iso cbvLamF).
   apply cbvLamF_continuous.
