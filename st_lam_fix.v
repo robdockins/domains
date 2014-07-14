@@ -140,7 +140,7 @@ Notation term_wk := (ENV.tm_wk term).
 Notation term_subst := (ENV.tm_subst term).
 
 (**  The terms in environment [Γ] with type [τ] are interpreted
-     as ∂PLT-homs from [cxt Γ] to [U (tydom τ)].
+     as PLT-homs from [cxt Γ] to [U (tydom τ)].
   *)
 Definition dom (Γ:env) (τ:ty) : Type := cxt Γ → U (tydom τ).
 
@@ -215,8 +215,9 @@ Section traverse.
     (m:term Γ₁ σ) : forall
     (VAR : forall x σ, inenv Γ₁ x σ -> thingy Γ₂ x σ),
 
-    denote _ _ (traverse Γ₁ Γ₂ σ VAR m) ≈ 
-    denote _ _ m ∘ ENV.varmap_denote term denote thingy thingy_term Γ₁ Γ₂ VAR.
+
+    〚 traverse Γ₁ Γ₂ σ VAR m 〛 ≈ 
+    〚 m 〛∘ ENV.varmap_denote term denote thingy thingy_term Γ₁ Γ₂ VAR.
   Proof.
     revert Γ₂. induction m; simpl; intros.
     apply varmap_denote_proj.
@@ -271,11 +272,14 @@ Qed.
 Existing Instance lam_termmodel.
 
 
-(**  Restate the substitution correctness lemma. *)
-Lemma subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
+(**  Restate the substitution correctness lemma.  This is provided
+     automatically from the ENV module.
+ *)
+Remark subst_soundness Γ x σ₁ σ₂ n₁ n₂ :
    〚 n₁ 〛 ∘ bind Γ x σ₁ ∘ 〈id, 〚 n₂ 〛〉 ≈ 〚 subst Γ σ₂ σ₁ x n₁ n₂ 〛.
 Proof.
-  generalize (ENV.subst_soundness term). simpl. auto.
+  generalize (ENV.subst_soundness term Γ x σ₁ σ₂ n₁ n₂).
+  simpl. trivial.
 Qed.
 
 (**  ** Operational semantics and soundness
@@ -319,40 +323,6 @@ Proof.
 Qed.
 
 
-
-(** Applications, if/then/else, and fixpoints are nonvalues. *)
-Lemma app_not_value Γ σ (x y:term Γ σ) :
-  x⇓y -> forall σ₂ (m:term Γ (σ₂ ⇒ σ)) n, y = m•n -> False.
-Proof.
-  intro H. induction H; intros; try discriminate.
-  eapply IHeval2; eauto.
-  subst z.
-  eapply IHeval; eauto.
-  subst z.
-  eapply IHeval3; eauto.
-Qed.
-
-Lemma if_not_value Γ σ (x y:term Γ σ) :
-  x⇓y -> forall a b c, y = tif Γ σ a b c -> False.
-Proof.
-  intro H. induction H; intros; try discriminate.
-  eapply IHeval2; eauto.
-  subst z.
-  eapply IHeval; eauto.
-  subst z.
-  eapply IHeval3; eauto.
-Qed.
-
-Lemma fix_not_value Γ σ (x y:term Γ σ) :
-  x⇓y -> forall x m, y = tfix Γ x σ m -> False.
-Proof.
-  intro H. induction H; intros; try discriminate.
-  eapply IHeval2; eauto.
-  subst z.
-  eapply IHeval; eauto.
-  subst z.
-  eapply IHeval3; eauto.
-Qed.
 
 (**  Evaluation preserves the denotation of terms. *)
 Theorem soundness : forall Γ τ (m z:term Γ τ),
@@ -461,6 +431,41 @@ Proof.
   replace z with y; auto.
   eapply eval_eq with y; auto.
   eapply eval_value; eauto.
+Qed.
+
+
+(** Applications, if/then/else, and fixpoints are nonvalues. *)
+Lemma app_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall σ₂ (m:term Γ (σ₂ ⇒ σ)) n, y = m•n -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
+
+Lemma if_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall a b c, y = tif Γ σ a b c -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
+Qed.
+
+Lemma fix_not_value Γ σ (x y:term Γ σ) :
+  x⇓y -> forall x m, y = tfix Γ x σ m -> False.
+Proof.
+  intro H. induction H; intros; try discriminate.
+  eapply IHeval2; eauto.
+  subst z.
+  eapply IHeval; eauto.
+  subst z.
+  eapply IHeval3; eauto.
 Qed.
 
 
@@ -1766,10 +1771,10 @@ Fixpoint LR (τ:ty) : term nil τ -> (cxt nil → U (tydom τ)) -> Prop :=
         forall n h', 
           LR σ₁ n h' -> n↓ -> semvalue h' ->
           semvalue (strict_app' ∘ 〈 h, h' 〉) ->
-          exists z1 z2, 
-            eval _ _ (m•n) z1 /\
-            alpha_cong nil nil σ₂ z1 z2 /\
-            LR σ₂ z2 (strict_app' ∘ 〈h, h'〉)
+          exists z₁ z₂, 
+            eval _ _ (m•n) z₁ /\
+            alpha_cong nil nil σ₂ z₁ z₂ /\
+            LR σ₂ z₂ (strict_app' ∘ 〈h, h'〉)
   end.
 
 (**  The logical relation respects hom equality.

@@ -259,7 +259,6 @@ Proof.
   generalize (ENV.subst_soundness term). simpl. auto.
 Qed.
 
-
 (**  ** Operational semantics and soundness
 
      This is a standard call-by-value operational semantics.  As this
