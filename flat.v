@@ -302,6 +302,17 @@ Proof.
   rewrite flat_cases_elem. auto.
 Qed.
 
+Lemma flat_cases_eq (X:enumtype) (A B:∂PLT) (f g : X -> A → B) :
+  (forall x, f x ≈ g x) ->
+  flat_cases f ≈ flat_cases g.
+Proof.
+  intros.
+  apply flat_cases_univ; intros.
+  rewrite flat_cases_elem.
+  rewrite (cat_ident1 ∂PLT).
+  apply H.
+Qed.
+
 
 Definition boolset : N -> option bool :=
   fun n => match n with N0 => Some true | _ => Some false end.

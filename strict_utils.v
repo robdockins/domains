@@ -1034,3 +1034,18 @@ Proof.
   destruct H3 as [[??][??]]. simpl in *.
   hnf in H5. auto.
 Qed.
+
+Lemma flat_cases_eq' (X:enumtype) Γ B (f g: X -> Γ → U B) :
+  (forall x, f x ≈ g x) ->
+  flat_cases' f ≈ flat_cases' g.
+Proof.
+  intros. unfold flat_cases'.
+  apply cat_respects; auto.
+  apply Functor.respects.
+  apply cat_respects; auto.
+  apply cat_respects; auto.
+  apply flat_cases_eq. intros.
+  apply cat_respects; auto.
+  apply (Functor.respects L).
+  apply H.
+Qed.

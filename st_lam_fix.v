@@ -142,10 +142,8 @@ Notation term_subst := (ENV.tm_subst term).
 (**  The terms in environment [Γ] with type [τ] are interpreted
      as PLT-homs from [cxt Γ] to [U (tydom τ)].
   *)
-Definition dom (Γ:env) (τ:ty) : Type := cxt Γ → U (tydom τ).
-
-Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
-  match m in term _ τ' return dom Γ τ' with
+Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : cxt Γ → U (tydom τ) :=
+  match m in term _ τ' return cxt Γ → U (tydom τ') with
   | tvar x σ IN => castty IN ∘ proj Γ x
   | tbool b => flat_elem' b
   | tif σ x y z => 
@@ -214,7 +212,6 @@ Section traverse.
     (Γ₁ Γ₂:env) (σ:ty)
     (m:term Γ₁ σ) : forall
     (VAR : forall x σ, inenv Γ₁ x σ -> thingy Γ₂ x σ),
-
 
     〚 traverse Γ₁ Γ₂ σ VAR m 〛 ≈ 
     〚 m 〛∘ ENV.varmap_denote term denote thingy thingy_term Γ₁ Γ₂ VAR.
@@ -1768,11 +1765,11 @@ Fixpoint LR (τ:ty) : term nil τ -> (cxt nil → U (tydom τ)) -> Prop :=
   | ty_bool => fun m h =>
         exists b:bool, m = tbool nil b /\ h ≈ flat_elem' b
   | ty_arrow σ₁ σ₂ => fun m h =>
-        forall n h', 
+        forall n h',
           LR σ₁ n h' -> n↓ -> semvalue h' ->
           semvalue (strict_app' ∘ 〈 h, h' 〉) ->
-          exists z₁ z₂, 
-            eval _ _ (m•n) z₁ /\
+          exists z₁ z₂,
+            (m•n ⇓ z₁) /\
             alpha_cong nil nil σ₂ z₁ z₂ /\
             LR σ₂ z₂ (strict_app' ∘ 〈h, h'〉)
   end.
@@ -1991,8 +1988,8 @@ Lemma fundamental_lemma : forall Γ τ (m:term Γ τ)
          LR σ z (castty H ∘ proj Γ a ∘ VARh)) ->
   semvalue (〚m〛 ∘ VARh) ->
   exists z,
-    eval nil τ (term_subst Γ nil τ VAR m) z /\
-    LR τ z (〚m〛 ∘ VARh ).
+    (term_subst Γ nil τ VAR m ⇓ z) /\
+    LR τ z (〚m〛 ∘ VARh).
 Proof.
   induction m; simpl; intros.
 
@@ -2350,7 +2347,7 @@ Qed.
      from the inductively-strong one above.
   *)
 Lemma fundamental_lemma' : forall τ (m:term nil τ),
-  semvalue 〚m〛 -> exists z, eval nil τ m z /\ LR τ z 〚 m 〛.
+  semvalue 〚m〛 -> exists z, (m⇓z) /\ LR τ z 〚m〛.
 Proof.
   intros.
   destruct (fundamental_lemma nil τ m (tvar nil) id) as [z [??]].
@@ -2377,11 +2374,21 @@ Qed.
 
 Inductive context τ : env -> ty -> Type :=
   | cxt_top : context τ nil τ
-  | cxt_if : forall Γ σ,
+  | cxt_if1 : forall Γ σ,
                     term Γ σ ->
                     term Γ σ ->
                     context τ Γ σ ->
                     context τ Γ ty_bool
+  | cxt_if2 : forall Γ σ,
+                    term Γ ty_bool ->
+                    term Γ σ ->
+                    context τ Γ σ ->
+                    context τ Γ σ
+  | cxt_if3 : forall Γ σ,
+                    term Γ ty_bool ->
+                    term Γ σ ->
+                    context τ Γ σ ->
+                    context τ Γ σ
   | cxt_appl : forall Γ σ₁ σ₂,
                     term Γ σ₁ ->
                     context τ Γ σ₂ ->
@@ -2401,16 +2408,20 @@ Inductive context τ : env -> ty -> Type :=
 Fixpoint plug τ Γ σ (C:context τ Γ σ) : term Γ σ -> term nil τ :=
   match C in context _ Γ' σ' return term Γ' σ' -> term nil τ with
   | cxt_top => fun x => x
-  | cxt_if Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
+  | cxt_if1 Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
+  | cxt_if2 Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ y x z)
+  | cxt_if3 Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ y z x)
   | cxt_appl Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
   | cxt_appr Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
   | cxt_lam  Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
   | cxt_fix Γ a σ C' => fun x => plug τ _ _ C' (tfix Γ a σ x)
   end.
+Arguments plug [τ Γ σ] C _.
 
 Definition cxt_eq τ Γ σ (m n:term Γ σ):=
   forall (C:context τ Γ σ) (z:term nil τ),
-    eval nil τ (plug τ Γ σ C m) z <-> eval nil τ (plug τ Γ σ C n) z.
+    (plug C m ⇓ z) <-> (plug C n ⇓ z).
+
 
 (**  Adequacy means that terms with equivalant denotations
      are contextually equivalant in any boolean context.
@@ -2479,6 +2490,18 @@ Proof.
   apply cat_respects; auto.
   apply PLT.pair_eq; auto.
 
+  simpl; intros.
+  apply IHC. simpl.
+  apply cat_respects; auto.
+  apply flat_cases_eq'.
+  simpl; intro b; destruct b; auto.
+
+  simpl; intros.
+  apply IHC. simpl.
+  apply cat_respects; auto.
+  apply flat_cases_eq'.
+  simpl; intro b; destruct b; auto.
+
   simpl. intros.
   apply IHC. simpl.
   apply cat_respects; auto.
@@ -2505,7 +2528,7 @@ Qed.
      a term fails to evaluate iff its denotation is ⊥.
   *)
 Corollary denote_bottom_nonvalue : forall τ (m:term nil τ),
-  (~exists z, eval nil τ m z) <-> 〚m〛 ≈ ⊥.
+  (~exists z, m⇓z) <-> 〚m〛 ≈ ⊥.
 Proof.
   intros. split; intro.
 
