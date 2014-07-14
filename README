@@ -1,0 +1,8 @@
+Copyright (c) 2014, Robert Dockins
+
+This directory contains files that implement a library for domain theory in Coq.
+The library is known to compile with Coq version 8.4 and 8.4pl4.
+
+Further information about this library and updates may be found at:
+
+    http://rwd.rdockins.name/domains/
