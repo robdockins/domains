@@ -145,12 +145,16 @@ Notation term_subst := (ENV.tm_subst term).
 Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : cxt Γ → U (tydom τ) :=
   match m in term _ τ' return cxt Γ → U (tydom τ') with
   | tvar x σ IN => castty IN ∘ proj Γ x
+
   | tbool b => flat_elem' b
   | tif σ x y z => 
       flat_cases' (fun b:bool => if b then 〚y〛 else 〚z〛) ∘ 〈 id, 〚x〛 〉
+
   | tapp σ₁ σ₂ m₁ m₂ => strict_app' ∘ 〈 〚m₁〛, 〚m₂〛 〉
-  | tfix x σ m' => fixes (cxt Γ) (tydom σ) (Λ(〚m'〛 ∘ bind Γ x σ))
   | tlam x σ₁ σ₂ m' => strict_curry' (〚m'〛 ∘ bind Γ x σ₁)
+
+  | tfix x σ m' => fixes (PLT.curry (〚m'〛 ∘ bind Γ x σ))
+
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
 

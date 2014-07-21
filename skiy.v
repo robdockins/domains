@@ -464,7 +464,7 @@ Section Ydefn.
 
     semvalue x ->
 
-    let Yf := (fixes _ _ Ybody) ∘ f in
+    let Yf := (fixes Ybody) ∘ f in
 
     strict_app' ∘ 〈Yf, x〉 ≈
     strict_app' ∘ 〈strict_app' ∘ 〈f,Yf〉 , x〉.
@@ -494,7 +494,7 @@ Section Ydefn.
 
   Definition Ysem Γ 
     : Γ → U (tydom (((σ₁ ⇒ σ₂) ⇒ (σ₁ ⇒ σ₂)) ⇒ (σ₁ ⇒ σ₂)))
-    := strict_curry' (fixes _ _ Ybody ∘ π₂).
+    := strict_curry' (fixes Ybody ∘ π₂).
 End Ydefn.
 
 Notation "'Λ' f" := (strict_curry' f) : ski_scope.
@@ -1068,10 +1068,10 @@ Lemma LR_Ybody σ₁ σ₂
 
   forall (x:term σ₁) hx,
     LR σ₁ x hx -> value x -> semvalue hx ->
-    semvalue (strict_app' ∘ 〈fixes _ _ (Ybody σ₁ σ₂) ∘ hf, hx〉) ->
+    semvalue (strict_app' ∘ 〈fixes (Ybody σ₁ σ₂) ∘ hf, hx〉) ->
     exists z:term σ₂,
       eval _ (tY σ₁ σ₂ • f • x) z /\
-      LR _ z (strict_app' ∘ 〈fixes _ _ (Ybody σ₁ σ₂) ∘ hf, hx〉).
+      LR _ z (strict_app' ∘ 〈fixes (Ybody σ₁ σ₂) ∘ hf, hx〉).
 Proof.
   intros Hf1 Hf2 Hf3. unfold fixes.
   apply scott_induction.

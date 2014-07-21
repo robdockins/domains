@@ -198,9 +198,11 @@ Section fixes.
   Qed.
 
 End fixes.
+Arguments fixes [Γ A] f.
+
 
 Lemma fixes_mono Γ A (f g:Γ → U A ⇒ U A) : 
-  f ≤ g -> fixes Γ A f ≤ fixes Γ A g.
+  f ≤ g -> fixes f ≤ fixes g.
 Proof.
   intro. unfold fixes at 1.
   apply scott_induction.
@@ -216,13 +218,13 @@ Proof.
 Qed.
 
 Lemma fixes_eq Γ A (f g:Γ → U A ⇒ U A) : 
-  f ≈ g -> fixes Γ A f ≈ fixes Γ A g.
+  f ≈ g -> fixes f ≈ fixes g.
 Proof.
   intros [??]; split; apply fixes_mono; auto.
 Qed.
 
 Add Parametric Morphism Γ A :
-  (fixes Γ A)
+  (@fixes Γ A)
   with signature (Preord.ord_op _ ==> Preord.ord_op _)
   as fixes_le_morphism.
 Proof.
@@ -230,7 +232,7 @@ Proof.
 Qed.
 
 Add Parametric Morphism Γ A :
-  (fixes Γ A)
+  (@fixes Γ A)
   with signature (eq_op _ ==> eq_op _)
   as fixes_morphism.
 Proof.
@@ -280,8 +282,8 @@ Proof.
   apply plt_bot_None. auto.
 Qed.  
 
-Lemma fixes_compose_commute Γ Γ' A f (g:Γ' → Γ) :
-  fixes Γ A f ∘ g ≈ fixes Γ' A (f ∘ g).
+Lemma fixes_compose_commute Γ Γ' A (f:Γ → U A ⇒ U A) (g:Γ' → Γ) :
+  fixes f ∘ g ≈ fixes (f ∘ g).
 Proof.
   split; unfold fixes at 1; apply scott_induction.
   red; split.
