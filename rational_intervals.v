@@ -313,6 +313,438 @@ Proof.
   ring_simplify. auto.
 Qed.
 
+Lemma mult_opp_simpl (p q:Q) :
+  (-p) * (-q) == p * q. 
+Proof.
+  ring.
+Qed.
+
+Section ratint_mult_ind.
+  Variable (P:rational_interval -> rational_interval -> rational_interval -> Prop).
+
+  Hypothesis Hsymm :
+    forall r1 r2,
+      P r1 r2 (rint_mult r1 r2) ->
+      P r2 r1 (rint_mult r2 r1).
+
+  Hypothesis Hopp :
+    forall r1 r2,
+      P (rint_opp r1) (rint_opp r2) (rint_mult (rint_opp r1) (rint_opp r2)) ->
+      P r1 r2 (rint_mult r1 r2).
+
+  Hypothesis Hcase1 :
+    forall x1 x2 y1 y2 z1 z2 Hx Hy Hz,
+      let r1 := RatInt x1 x2 Hx in
+      let r2 := RatInt y1 y2 Hy in
+      let r3 := RatInt z1 z2 Hz in
+
+      0 < x1 -> 0 < y1 ->
+      z1 == x1*y1 ->
+      z2 == x2*y2 ->
+      P r1 r2 r3.
+
+  Hypothesis Hcase2 :
+    forall x1 x2 y1 y2 z1 z2 Hx Hy Hz,
+      let r1 := RatInt x1 x2 Hx in
+      let r2 := RatInt y1 y2 Hy in
+      let r3 := RatInt z1 z2 Hz in
+
+      0 < x1 -> y1 <= 0 <= y2 ->
+      z1 == y1 * x2 ->
+      z2 == x2 * y2 ->
+      P r1 r2 r3.
+
+  Hypothesis Hcase3 :
+    forall x1 x2 y1 y2 z1 z2 Hx Hy Hz,
+      let r1 := RatInt x1 x2 Hx in
+      let r2 := RatInt y1 y2 Hy in
+      let r3 := RatInt z1 z2 Hz in
+
+      0 < x1 -> y2 < 0 ->
+      z1 == y1 * x2 ->
+      z2 == x1 * y2 ->
+      P r1 r2 r3.
+
+  Hypothesis Hcase4 :
+    forall x1 x2 y1 y2 z1 z2 Hx Hy Hz,
+      let r1 := RatInt x1 x2 Hx in
+      let r2 := RatInt y1 y2 Hy in
+      let r3 := RatInt z1 z2 Hz in
+
+      z1 == Qmin (x1*y2) (x2*y1) ->
+      z2 == Qmin (x1*y1) (x2*y2) ->
+
+      x1 <= 0 <= x2 -> y1 <= 0 <= y2 ->
+
+      P r1 r2 r3.
+
+  Let rstart x1 x2 y1 y2 := 
+            (Qmin (x1 * y1)
+            (Qmin (x1 * y2)
+            (Qmin (x2 * y1)
+                  (x2 * y2)))).
+
+  Let rend x1 x2 y1 y2 :=
+            (Qmax (x1 * y1)
+            (Qmax (x1 * y2)
+            (Qmax (x2 * y1)
+                  (x2 * y2)))).
+
+  Lemma case1_start x1 x2 y1 y2 :
+    0 < x1 -> x1 <= x2 ->
+    0 < y1 -> y1 <= y2 ->
+    rstart x1 x2 y1 y2 == x1*y1.
+  Proof.    
+    intros. unfold rstart.
+    apply Q.min_l.
+    apply Q.min_case; auto.
+    intros. rewrite <- H3; auto.
+    apply Qmult_le_compat; intuition.
+    apply Q.min_case; auto.
+    intros. rewrite <- H3. auto.
+    apply Qmult_le_compat; intuition.
+    apply Qmult_le_compat; intuition.
+  Qed.
+
+  Lemma case1_end x1 x2 y1 y2 :
+    0 < x1 -> x1 <= x2 ->
+    0 < y1 -> y1 <= y2 ->
+    rend x1 x2 y1 y2 == x2*y2.
+  Proof.
+    intros. unfold rend.
+    repeat rewrite Q.max_assoc.
+    apply Q.max_r.
+    apply Q.max_case; auto.
+    intros. rewrite <- H3; auto.
+    apply Q.max_case; auto.
+    intros. rewrite <- H3; auto.
+    apply Qmult_le_compat; intuition.
+    apply Qmult_le_compat; intuition.
+    apply Qle_trans with y1; intuition.
+    apply Qmult_le_compat; intuition.
+    apply Qle_trans with x1; intuition.
+  Qed.
+
+  Lemma case2_start x1 x2 y1 y2 :
+    0 < x1 -> x1 <= x2 ->
+    y1 <= 0 <= y2 ->
+    rstart x1 x2 y1 y2 == x2 * y1.
+  Proof.
+    intros. unfold rstart.
+    rewrite (Q.min_comm (x2*y1) (x2*y2)).
+    repeat rewrite Q.min_assoc.
+    apply Q.min_r.
+    apply Q.min_case.
+    intros. rewrite <- H2; auto.
+    apply Q.min_case.
+    intros. rewrite <- H2; auto.
+    intros.
+    apply Qmult_le_compat'; intuition.
+    intros.
+    apply Qle_trans with (0*0); auto.
+    apply Qmult_le_compat'; intuition.
+    apply Qle_trans with x1; intuition.
+    apply Qmult_le_compat; intuition.
+    intros.
+    apply Qle_trans with (0*0); auto.
+    apply Qmult_le_compat'; intuition.
+    apply Qle_trans with x1; intuition.
+    apply Qmult_le_compat; intuition.
+    apply Qle_trans with x1; intuition.
+  Qed.
+
+  Lemma case2_end x1 x2 y1 y2 :
+    0 < x1 -> x1 <= x2 ->
+    y1 <= 0 <= y2 ->
+    rend x1 x2 y1 y2 == x2 * y2.
+  Proof.
+    intros. unfold rend.
+    repeat rewrite Q.max_assoc.
+    apply Q.max_r.
+    apply Q.max_case.
+    intros. rewrite <- H2; auto.
+    apply Q.max_case.
+    intros. rewrite <- H2; auto.
+    apply Qle_trans with (0*0); auto.
+    apply Qmult_le_compat'; intuition.
+    apply Qmult_le_compat; intuition.
+    apply Qle_trans with x1; intuition.
+    apply Qmult_le_compat; intuition.
+    apply Qle_trans with (0*0); auto.
+    apply Qmult_le_compat'; intuition.
+    apply Qle_trans with x1; intuition.
+    apply Qmult_le_compat; intuition.
+    apply Qle_trans with x1; intuition.
+  Qed.
+
+  Lemma case3_start x1 x2 y1 y2 :
+    0 < x1 -> x1 <= x2 ->
+    y1 <= y2 -> y2 < 0 ->
+    rstart x1 x2 y1 y2 == x2 * y1.
+  Proof.
+    intros. unfold rstart.
+    rewrite (Q.min_comm (x2*y1) (x2*y2)).
+    repeat rewrite Q.min_assoc.
+    apply Q.min_r.
+    apply Q.min_case.
+    intros. rewrite <- H3; auto.
+    apply Q.min_case.
+    intros. rewrite <- H3; auto.
+    apply Qmult_le_compat'; intuition.
+    apply Qle_trans with y2; intuition.
+    apply Qmult_le_compat'; intuition.
+    apply Qmult_le_compat'; intuition.
+    apply Qle_trans with x1; intuition.
+  Qed.
+
+  Lemma case3_end x1 x2 y1 y2 :
+    0 < x1 -> x1 <= x2 ->
+    y1 <= y2 -> y2 < 0 ->
+    rend x1 x2 y1 y2 == x1 * y2.
+  Proof.
+    intros. unfold rend.
+    rewrite Q.max_assoc.
+    rewrite (Q.max_comm (x1*y1) (x1*y2)).
+    rewrite <- Q.max_assoc.
+    apply Q.max_l.
+    apply Q.max_case.
+    intros. rewrite <- H3; auto.
+    apply Qmult_le_compat'; intuition.
+    apply Q.max_case.
+    intros. rewrite <- H3; auto.
+    apply Qmult_le_compat'; intuition.
+    apply Qmult_le_compat'; intuition.
+  Qed.
+
+  Lemma case4_start x1 x2 y1 y2 z : 
+      x1 <= 0 <= x2 ->
+      y1 <= 0 <= y2 ->
+      z == Qmin (x1 * y1) (Qmin (x1 * y2) (Qmin (x2 * y1) (x2 * y2))) ->
+      z == Qmin (x1 * y2) (x2*y1).
+  Proof.
+    intros Hx Hy.
+    apply Q.min_case_strong; intros. apply H0. rewrite H; auto.
+    apply Q.min_glb_l in H.
+    apply Qopp_le_compat in H.
+    assert (y2 * (-x1) <= y1 * (-x1)).
+    rewrite (Qmult_comm y2).
+    rewrite (Qmult_comm y1).
+    ring_simplify.
+    ring_simplify in H.
+    auto.
+    destruct (Qlt_le_dec x1 0).
+    apply (Qmult_le_r) in H1.
+    assert (y1 == y2).
+    apply Qle_antisym; auto.
+    apply Qle_trans with 0; intuition.
+
+Lemma min_unicity_le:
+  forall n m p : Q, n <= m /\ p == n \/ m <= n /\ p == m -> p == Qmin n m.
+Proof.
+  intros.
+  destruct (Q.min_spec_le n m).
+  destruct H0. 
+  rewrite H1.
+  intuition. rewrite H3.
+  apply Qle_antisym; auto.
+  destruct H0. rewrite H1.
+  intuition. rewrite H3.
+  apply Qle_antisym; auto.
+Qed.  
+
+    apply min_unicity_le.
+    left. split.
+    destruct Hx.
+    assert (y1 == 0).
+    apply Qle_antisym; intuition.
+    rewrite H2; auto.
+    rewrite <- H2. rewrite H5.
+    ring_simplify. apply Qle_refl.
+    rewrite H0. rewrite H2. reflexivity.
+    rewrite <- (Qplus_lt_l _ _ x1). ring_simplify. auto.
+    assert (x1 == 0).
+    apply Qle_antisym; auto.
+    destruct Hx; auto.
+    
+
+
+    apply min_unicity_le.
+    right.
+    split.
+    rewrite H2.
+    
+    
+    
+
+
+    apply Q.min_case.
+    intros. rewrite <- H3; auto.
+    rewrite H0. rewrite H2. ring.
+    rewrite H0. rewrite H2.
+    
+
+
+    cut (z <= x1*y1).
+    2: rewrite H0; auto.
+    clear H.
+    revert H0.
+    apply Q.min_case_strong; auto. intros. apply H0. rewrite H; auto.
+    auto.
+    intros.
+    
+    cut (z <= x1*y2).
+    2: rewrite H0; auto.
+    clear H.
+    revert H0.
+    apply Q.min_case_strong. intros. apply H0;auto. rewrite H; auto.
+    intros; auto.
+    intros.
+    destruct Hx.
+    apply Qle_lteq in H4.
+    destruct H4.
+    apply (Qmult_le_l) in H.
+    assert (y1 == y2).
+    apply Qle_antisym; auto. 
+    apply Qle_trans with 0; intuition.
+    right. rewrite H5. auto. auto.
+    right. rewrite H0. rewrite <- H4.
+    ring.
+  Qed.
+    
+  Lemma case4_end x1 x2 y1 y2 z : 
+    x1 <= 0 <= x2 ->
+    y1 <= 0 <= y2 ->
+
+    z == Qmax (x1 * y1) (Qmax (x1 * y2) (Qmax (x2 * y1) (x2 * y2))) ->
+    z == x1 * y1 \/ z == x2 * y2.
+  Proof.
+    intros Hx Hy.
+    apply Q.max_case; auto. intros. apply H0. rewrite H; auto.
+    apply Q.max_case_strong; intros. apply H0. rewrite H; auto.
+    apply Q.max_lub_r in H.
+    destruct (Qlt_le_dec 0 y2).
+    apply (Qmult_le_r) in H; auto.
+    assert (x1 == x2).
+    apply Qle_antisym; auto.
+    apply Qle_trans with 0; intuition.
+    right. rewrite <- H1. auto.
+    assert (y2 == 0).
+    apply Qle_antisym; auto.
+    destruct Hy; auto.
+    right.
+    rewrite H0. rewrite H1. ring.
+    cut (x1*y2 <= z). 2: rewrite H0; auto.
+    clear H.
+    revert H0.
+    apply Q.max_case_strong; intros. apply H0; auto. rewrite H; auto.
+    destruct (Qlt_le_dec 0 x2).
+    apply (Qmult_le_l) in H; auto.
+    assert (y1 == y2).
+    apply Qle_antisym; auto.
+    apply Qle_trans with 0; intuition.
+    right. rewrite <- H2. auto.
+    assert (x2 == 0).
+    apply Qle_antisym; auto. destruct Hx; auto.
+    right. rewrite H0. rewrite H2. ring.
+    auto.
+  Qed.
+  
+  Lemma rint_mult_ind :
+    forall r1 r2, P r1 r2 (rint_mult r1 r2).
+  Proof.
+    intros [x1 x2 Hx] [y1 y2 Hy].
+
+    destruct (Qlt_le_dec 0 x1).
+    destruct (Qlt_le_dec 0 y1).
+    apply Hcase1; simpl; auto.
+    apply case1_start; auto.
+    apply case1_end; auto.
+    
+    destruct (Qlt_le_dec y2 0).
+    apply Hcase3; simpl; auto.
+    rewrite (Qmult_comm y1).
+    apply case3_start; auto.
+    apply case3_end; auto.
+
+    apply Hcase2; simpl; auto.
+    rewrite (Qmult_comm y1).
+    apply case2_start; auto.
+    apply case2_end; auto.
+    
+    destruct (Qlt_le_dec x2 0).
+    destruct (Qlt_le_dec 0 y1).
+    apply Hsymm. apply Hcase3; simpl; auto.
+    rewrite (Qmult_comm x1 y2).
+    apply case3_start; auto.
+    apply case3_end; auto.
+
+    destruct (Qlt_le_dec y2 0).
+    apply Hopp. apply Hcase1; simpl; auto.
+    rewrite <- (Qplus_lt_l _ _ (x2)). ring_simplify. auto.
+    rewrite <- (Qplus_lt_l _ _ (y2)). ring_simplify. auto.
+    apply case1_start; auto.
+    rewrite <- (Qplus_lt_l _ _ (x2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    rewrite <- (Qplus_lt_l _ _ (y2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    apply case1_end; auto.
+    rewrite <- (Qplus_lt_l _ _ (x2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    rewrite <- (Qplus_lt_l _ _ (y2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+  
+    apply Hopp. apply Hcase2; simpl.
+    rewrite <- (Qplus_lt_l _ _ (x2)). ring_simplify. auto.
+    split.
+    rewrite <- (Qplus_le_l _ _ (y2)). ring_simplify. auto.
+    rewrite <- (Qplus_le_l _ _ (y1)). ring_simplify. auto.
+    rewrite (Qmult_comm (-y2) (-x1)).
+    apply case2_start; auto.
+    rewrite <- (Qplus_lt_l _ _ (x2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    split.
+    rewrite <- (Qplus_le_l _ _ (y2)). ring_simplify. auto.
+    rewrite <- (Qplus_le_l _ _ (y1)). ring_simplify. auto.
+    apply case2_end.
+    rewrite <- (Qplus_lt_l _ _ (x2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    split.
+    rewrite <- (Qplus_le_l _ _ (y2)). ring_simplify. auto.
+    rewrite <- (Qplus_le_l _ _ (y1)). ring_simplify. auto.
+    
+    destruct (Qlt_le_dec 0 y1).
+    apply Hsymm. apply Hcase2; simpl; auto.
+    rewrite (Qmult_comm x1 y2).
+    apply case2_start; auto.
+    apply case2_end; auto.
+
+    destruct (Qlt_le_dec y2 0).
+    apply Hsymm. apply Hopp.
+    apply Hcase2; simpl; auto.
+    rewrite <- (Qplus_lt_l _ _ (y2)). ring_simplify. auto.
+    split.
+    rewrite <- (Qplus_le_l _ _ (x2)). ring_simplify. auto.
+    rewrite <- (Qplus_le_l _ _ (x1)). ring_simplify. auto.
+    rewrite (Qmult_comm (-x2) (-y1)).
+    apply case2_start; auto.
+    rewrite <- (Qplus_lt_l _ _ (y2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    split.
+    rewrite <- (Qplus_le_l _ _ (x2)). ring_simplify. auto.
+    rewrite <- (Qplus_le_l _ _ (x1)). ring_simplify. auto.
+    apply case2_end.
+    rewrite <- (Qplus_lt_l _ _ (y2)). ring_simplify. auto.
+    apply Qopp_le_compat; auto.
+    split.
+    rewrite <- (Qplus_le_l _ _ (x2)). ring_simplify. auto.
+    rewrite <- (Qplus_le_l _ _ (x1)). ring_simplify. auto.
+
+    apply Hcase4; simpl; auto.
+    apply case4_start; intuition.
+    apply case4_end; intuition.
+  Qed.  
+End ratint_mult_ind.
+
 Section mult_correct.
   Variables x1 x2 y1 y2:Q.
   Variable q:Q.
@@ -336,7 +768,8 @@ Section mult_correct.
     Hypothesis Hx : 0 < x1.
     Hypothesis Hy : 0 < y1.
 
-    Lemma case1_q : x1 * y1 <= q <= x2 * y2.
+    Hypothesis case1_q : x1 * y1 <= q <= x2 * y2.
+(*
     Proof.
       destruct HQ. split.
       revert H.
@@ -367,6 +800,7 @@ Section mult_correct.
       apply Qle_trans with x1; intuition.
       auto.
     Qed.
+*)
 
     Lemma case1 : exists q1 q2, x1 <= q1 <= x2 /\ y1 <= q2 <= y2 /\ q == q1 * q2.
     Proof.
@@ -379,8 +813,8 @@ Section mult_correct.
       rewrite Qmult_comm. auto.
       rewrite Qmult_div_r; intuition.
       assert (0 < 0). 
-      rewrite <- H1 at 2. auto.
-      red in H2. omega.
+      rewrite <- H3 at 2. auto.
+      red in H4. omega.
 
       destruct (Qlt_le_dec x1 (q/y2)).
       exists (q/y2). exists y2.
@@ -390,9 +824,9 @@ Section mult_correct.
       rewrite Qmult_comm.
       rewrite Qmult_div_r; intuition.
       assert (0 < 0). 
-      rewrite <- H1 at 2. 
+      rewrite <- H3 at 2. 
       apply Qlt_le_trans with y1; intuition.
-      red in H2. omega.
+      red in H4. omega.
 
       exists x1. exists y2.
       intuition.
@@ -406,19 +840,19 @@ Section mult_correct.
       compute. discriminate.
       apply Qmult_le_compat; intuition.
       apply Qle_trans with y1; intuition.
-      rewrite (Qmult_comm) in H1.
-      rewrite Qmult_div_r in H1; intuition.
+      rewrite (Qmult_comm) in H3.
+      rewrite Qmult_div_r in H3; intuition.
       assert (0 < 0).
       apply Qlt_le_trans with y1; intuition.
-      rewrite <- H2. auto.
-      red in H3. omega.
+      rewrite <- H4. auto.
+      red in H5. omega.
       assert (x1 * y2 <= x1 * (q / x1)).
       apply Qmult_le_compat; intuition.
       apply Qle_trans with y1; intuition.
-      rewrite Qmult_div_r in H1; intuition.
+      rewrite Qmult_div_r in H3; intuition.
       assert (0 < 0).
-      rewrite <- H2 at 2. auto.
-      red in H3. omega.
+      rewrite <- H4 at 2. auto.
+      red in H5. omega.
     Qed.
   End case1.
 
@@ -426,7 +860,8 @@ Section mult_correct.
     Hypothesis Hx : 0 < x1.
     Hypothesis Hy : y1 <= 0 <= y2.
 
-    Lemma case2_q : y1 * x2 <= q <= x2 * y2.
+    Hypothesis case2_q : y1 * x2 <= q <= x2 * y2.
+(*
     Proof.
       destruct HQ. split.
       revert H.
@@ -477,6 +912,7 @@ Section mult_correct.
       apply Qle_trans'. 
       apply Qle_refl.
     Qed.
+*)
  
     Lemma case2 : exists q1 q2, x1 <= q1 <= x2 /\ y1 <= q2 <= y2 /\ q == q1 * q2.
     Proof.
@@ -493,17 +929,17 @@ Section mult_correct.
       assert (0 < 0).
       apply Qlt_le_trans with x1; auto.
       apply Qle_trans with x2; auto.
-      rewrite H3. apply Qle_refl.
-      red in H4. omega.
+      rewrite H5. apply Qle_refl.
+      red in H6. omega.
     Qed.
   End case2.
-
 
   Section case3.
     Hypothesis Hx : 0 < x1.
     Hypothesis Hy : y2 < 0.
 
-    Lemma case3_q : y1 * x2 <= q <= x1 * y2.
+    Hypothesis case3_q : y1 * x2 <= q <= x1 * y2.
+(*
     Proof.
       destruct HQ. split.
 
@@ -546,7 +982,7 @@ Section mult_correct.
       apply Qle_trans'. 
       apply Qmult_le_compat'; intuition.
     Qed.
-  
+*)  
 
     Lemma case3 : exists q1 q2, x1 <= q1 <= x2 /\ y1 <= q2 <= y2 /\ q == q1 * q2.
     Proof.
@@ -561,7 +997,7 @@ Section mult_correct.
       rewrite Qmult_comm; intuition.
       rewrite Qmult_div_r; auto. reflexivity.
       intro. apply (Qlt_irrefl 0).
-      rewrite <- H1 at 2; auto.
+      rewrite <- H3 at 2; auto.
       
       destruct (Qlt_le_dec q (x2*y2)).
       exists x2. exists (q/x2).
@@ -573,7 +1009,7 @@ Section mult_correct.
       rewrite Qmult_comm; intuition.
       rewrite Qmult_div_r; auto. reflexivity.
       intro. apply (Qlt_irrefl 0).
-      rewrite <- H1 at 2; auto.
+      rewrite <- H3 at 2; auto.
       apply Qlt_le_trans with x1; auto.
       
       assert (y1+y2 < 0).
@@ -597,7 +1033,7 @@ Section mult_correct.
       rewrite <- (Qplus_le_l _ _ (-y2)). ring_simplify. auto.
       assert (~ (y1+y2 == 0)).
       intro. apply (Qlt_irrefl 0).
-      rewrite <- H2 at 1. auto.
+      rewrite <- H4 at 1. auto.
       field_simplify; auto.
       field_simplify; auto.
       field_simplify; auto.
@@ -609,7 +1045,8 @@ Section mult_correct.
     Hypothesis Hx : x1 <= 0 <= x2.
     Hypothesis Hy : y1 <= 0 <= y2.
 
-    Lemma case4_hi : (q <= x1*y1) \/ (q <= x2*y2).
+    Hypothesis case4_hi : (q <= x1*y1) \/ (q <= x2*y2).
+(*
     Proof.
       destruct HQ. revert H0.
       apply Q.max_case; auto. intros. apply H1. rewrite H0; auto.
@@ -640,8 +1077,10 @@ Section mult_correct.
       ring_simplify. ring_simplify in H2. auto.
       auto.
     Qed.
+*)
 
-    Lemma case4_low : (x1*y2 <= q) \/ (x2*y1 <= q).
+    Hypothesis case4_low : (x1*y2 <= q) \/ (x2*y1 <= q).
+(*
     Proof.
       destruct HQ.
       revert H.
@@ -688,11 +1127,12 @@ Section mult_correct.
       ring_simplify in H2.
       auto.
     Qed.
-
+*)
     Lemma case4 : exists q1 q2, x1 <= q1 <= x2 /\ y1 <= q2 <= y2 /\ q == q1 * q2.
     Proof.
       clear HQ.
-      destruct case4_low; destruct case4_hi.
+      destruct case4_low; destruct case4_hi;
+        clear case4_low case4_hi.
       destruct (Qeq_dec x1 0).
       exists 0. exists 0.
       intuition.
@@ -763,11 +1203,6 @@ Section mult_correct.
   End case4.
 End mult_correct.
 
-Lemma mult_opp_simpl (p q:Q) :
-  (-p) * (-q) == p * q. 
-Proof.
-  ring.
-Qed.
 
 Lemma rint_mult_opp r1 r2 q :
   in_interval q (rint_mult r1 r2) ->
@@ -814,6 +1249,19 @@ Proof.
   apply Q.le_max_l.
   rewrite Heqm.
   apply Q.le_max_l.
+Qed.
+
+Lemma rint_mult_opp' r1 r2 q :
+  in_interval q (rint_mult (rint_opp r1) (rint_opp r2)) ->
+  in_interval q (rint_mult r1 r2).
+Proof.
+  intros.
+  apply rint_mult_opp in H.
+  red in H. red.
+  unfold rint_opp in H.
+  simpl in H.
+  repeat rewrite (Qopp_involutive) in H.
+  auto.
 Qed.
 
 Lemma rint_mult_swap r1 r2 q :
@@ -867,6 +1315,144 @@ Proof.
   eapply Qle_trans. 2: apply Q.le_max_r.
   rewrite Qmult_comm. apply Qle_refl.
 Qed.
+
+Lemma rint_mult_correct r1 r2 q:
+  in_interval q (rint_mult r1 r2) <-> 
+  exists q1 q2,
+    in_interval q1 r1 /\ in_interval q2 r2 /\ q == q1 * q2.
+Proof.
+  apply rint_mult_ind.
+
+  simpl; intuition.
+  destruct H0 as [q1 [q2 [?[??]]]].
+  apply rint_mult_swap. auto.
+  exists q2. exists q1. intuition.
+  rewrite Qmult_comm; auto.
+  apply rint_mult_swap. apply H1.
+  destruct H as [q1 [q2 [?[??]]]].
+  exists q2. exists q1. intuition.
+  rewrite Qmult_comm; auto.
+
+  simpl; intuition.
+  destruct H0 as [q1 [q2 [?[??]]]].
+  apply rint_mult_opp. auto.
+  exists (-q1). exists (-q2). intuition.
+  apply rint_opp_correct.
+  red. rewrite (Qopp_involutive). auto.
+  apply rint_opp_correct.
+  red. rewrite (Qopp_involutive). auto.
+  rewrite mult_opp_simpl. auto.
+  apply rint_mult_opp'. apply H1.
+  destruct H as [q1 [q2 [?[??]]]].
+  exists (-q1), (-q2).
+  intuition.
+  apply rint_opp_correct; auto.
+  apply rint_opp_correct; auto.
+  rewrite mult_opp_simpl. auto.
+
+  simpl; intros. split; intros.
+  red in H3; simpl in *.
+  apply case1; simpl; intuition.
+  rewrite <- H1; auto.
+  rewrite <- H2; auto.
+  unfold in_interval in *; simpl in *.
+  destruct H3 as [q1 [q2 [?[??]]]].
+  rewrite H5. rewrite H1. rewrite H2.
+  split.
+  apply Qmult_le_compat; intuition.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with x1; intuition.
+  apply Qle_trans with y1; intuition.
+
+  simpl; intros. split; intros.
+  red in H3; simpl in *.
+  apply case2; simpl; intuition.
+  rewrite <- H1; auto.
+  rewrite <- H2; auto.
+  unfold in_interval in *; simpl in *.
+  destruct H3 as [q1 [q2 [?[??]]]].
+  rewrite H5. rewrite H1. rewrite H2.
+  split.
+  rewrite (Qmult_comm y1 x2).
+  destruct (Qlt_le_dec 0 q2).
+  apply Qle_trans with (0*0).
+  apply Qmult_le_compat'; intuition.
+  apply Qle_trans with x1; intuition.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with x1; intuition.
+  apply Qmult_le_compat'; intuition.
+  apply Qle_trans with x1; intuition.
+  
+  destruct (Qlt_le_dec 0 q2).
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with x1; intuition.
+  apply Qle_trans with (0*0).
+  apply Qmult_le_compat'; intuition.
+  apply Qle_trans with x1; intuition.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with x1; intuition.
+
+  simpl; intros. split; intros.
+  red in H3; simpl in *.
+  unfold in_interval; simpl.
+  apply case3; simpl; intuition.
+  rewrite <- H1; auto.
+  rewrite <- H2; auto.
+  unfold in_interval in *; simpl in *.
+  destruct H3 as [q1 [q2 [?[??]]]].
+  rewrite H5. rewrite H1. rewrite H2.
+  split.
+
+  rewrite (Qmult_comm y1 x2).
+  apply Qmult_le_compat'; intuition.
+  apply Qle_trans with x1; intuition.
+  apply Qle_trans with y2; intuition.
+  apply Qmult_le_compat'; intuition.
+  
+  simpl; intros.
+  unfold in_interval; simpl.
+  split; intros.
+  apply case4; auto.
+  destruct H3. destruct H0; rewrite <- H0; auto.
+  destruct H3. destruct H; rewrite <- H; auto.
+  
+  destruct H3 as [q1 [q2 [?[??]]]].
+  rewrite H5. split.
+  destruct H; rewrite H.
+  clear H0.
+  destruct (Qlt_le_dec q1 0).
+  destruct (Qlt_le_dec q2 0).
+  apply Qle_trans with (0*0).
+  rewrite (Qmult_comm x1 y2).
+  apply Qmult_le_compat'; intuition.
+  apply Qmult_le_compat''; intuition.
+  rewrite (Qmult_comm x1 y2).
+  rewrite (Qmult_comm q1 q2).
+  apply Qmult_le_compat'; intuition.
+  destruct (Qlt_le_dec q2 0).
+  
+  
+
+
+Lemma Qopp_le_compat': forall p q : Q, -p <= -q -> q <= p.
+Proof.
+  intros.
+  rewrite <- (Qopp_involutive p).
+  rewrite <- (Qopp_involutive q).
+  apply Qopp_le_compat. auto.
+Qed.
+
+  
+  
+
+
+
+  
+
+  
+  
+
+
 
 Lemma rint_mult_correct r1 r2 q:
   in_interval q (rint_mult r1 r2) <-> 
@@ -1014,6 +1600,266 @@ Proof.
   apply Qle_trans with (0 * 0)%Q.
   apply Qmult_le_compat'; intuition.
   apply Qmult_le_compat''; intuition.
+  destruct (Qlt_le_dec 0 (rint_end r2)).
+  eapply Qle_trans. apply Q.le_min_r.
+  eapply Qle_trans. apply Q.le_min_l.
+  apply Qle_trans with (0 * 0)%Q.
+  rewrite (Qmult_comm (rint_start r1)).
+  apply Qmult_le_compat'; intuition.
+  apply Qmult_le_compat''; intuition.
+  eapply Qle_trans. apply Q.le_min_r.
+  eapply Qle_trans. apply Q.le_min_r.
+  eapply Qle_trans. apply Q.le_min_r.
+  apply Qmult_le_compat''; intuition.
+  
+  destruct (Qlt_le_dec 0 q1).
+  destruct (Qlt_le_dec 0 q2).
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Qmult_le_compat; intuition.
+  destruct (Qlt_le_dec 0 (rint_end r2)).
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Qle_trans with (0 * 0)%Q.
+  apply Qmult_le_compat'; intuition.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with q1; intuition.
+  destruct (Qlt_le_dec 0 (rint_start r1)).
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_l.
+  apply Qmult_le_compat'; intuition.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_l.
+  apply Qle_trans with (0 * 0)%Q.
+  apply Qmult_le_compat'; intuition.
+  apply Qmult_le_compat''; intuition.
+  
+  destruct (Qlt_le_dec 0 q2).
+  destruct (Qlt_le_dec 0 (rint_end r1)).
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Qle_trans with (0 * 0)%Q.
+  rewrite (Qmult_comm q1).
+  apply Qmult_le_compat'; intuition.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with q2; intuition.
+  destruct (Qlt_le_dec 0 (rint_start r2)).
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_l.
+  rewrite (Qmult_comm q1).
+  rewrite (Qmult_comm (rint_end r1)).
+  apply Qmult_le_compat'; intuition.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_l.
+  apply Qle_trans with (0 * 0)%Q.
+  rewrite (Qmult_comm q1).
+  apply Qmult_le_compat'; intuition.
+  apply Qmult_le_compat''; intuition.
+  
+  eapply Qle_trans. 2: apply Q.le_max_l.
+  apply Qmult_le_compat''; intuition.
+Qed.
+
+
+Lemma Qmult_lt_compat a b x y :
+  0 < a /\ a <= x ->
+  0 <= b /\ b < y ->
+  a * b < x * y.
+Proof.
+  intuition.
+  apply Qlt_le_trans with (a * y).
+  do 2 rewrite (Qmult_comm a).
+  apply Qmult_lt_compat_r; auto.
+  apply Qmult_le_compat_r; auto.
+  apply Qle_trans with b; intuition.
+Qed.
+
+Lemma Qopp_lt_compat (a b:Q) :
+  a < b ->
+  -b < -a.
+Proof.
+  intros.
+  destruct (Qlt_le_dec (-b) (-a)); auto.
+  apply Qopp_le_compat in q.
+  rewrite (Qopp_involutive b) in q.
+  rewrite (Qopp_involutive a) in q.
+  assert (a < a). apply Qlt_le_trans with b; auto.
+  exfalso. red in H0. omega.
+Qed.
+
+
+Lemma Qmult_lt_compat' a b x y :
+  0 < a /\ a <= x ->
+  y < b /\ b <= 0 ->
+  x * y < a * b.
+Proof.
+  intuition.
+  rewrite <- (Qopp_involutive (x*y)).
+  rewrite <- (Qopp_involutive (a*b)).
+  apply Qopp_lt_compat.
+  apply Qle_lt_trans with (a * (-b)).
+  ring_simplify. apply Qle_refl.
+  apply Qlt_le_trans with (x * (-y)).
+  apply Qmult_lt_compat.
+  split; auto.
+  split.
+  apply Qle_trans with (-0).
+  compute. discriminate.
+  apply Qopp_le_compat; auto.
+  apply Qopp_lt_compat; auto.
+  ring_simplify. apply Qle_refl.
+Qed.
+
+Lemma Qmult_lt_compat'' a b x y :
+  x <= a /\ a < 0 ->
+  y < b /\ b <= 0 ->
+  a * b < x * y.
+Proof.
+  intuition.
+  rewrite <- (Qopp_involutive (x*y)).
+  rewrite <- (Qopp_involutive (a*b)).
+  apply Qopp_lt_compat.
+  apply Qle_lt_trans with ((-x) * y).
+  ring_simplify. apply Qle_refl.
+  apply Qlt_le_trans with ((-a) * b).
+  apply Qmult_lt_compat'; auto.
+  split.
+  apply Qle_lt_trans with (-0).
+  compute. discriminate.
+  apply Qopp_lt_compat; auto.
+  apply Qopp_le_compat; auto.
+  ring_simplify. apply Qle_refl.
+Qed.
+
+Lemma Qmult_lt0 : forall (a b:Q),
+  0 < a -> 0 < b -> 0 < a*b.
+Proof.
+  intros.
+  apply Qle_lt_trans with (0*b); auto.
+  ring_simplify; intuition.
+  apply Qmult_lt_compat_r; auto.
+Qed.
+
+Lemma Qmult_lt0' : forall (a b:Q),
+  a < 0 -> 0 < b -> a*b < 0.
+Proof.
+  intros.
+  apply Qlt_le_trans with (0*b); auto.
+  apply Qmult_lt_compat_r; auto.
+  ring_simplify. intuition.
+Qed.
+
+Lemma Qmult_lt0'' : forall (a b:Q),
+  a < 0 -> b < 0 -> 0 < a*b.
+Proof.
+  intros.
+  apply Qlt_le_trans with ( (-a) * (-b)); auto.
+  apply Qmult_lt0.
+  change 0 with (-0).
+  apply Qopp_lt_compat. auto.
+  change 0 with (-0).
+  apply Qopp_lt_compat. auto.
+  rewrite mult_opp_simpl.
+  intuition.
+Qed.
+
+Lemma rint_mult_correct_interior r1 r2 q q1 q2 :
+  in_interior q1 r1 -> in_interior q2 r2 -> q == q1 * q2 ->
+  in_interior q (rint_mult r1 r2).
+Proof.
+  intros. red. rewrite H1. simpl.
+  destruct H. destruct H0.
+  split.
+  destruct (Qlt_le_dec 0 (rint_start r1)).
+  destruct (Qlt_le_dec 0 (rint_start r2)).
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  apply Qmult_lt_compat; intuition.
+  destruct (Qlt_le_dec q2 0).
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  apply Qmult_lt_compat'; intuition.
+  apply Qlt_le_trans with (rint_start r1); intuition.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  destruct (Qlt_le_dec (rint_start r2) 0).
+  apply Qlt_le_trans with 0.
+  rewrite Qmult_comm.
+  apply Qmult_lt0'; intuition.
+  change 0 with (0*0).
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with (rint_start r1); intuition.
+  apply Qmult_lt_compat; intuition.
+  destruct (Qlt_le_dec 0 (rint_start r2)).
+  destruct (Qlt_le_dec q1 0).
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  rewrite (Qmult_comm (rint_start r1)).
+  rewrite (Qmult_comm q1).
+  apply Qmult_lt_compat'; intuition.
+  apply Qlt_trans with (rint_start r2); intuition.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  destruct (Qlt_le_dec (rint_start r1) 0).
+  apply Qlt_le_trans with (0 * 0)%Q.
+  apply Qmult_lt0'; intuition.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with (rint_start r2); intuition.
+  assert (rint_start r1 == 0). apply Qle_antisym; auto.
+  rewrite H4. ring_simplify.
+  rewrite H4 in H.
+  apply Qmult_lt0; auto.
+  apply Qlt_trans with (rint_start r2); auto.
+
+  destruct (Qlt_le_dec 0 q1).
+  destruct (Qlt_le_dec 0 q2).
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  apply Qle_lteq in q0. destruct q0.
+  apply Qlt_trans with (0 * 0)%Q.
+  apply Qmult_lt0'; auto.
+  apply Qlt_trans with q2; auto.
+  apply Qmult_lt0; auto.
+  rewrite H4. ring_simplify.
+  apply Qmult_lt0; auto.
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  apply Qmult_lt_compat'; intuition.
+
+  destruct (Qlt_le_dec 0 q2).
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  rewrite (Qmult_comm (rint_start r1)).
+  rewrite (Qmult_comm q1).
+  apply Qmult_lt_compat'; intuition.
+  destruct (Qlt_le_dec 0 (rint_end r1)).
+  
+
+
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_r.
+  eapply Qle_lt_trans. apply Q.le_min_l.
+  apply Qle_lteq in q3. destruct q3.
+  apply Qlt_le_trans with (0 * 0)%Q.
+  rewrite Qmult_comm.
+  apply Qmult_lt0'; auto.
+  apply Qmult_le_compat''; intuition.
+  rewrite H4. ring_simplify.
+  
+
+
+
+  apply Qmult_lt0''; auto.
+  apply Qlt_le_trans with (rint_end r1); auto.
+  
+  
+  
+
+
   destruct (Qlt_le_dec 0 (rint_end r2)).
   eapply Qle_trans. apply Q.le_min_r.
   eapply Qle_trans. apply Q.le_min_l.
