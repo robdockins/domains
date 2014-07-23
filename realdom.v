@@ -978,6 +978,54 @@ Next Obligation.
 Qed.
 
 
+Lemma real_opp_canonical A f :
+  canonical A f ->
+  canonical A (real_opp ∘ f).
+Proof.
+  repeat intro.
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [y [??]].
+  simpl in H1. apply real_opp_rel_elem in H1.
+  destruct (H a y) as [y' [??]]; auto.
+  exists (rint_opp y'). split.
+  apply PLT.compose_hom_rel.
+  exists y'. split; auto.
+  simpl. apply real_opp_rel_elem. auto.
+  destruct H3.
+  apply rint_ord_test in H1.
+  simpl in H1. destruct H1.
+  split; simpl.
+  apply Qle_lt_trans with (-rint_end y); auto.
+  rewrite <- (Qplus_lt_l _ _ (rint_end y')).
+  rewrite <- (Qplus_lt_l _ _ (rint_end y)).
+  ring_simplify. auto.
+  apply Qlt_le_trans with (-rint_start y); auto.
+  rewrite <- (Qplus_lt_l _ _ (rint_start y')).
+  rewrite <- (Qplus_lt_l _ _ (rint_start y)).
+  ring_simplify. auto.
+Qed.
+
+Lemma real_opp_converges A f :
+  realdom_converges A f ->
+  realdom_converges A (real_opp ∘ f).
+Proof.
+  repeat intro.
+  destruct (H a ε) as [r [??]]; auto.
+  exists (rint_opp r).
+  split.
+  apply PLT.compose_hom_rel.
+  exists r. split; auto.
+  simpl. apply real_opp_rel_elem. auto.
+  simpl.
+  ring_simplify.
+  ring_simplify in H2.
+  rewrite Qplus_comm.
+  auto.
+Qed.
+
+
+
+
 Definition real_plus_rel : erel (prod_preord rint_preord rint_preord) rint_preord :=
   esubset_dec (prod_preord (prod_preord rint_preord rint_preord) rint_preord)
      (fun xyz => (snd xyz) ≤ rint_plus (fst (fst xyz)) (snd (fst xyz)))
@@ -1027,6 +1075,66 @@ Next Obligation.
   apply real_plus_rel_elem. auto.
 Qed.
 
+Lemma real_plus_canon : forall A (f g:A → PreRealDom),
+  canonical A f ->
+  canonical A g ->
+  canonical A (real_plus ∘ 《 f, g 》)%plt.
+Proof.
+  repeat intro.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [[p q] [??]].
+  apply (PLT.pair_hom_rel _ _ _ _ f g) in H1. destruct H1.
+  destruct (H a p) as [p' [??]]; auto.
+  destruct (H0 a q) as [q' [??]]; auto.
+  simpl in H2.
+  apply real_plus_rel_elem in H2.
+  exists (rint_plus p' q'). split.
+  apply PLT.compose_hom_rel.
+  exists (p',q').
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  simpl. apply real_plus_rel_elem. auto.
+  apply rint_ord_test in H2. simpl in H2.
+  destruct H2.
+  destruct H5. destruct H7.
+  red; simpl; split.
+  eapply Qle_lt_trans. apply H2.
+  apply Qplus_lt_le_compat; intuition.
+  eapply Qlt_le_trans. 2: apply H8.
+  apply Qplus_lt_le_compat; intuition.
+Qed.
+
+Lemma real_plus_converges : forall A (f g:A → PreRealDom),
+  realdom_converges A f ->
+  realdom_converges A g ->
+  realdom_converges A (real_plus ∘ 《 f, g 》)%plt.
+Proof.
+  repeat intro.
+  destruct (H a (ε/(2#1))) as [p [??]].
+  apply Qlt_shift_div_l.
+  compute. auto.
+  ring_simplify. auto.
+  destruct (H0 a (ε/(2#1))) as [q [??]].
+  apply Qlt_shift_div_l.
+  compute. auto.
+  ring_simplify. auto.
+  exists (rint_plus p q).
+  split.
+  apply PLT.compose_hom_rel.
+  exists (p,q).
+  split.
+  apply PLT.pair_hom_rel; split; auto.
+  simpl. apply real_plus_rel_elem; auto.
+  simpl.
+  apply Qle_trans with
+    ((rint_end p - rint_start p) + (rint_end q - rint_start q))%Q.
+  ring_simplify. apply Qle_refl.
+  apply Qle_trans with ((ε/(2#1)) + (ε/(2#1)))%Q.
+  apply Qplus_le_compat; auto.
+  field_simplify.
+  field_simplify.
+  apply Qle_refl.
+Qed.
 
 
 Definition real_mult_rel : erel (prod_preord rint_preord rint_preord) rint_preord :=
@@ -1077,6 +1185,201 @@ Next Obligation.
   apply erel_image_elem.
   apply real_mult_rel_elem. auto.
 Qed.
+
+Lemma way_inside_alt r s :
+  (forall x, in_interval x r -> in_interior x s) <->
+  way_inside r s .
+Proof.
+  split; intros.
+  red.
+  split.
+  destruct (H (rint_start r)); auto.
+  split; intuition. apply rint_proper.
+  destruct (H (rint_end r)); auto.
+  split; intuition. apply rint_proper.
+  destruct H. destruct H0.
+  split.
+  apply Qlt_le_trans with (rint_start r); auto.
+  apply Qle_lt_trans with (rint_end r); auto.
+Qed.
+
+
+Lemma real_mult_canon : forall A (f g:A → PreRealDom),
+  canonical A f ->
+  canonical A g ->
+  canonical A (real_mult ∘ 《 f, g 》)%plt.
+Proof.
+  repeat intro.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [[p q] [??]].
+  apply (PLT.pair_hom_rel _ _ _ _ f g) in H1. destruct H1.
+  destruct (H a p) as [p' [??]]; auto.
+  destruct (H0 a q) as [q' [??]]; auto.
+  simpl in H2.
+  apply real_mult_rel_elem in H2.
+  exists (rint_mult p' q'). split.
+  apply PLT.compose_hom_rel.
+  exists (p',q').
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  simpl. apply real_mult_rel_elem. auto.
+
+  apply way_inside_alt. intros.
+  cut (in_interior x0 (rint_mult p q)).
+  intros.
+  apply rint_ord_test in H2.
+  destruct H2. destruct H9.
+  split.
+  eapply Qle_lt_trans. apply H2. auto.
+  eapply Qlt_le_trans. apply H11. auto.
+  apply rint_mult_correct in H8.
+  destruct H8 as [q1 [q2 [?[??]]]].
+  apply rint_mult_correct_interior with q1 q2.
+  rewrite <- way_inside_alt in H5.
+  apply H5; auto.
+  rewrite <- way_inside_alt in H7.
+  apply H7; auto.
+  auto.
+Qed.
+
+Require Import Qabs.
+
+(* FIXME move this *)
+Lemma plt_hom_directed2 hf (A B:PLT.PLT hf) (f:A → B) a x y :
+  (a,x) ∈ PLT.hom_rel f ->
+  (a,y) ∈ PLT.hom_rel f ->
+  exists z, (a,z) ∈ PLT.hom_rel f /\ x ≤ z /\ y ≤ z.
+Proof.
+  intros.
+  destruct (PLT.hom_directed hf A B f a (x::y::nil)%list) as [z [??]].
+  destruct hf; simpl; auto.
+  exists x. apply cons_elem; auto.
+  red; intros.
+  apply erel_image_elem.
+  apply cons_elem in H1. destruct H1.
+  apply PLT.hom_order with a x; auto.
+  apply cons_elem in H1. destruct H1.
+  apply PLT.hom_order with a y; auto.
+  apply nil_elem in H1. elim H1.
+  apply erel_image_elem in H2.
+  exists z. split; auto.
+  split. 
+  apply H1. apply cons_elem; auto.
+  apply H1. apply cons_elem. right. apply cons_elem; auto.
+Qed.
+
+
+(*
+Lemma real_mult_converges : forall A (f g:A → PreRealDom),
+  realdom_converges A f ->
+  realdom_converges A g ->
+  realdom_converges A (real_mult ∘ 《 f, g 》)%plt.
+Proof.
+  repeat intro.
+  destruct (H a 1%Q) as [m [??]].
+  compute. auto.
+  destruct (H0 a 1%Q) as [n [??]].
+  compute. auto.
+  set (q := Qmax 1 (Qmax (Qabs (rint_start m))
+                   (Qmax (Qabs (rint_end m))
+                   (Qmax (Qabs (rint_start n))
+                         (Qabs (rint_end n)))))).
+  destruct (Qsolve_mult_quadratic q ε) as [γ [??]]; auto.
+  unfold q. apply Q.le_max_l.
+  destruct (H a γ) as [r [??]]; auto.
+  destruct (H0 a γ) as [s [??]]; auto.
+  
+  destruct (plt_hom_directed2 _ _ _ f a m r) as [r' [?[??]]]; auto.
+  destruct (plt_hom_directed2 _ _ _ g a n s) as [s' [?[??]]]; auto.
+  
+  assert (Hr' : rint_end r' - rint_start r' <= γ). 
+  eapply Qle_trans. 2: apply H9.
+  ring_simplify.
+  apply rint_ord_test in H14. destruct H14.
+  apply Qplus_le_compat; auto.
+  rewrite <- (Qplus_le_l _ _ (rint_start r')).
+  rewrite <- (Qplus_le_l _ _ (rint_start r)).
+  ring_simplify. auto.
+
+  assert (Hs' : rint_end s' - rint_start s' <= γ). 
+  eapply Qle_trans. 2: apply H11.
+  ring_simplify.
+  apply rint_ord_test in H17. destruct H17.
+  apply Qplus_le_compat; auto.
+  rewrite <- (Qplus_le_l _ _ (rint_start s')).
+  rewrite <- (Qplus_le_l _ _ (rint_start s)).
+  ring_simplify. auto.
+
+  exists (rint_mult r' s').
+  split.
+  apply PLT.compose_hom_rel.
+  exists (r',s').
+  split.
+  apply PLT.pair_hom_rel; split; auto.
+  simpl. apply real_mult_rel_elem. auto.
+
+  apply rint_ord_test in H13.
+  apply rint_ord_test in H16.
+  revert Hr' Hs' H13 H16.
+  apply rint_mult_ind.
+
+admit.
+admit.
+
+  simpl; intros.
+  rewrite H18. rewrite H19.
+  apply Qle_trans with
+    (((x2-x1)*(y2-y1)) + (2#1)*q*γ)%Q.
+  ring_simplify.
+  rewrite <- (Qplus_le_l _ _ (-(x2*y2))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ (-(x1*y1))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ ((x1*y2))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ ((y1*x2))). ring_simplify.
+  apply Qle_trans with
+    ((x1*(y2-y1)) + (y1*(x2-x1)))%Q.
+  ring_simplify. apply Qle_refl.
+  apply Qle_trans with (q*γ + q*γ)%Q. 
+  2: ring_simplify; apply Qle_refl.
+  apply Qplus_le_compat.  
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with x2; auto.
+  apply Qle_trans with (rint_end m); auto.
+  apply Qle_trans with (Qabs (rint_end m)); auto.
+  rewrite Qabs_pos; intuition.
+  apply Qle_trans with x2; auto.
+  apply Qle_trans with x1; intuition.
+  unfold q.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Q.le_max_l.
+  rewrite <- (Qplus_le_l _ _ y1). ring_simplify. auto.
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with y2; auto.
+  apply Qle_trans with (rint_end n); auto.
+  apply Qle_trans with (Qabs (rint_end n)); auto.
+  rewrite Qabs_pos; intuition.
+  apply Qle_trans with y2; auto.
+  apply Qle_trans with y1; intuition.
+  unfold q.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Q.le_max_r.
+  rewrite <- (Qplus_le_l _ _ x1). ring_simplify. auto.
+
+  apply Qle_trans with (γ^2 + (2#1)*q*γ)%Q; intuition.
+  apply Qplus_le_compat; intuition.
+  simpl.
+  apply Qmult_le_compat; split; auto.
+  rewrite <- (Qplus_le_l _ _ x1). ring_simplify. auto.
+  rewrite <- (Qplus_le_l _ _ y1). ring_simplify. auto.
+
+
+
+Admitted.
+*)
+
+
 
 Definition rint_recip (x y:rational_interval) :=
   forall a, in_interval a x -> exists a', in_interior a' y /\ a * a' == 1.
@@ -1362,10 +1665,12 @@ Next Obligation.
   destruct H3; auto.
 Qed.
 
-(*
-Lemma real_recip_le1 (A:∂PLT) (x: A → PreRealDom) :
-  (real_mult ∘ 《 x, real_recip ∘ x 》≤ injq 1 ∘ PLT.terminate _ A)%plt.
+
+Lemma real_recip_le (A:∂PLT) (x: A → PreRealDom) :
+  canonical A x ->
+  (real_mult ∘ 《 x, real_recip ∘ x 》 ≤ injq 1 ∘ PLT.terminate _ A)%plt.
 Proof.
+  intro Hx.
   hnf; intros.
   destruct a as [a r].
   apply PLT.compose_hom_rel in H.
@@ -1385,9 +1690,33 @@ Proof.
   apply single_axiom. auto.
   simpl.
   apply injq_rel_elem.
-admit.
+
+  cut (in_interior 1 (rint_mult x1 x2)).
+  intros [??].
+  apply rint_ord_test in H0. destruct H0.
+  split.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
+
+  destruct (plt_hom_directed2 _ _ _ x a x1 x') as [q [?[??]]]; auto.
+  destruct (Hx a q) as [q' [??]]; auto.
+  rewrite <- way_inside_alt in H7.
+  destruct (H2 (rint_start q')) as [m [??]].
+  apply H5.
+  destruct (H7 (rint_start q')).
+  split; intuition. apply rint_proper.
+  split; intuition.
+  apply rint_mult_correct_interior with (rint_start q') m.
+  cut (in_interior (rint_start q') q).
+  intros [??].
+  apply rint_ord_test in H4. destruct H4.
+  split.
+  apply Qle_lt_trans with (rint_start q); auto.
+  apply Qlt_le_trans with (rint_end q); auto.
+  apply H7. split; intuition. apply rint_proper.
+  auto.
+  symmetry. auto.
 Qed.
-*)
 
 Lemma real_mult_comm_le A (g h:A → PreRealDom) :
   real_mult ∘ 《 g, h 》%plt ≤ real_mult ∘ 《 h, g 》%plt.
