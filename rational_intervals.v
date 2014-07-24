@@ -1383,52 +1383,76 @@ Section mult_correct.
   End case4.
 End mult_correct.
 
+Lemma rint_mult_opp_start r1 r2 :
+  rint_start (rint_mult r1 r2) == rint_start (rint_mult (rint_opp r1) (rint_opp r2)).
+Proof.
+  simpl rint_start at 2.
+  repeat rewrite mult_opp_simpl.
+  
+  rewrite Q.min_comm.
+  rewrite (Q.min_comm _ (rint_start r1 * rint_start r2)).
+  rewrite  Q.min_assoc.
+  rewrite (Q.min_comm _ (rint_start r1 * rint_start r2)).
+  rewrite <- Q.min_assoc.
+  rewrite <- Q.min_assoc.
+  rewrite (Q.min_assoc (rint_end r1 * rint_start r2)).
+  rewrite (Q.min_comm  (rint_end r1 * rint_start r2)).
+  rewrite <- Q.min_assoc.
+  reflexivity.
+Qed.
+
+Lemma rint_mult_opp_end r1 r2 :
+  rint_end (rint_mult r1 r2) == rint_end (rint_mult (rint_opp r1) (rint_opp r2)).
+Proof.
+  simpl rint_end at 2.
+  repeat rewrite mult_opp_simpl.
+  rewrite Q.max_comm.
+  rewrite (Q.max_comm _ (rint_start r1 * rint_start r2)).
+  rewrite  Q.max_assoc.
+  rewrite (Q.max_comm _ (rint_start r1 * rint_start r2)).
+  rewrite <- Q.max_assoc.
+  rewrite <- Q.max_assoc.
+  rewrite (Q.max_assoc (rint_end r1 * rint_start r2)).
+  rewrite (Q.max_comm  (rint_end r1 * rint_start r2)).
+  rewrite <- Q.max_assoc.
+  reflexivity.
+Qed.
+
+Lemma rint_mult_swap_start r1 r2 :
+  rint_start (rint_mult r1 r2) == rint_start (rint_mult r2 r1).
+Proof.
+  simpl rint_start at 2.
+  repeat rewrite (Qmult_comm (rint_start r2)).
+  repeat rewrite (Qmult_comm (rint_end r2)).
+  
+  rewrite (Q.min_assoc (rint_end r1 * rint_start r2)).
+  rewrite (Q.min_comm  (rint_end r1 * rint_start r2)).
+  rewrite <- Q.min_assoc.
+  reflexivity.
+Qed.
+
+Lemma rint_mult_swap_end r1 r2 :
+  rint_end (rint_mult r1 r2) == rint_end (rint_mult r2 r1).
+Proof.
+  simpl rint_end at 2.
+  repeat rewrite (Qmult_comm (rint_start r2)).
+  repeat rewrite (Qmult_comm (rint_end r2)).
+  
+  rewrite (Q.max_assoc (rint_end r1 * rint_start r2)).
+  rewrite (Q.max_comm  (rint_end r1 * rint_start r2)).
+  rewrite <- Q.max_assoc.
+  reflexivity.
+Qed.
 
 Lemma rint_mult_opp r1 r2 q :
   in_interval q (rint_mult r1 r2) ->
   in_interval q (rint_mult (rint_opp r1) (rint_opp r2)).
 Proof.
+  intros.
   unfold in_interval.
-  simpl. intuition.
-  repeat rewrite mult_opp_simpl.
-  revert H0. apply Qle_trans.
-  match goal with [ |- ?X <= _ ] => remember X as m end.
-  apply Q.min_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_r.
-  apply Q.le_min_r.
-  apply Q.min_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_r.
-  apply Q.le_min_l.
-  apply Q.min_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_r.
-  apply Q.le_min_l.
-  rewrite Heqm.
-  apply Q.le_min_l.
-
-  repeat rewrite mult_opp_simpl.
-  revert H1. apply Qle_trans'.
-  match goal with [ |- _ <= ?X ] => remember X as m end.
-  apply Q.max_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  apply Q.le_max_r.
-  apply Q.max_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  apply Q.le_max_l.
-  apply Q.max_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  apply Q.le_max_l.
-  rewrite Heqm.
-  apply Q.le_max_l.
+  rewrite <- rint_mult_opp_start.
+  rewrite <- rint_mult_opp_end.
+  auto.
 Qed.
 
 Lemma rint_mult_opp' r1 r2 q :
@@ -1448,52 +1472,11 @@ Lemma rint_mult_swap r1 r2 q :
   in_interval q (rint_mult r1 r2) ->
   in_interval q (rint_mult r2 r1).
 Proof.
-  unfold in_interval; simpl; intuition.
-  revert H0. apply Qle_trans.
-  match goal with [ |- ?X <= _ ] => remember X as m end.
-  apply Q.min_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_l.
-  rewrite Qmult_comm. apply Qle_refl.
-  apply Q.min_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_l.
-  rewrite Qmult_comm. apply Qle_refl.
-  apply Q.min_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_l.
-  rewrite Qmult_comm. apply Qle_refl.
-  rewrite Heqm.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_r.
-  eapply Qle_trans. apply Q.le_min_r.
-  rewrite Qmult_comm. apply Qle_refl.
-
-  revert H1. apply Qle_trans'.
-  match goal with [ |- _ <= ?X ] => remember X as m end.
-  apply Q.max_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_l.
-  rewrite Qmult_comm. apply Qle_refl.
-  apply Q.max_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_l.
-  rewrite Qmult_comm. apply Qle_refl.
-  apply Q.max_case. intros. rewrite <- H; auto.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_l.
-  rewrite Qmult_comm. apply Qle_refl.
-  rewrite Heqm.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  eapply Qle_trans. 2: apply Q.le_max_r.
-  rewrite Qmult_comm. apply Qle_refl.
+  intros. 
+  red.
+  rewrite rint_mult_swap_start.
+  rewrite rint_mult_swap_end.
+  auto.
 Qed.
 
 Lemma rint_mult_correct r1 r2 q:
@@ -1699,26 +1682,9 @@ Lemma rint_mult_interior_swap r1 r2 q :
   in_interior q (rint_mult r1 r2) ->
   in_interior q (rint_mult r2 r1).
 Proof.
-  intros.
-  apply in_interior_alt in H.
-  apply in_interior_alt.
-  intuition.
-  apply rint_mult_swap; auto.
-  apply H.
-  simpl in H1.
-  repeat rewrite (Qmult_comm (rint_start r2)) in H1.
-  repeat rewrite (Qmult_comm (rint_end r2)) in H1.
-  rewrite (Q.min_assoc (rint_end r1 * rint_start r2)) in H1.
-  rewrite (Q.min_comm  (rint_end r1 * rint_start r2)) in H1.
-  rewrite <- Q.min_assoc in H1.
-  auto.
-  apply H2.
-  simpl in H1.
-  repeat rewrite (Qmult_comm (rint_start r2)) in H1.
-  repeat rewrite (Qmult_comm (rint_end r2)) in H1.
-  rewrite (Q.max_assoc (rint_end r1 * rint_start r2)) in H1.
-  rewrite (Q.max_comm  (rint_end r1 * rint_start r2)) in H1.
-  rewrite <- Q.max_assoc in H1.
+  intros. red.
+  rewrite rint_mult_swap_start.
+  rewrite rint_mult_swap_end.
   auto.
 Qed.
 
@@ -1726,52 +1692,19 @@ Lemma rint_mult_interior_opp r1 r2 q :
   in_interior q (rint_mult r1 r2) ->
   in_interior q (rint_mult (rint_opp r1) (rint_opp r2)).
 Proof.
-  intros.
-  apply in_interior_alt in H.
-  apply in_interior_alt.
-  intuition.
-  apply rint_mult_opp; auto.
-  apply H.
-  simpl in H1.
-  repeat rewrite mult_opp_simpl in H1.
-  simpl.
-  rewrite Q.min_comm in H1.
-  rewrite (Q.min_comm _ (rint_start r1 * rint_start r2)) in H1.
-  rewrite  Q.min_assoc in H1.
-  rewrite (Q.min_comm _ (rint_start r1 * rint_start r2)) in H1.
-  rewrite <- Q.min_assoc in H1.
-  rewrite <- Q.min_assoc in H1.
-  rewrite (Q.min_assoc (rint_end r1 * rint_start r2)) in H1.
-  rewrite (Q.min_comm  (rint_end r1 * rint_start r2)) in H1.
-  rewrite <- Q.min_assoc in H1.
-  auto.
-  apply H2.
-  simpl in H1.
-  repeat rewrite mult_opp_simpl in H1.
-  simpl.
-  rewrite Q.max_comm in H1.
-  rewrite (Q.max_comm _ (rint_start r1 * rint_start r2)) in H1.
-  rewrite  Q.max_assoc in H1.
-  rewrite (Q.max_comm _ (rint_start r1 * rint_start r2)) in H1.
-  rewrite <- Q.max_assoc in H1.
-  rewrite <- Q.max_assoc in H1.
-  rewrite (Q.max_assoc (rint_end r1 * rint_start r2)) in H1.
-  rewrite (Q.max_comm  (rint_end r1 * rint_start r2)) in H1.
-  rewrite <- Q.max_assoc in H1.
+  intros. red.
+  rewrite <- rint_mult_opp_start.
+  rewrite <- rint_mult_opp_end.
   auto.
 Qed.
-
 
 Lemma rint_mult_interior_opp' r1 r2 q :
   in_interior q (rint_mult (rint_opp r1) (rint_opp r2)) ->
   in_interior q (rint_mult r1 r2).
 Proof.
-  intros.
-  apply rint_mult_interior_opp in H.
-  red in H. red.
-  unfold rint_opp in H.
-  simpl in H.
-  repeat rewrite (Qopp_involutive) in H.
+  intros. red in H.
+  rewrite <- rint_mult_opp_start in H.
+  rewrite <- rint_mult_opp_end in H.
   auto.
 Qed.
 

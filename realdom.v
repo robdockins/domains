@@ -1269,7 +1269,7 @@ Proof.
 Qed.
 
 
-(*
+
 Lemma real_mult_converges : forall A (f g:A → PreRealDom),
   realdom_converges A f ->
   realdom_converges A g ->
@@ -1321,15 +1321,98 @@ Proof.
   apply rint_ord_test in H13.
   apply rint_ord_test in H16.
   revert Hr' Hs' H13 H16.
+  
+  cut (forall m1 m2 n1 n2,
+         let q := Qmax 1
+          (Qmax (Qabs m1)
+             (Qmax (Qabs m2)
+                (Qmax (Qabs n1) (Qabs n2))))
+         in 
+    rint_end r' - rint_start r' <= γ ->
+    rint_end s' - rint_start s' <= γ ->
+    m1 <= rint_start r' /\ rint_end r' <= m2 ->
+    n1 <= rint_start s' /\ rint_end s' <= n2 ->
+    rint_end (rint_mult r' s') - rint_start (rint_mult r' s') <=
+    (((rint_end r'- rint_start r')*(rint_end s'-rint_start s')) + (2#1)*q*γ)).
+
+  intros.
+  eapply Qle_trans. apply H13; auto.
+  apply H16. apply H18.
+  apply Qle_trans with (γ^2 + (2#1)*q*γ)%Q.
+  apply Qplus_le_compat.
+  simpl.
+  apply Qmult_le_compat.
+  split; auto.
+  apply (Qplus_le_l _ _ (rint_start r')). ring_simplify. apply rint_proper.
+  split; auto.
+  apply (Qplus_le_l _ _ (rint_start s')). ring_simplify. apply rint_proper.
+  apply Qmult_le_compat. split.
+  apply (Qmult_le_compat 0 0). 
+  split. apply Qle_refl. compute. discriminate.
+  split. apply Qle_refl. 
+  apply Qle_trans with 1%Q. compute. discriminate.
+  apply Q.le_max_l.
+  apply Qmult_le_compat.
+  split. compute. discriminate. apply Qle_refl.
+  split.
+  apply Qle_trans with 1%Q. compute. discriminate.
+  apply Q.le_max_l.
+  apply Qle_refl.
+  intuition.
+  intuition.
+
+  clear -H6.
   apply rint_mult_ind.
 
-admit.
-admit.
+  intros.
+  rewrite rint_mult_swap_end.
+  rewrite rint_mult_swap_start.
+  rewrite Qmult_comm.
+  set (q' := Qmax 1 (Qmax (Qabs n1) (Qmax (Qabs n2) (Qmax (Qabs m1) (Qabs m2))))).
+  assert (q == q').
+    unfold q'.
+    rewrite (Q.max_assoc (Qabs n1)).
+    rewrite (Q.max_comm (Qmax (Qabs n1) (Qabs n2))).
+    rewrite <- Q.max_assoc.
+    reflexivity.
+  rewrite H4.
+  apply H; auto.
 
-  simpl; intros.
-  rewrite H18. rewrite H19.
-  apply Qle_trans with
-    (((x2-x1)*(y2-y1)) + (2#1)*q*γ)%Q.
+  intros.
+  rewrite rint_mult_opp_end.
+  rewrite rint_mult_opp_start.
+  eapply Qle_trans.
+  apply (H (-m2) (-m1) (-n2) (-n1)); auto.
+  simpl.
+  ring_simplify.
+  ring_simplify in H0.
+  rewrite Qplus_comm. auto.
+  simpl.
+  ring_simplify.
+  ring_simplify in H1.
+  rewrite Qplus_comm. auto.
+  simpl. split.
+  apply Qopp_le_compat; intuition.
+  apply Qopp_le_compat; intuition.
+  simpl. split.
+  apply Qopp_le_compat; intuition.
+  apply Qopp_le_compat; intuition.
+  apply Qplus_le_compat.
+  simpl.
+  ring_simplify. apply Qle_refl.
+  repeat rewrite Qabs_opp.
+  rewrite (Q.max_assoc (Qabs m2)).
+  rewrite (Q.max_comm (Qabs m2)).
+  rewrite (Q.max_comm (Qabs n2)).
+  rewrite <- (Q.max_assoc (Qabs m1)).
+  apply Qle_refl.
+
+  simpl; intros.  
+  set (q := Qmax 1
+          (Qmax (Qabs m1)
+             (Qmax (Qabs m2)
+                (Qmax (Qabs n1) (Qabs n2))))).
+  rewrite H1. rewrite H2.
   ring_simplify.
   rewrite <- (Qplus_le_l _ _ (-(x2*y2))). ring_simplify.
   rewrite <- (Qplus_le_l _ _ (-(x1*y1))). ring_simplify.
@@ -1343,8 +1426,8 @@ admit.
   apply Qplus_le_compat.  
   apply Qmult_le_compat; intuition.
   apply Qle_trans with x2; auto.
-  apply Qle_trans with (rint_end m); auto.
-  apply Qle_trans with (Qabs (rint_end m)); auto.
+  apply Qle_trans with m2; auto.
+  apply Qle_trans with (Qabs m2); auto.
   rewrite Qabs_pos; intuition.
   apply Qle_trans with x2; auto.
   apply Qle_trans with x1; intuition.
@@ -1355,8 +1438,8 @@ admit.
   rewrite <- (Qplus_le_l _ _ y1). ring_simplify. auto.
   apply Qmult_le_compat; intuition.
   apply Qle_trans with y2; auto.
-  apply Qle_trans with (rint_end n); auto.
-  apply Qle_trans with (Qabs (rint_end n)); auto.
+  apply Qle_trans with n2; auto.
+  apply Qle_trans with (Qabs n2); auto.
   rewrite Qabs_pos; intuition.
   apply Qle_trans with y2; auto.
   apply Qle_trans with y1; intuition.
@@ -1367,17 +1450,327 @@ admit.
   apply Q.le_max_r.
   rewrite <- (Qplus_le_l _ _ x1). ring_simplify. auto.
 
-  apply Qle_trans with (γ^2 + (2#1)*q*γ)%Q; intuition.
-  apply Qplus_le_compat; intuition.
-  simpl.
-  apply Qmult_le_compat; split; auto.
-  rewrite <- (Qplus_le_l _ _ x1). ring_simplify. auto.
+  simpl; intros.
+  set (q := Qmax 1
+          (Qmax (Qabs m1)
+             (Qmax (Qabs m2)
+                (Qmax (Qabs n1) (Qabs n2))))).
+  rewrite H1. rewrite H2.
+  ring_simplify.
+  rewrite <- (Qplus_le_l _ _ (-(x2*y2))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ ((x2*y1))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ (-(x1*y1))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ ((x1*y2))). ring_simplify.
+  apply Qle_trans with
+    ((x1*(y2-y1)))%Q.
+  ring_simplify. apply Qle_refl.
+  apply Qle_trans with (q*γ + q*γ)%Q. 
+  2: ring_simplify; apply Qle_refl.
+  apply Qle_trans with (0 + (x1*(y2-y1)))%Q.
+  ring_simplify. 
+  ring_simplify. 
+  apply Qle_refl.
+  apply Qplus_le_compat.  
+  apply (Qmult_le_compat 0 0); intuition.
+  apply Qle_trans with 1%Q.
+  compute. discriminate.
+  unfold q. apply Q.le_max_l.
+  apply Qmult_le_compat.
+  split; intuition.
+  apply Qle_trans with (Qabs m2).
+  apply Qle_trans with x2; auto.
+  rewrite Qabs_pos. auto.
+  apply Qle_trans with x2; auto.
+  apply Qle_trans with x1; intuition.
+  unfold q.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Q.le_max_l.
+  split; auto.
   rewrite <- (Qplus_le_l _ _ y1). ring_simplify. auto.
 
+  simpl; intros.
+  set (q := Qmax 1
+          (Qmax (Qabs m1)
+             (Qmax (Qabs m2)
+                (Qmax (Qabs n1) (Qabs n2))))).
+  rewrite H1. rewrite H2.
+  ring_simplify.
+  rewrite <- (Qplus_le_l _ _ ((x1*y2))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ ((x2*y1))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ (-(x2*y2))). ring_simplify.
+  rewrite <- (Qplus_le_l _ _ (-(x1*y1))). ring_simplify.
+  apply Qle_trans with
+    ((x1*(y2-y1)) + ((-y2)*(x2-x1)))%Q.
+  ring_simplify. apply Qle_refl.
+  apply Qle_trans with (q*γ + q*γ)%Q. 
+  2: ring_simplify; apply Qle_refl.
+  apply Qplus_le_compat.  
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with (Qabs m2).
+  apply Qle_trans with x2; auto.
+  rewrite Qabs_pos. auto.
+  apply Qle_trans with x2; auto.
+  apply Qle_trans with x1; intuition.
+  unfold q.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Q.le_max_l.
+  rewrite <- (Qplus_le_l _ _ y1). ring_simplify. auto.
+  apply Qmult_le_compat; intuition.
+  rewrite <- (Qplus_le_l _ _ y2). ring_simplify. intuition.
+  apply Qle_trans with (Qabs n1).
+  rewrite Qabs_neg.
+  rewrite <- (Qplus_le_l _ _ y2).
+  rewrite <- (Qplus_le_l _ _ n1).
+  ring_simplify.
+  apply Qle_trans with y1; auto.
+  apply Qle_trans with y1; auto.
+  apply Qle_trans with y2; intuition.
+  unfold q.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  eapply Qle_trans. 2: apply Q.le_max_r.
+  apply Q.le_max_l.
+  rewrite <- (Qplus_le_l _ _ x1). ring_simplify. auto.
+
+  simpl; intros.
+  set (q := Qmax 1
+          (Qmax (Qabs m1)
+             (Qmax (Qabs m2)
+                (Qmax (Qabs n1) (Qabs n2))))).
+  rewrite H. rewrite H0.
+  apply Q.max_case_strong; intros.
+  rewrite <- H8; auto.
+  apply Q.min_case_strong; intros.
+  rewrite <- H9; auto.
+  rewrite <- (Qplus_le_l _ _ (-(x1*y1))).
+  rewrite <- (Qplus_le_l _ _ ((x1*y2))). ring_simplify.
+  apply Qle_trans with (0+0+0)%Q.
+  compute. discriminate.
+  apply Qplus_le_compat.
+  apply Qplus_le_compat.
+  apply (Qmult_le_compat 0 0).
+  split; intuition.
+  rewrite <- (Qplus_le_l _ _ y1). ring_simplify. auto.
+  split; auto. apply Qle_refl.
+  intuition.
+  apply (Qmult_le_compat 0 0); intuition.
+  apply (Qmult_le_compat 0 0).
+  split. apply Qle_refl.
+  apply (Qmult_le_compat 0 0).
+  split; compute; discriminate.
+  split; auto.
+  compute; discriminate.
+  apply Qle_trans with 1%Q.
+  compute. discriminate.
+  unfold q. apply Q.le_max_l.
+  split. apply Qle_refl.
+  intuition.
+  
+  rewrite <- (Qplus_le_l _ _ (-(x1*y1))).
+  rewrite <- (Qplus_le_l _ _ ((x2*y1))). ring_simplify.
+  apply Qle_trans with (0+0+0)%Q.
+  compute. discriminate.
+  apply Qplus_le_compat.
+  apply Qplus_le_compat.
+  apply (Qmult_le_compat 0 0).
+  split; intuition.
+  rewrite <- (Qplus_le_l _ _ x1). ring_simplify. auto.
+  split; auto. apply Qle_refl.
+  intuition.
+  apply (Qmult_le_compat 0 0); intuition.
+  apply (Qmult_le_compat 0 0).
+  split. apply Qle_refl.
+  apply (Qmult_le_compat 0 0).
+  split; compute; discriminate.
+  split; auto.
+  compute; discriminate.
+  apply Qle_trans with 1%Q.
+  compute. discriminate.
+  unfold q. apply Q.le_max_l.
+  split. apply Qle_refl.
+  intuition.
+
+  apply Q.min_case_strong; intros.
+  rewrite <- H9; auto.
+  rewrite <- (Qplus_le_l _ _ (-(x2*y2))).
+  rewrite <- (Qplus_le_l _ _ ((x1*y2))). ring_simplify.
+  apply Qle_trans with (0+0+0)%Q.
+  compute. discriminate.
+  apply Qplus_le_compat.
+  apply Qplus_le_compat.
+  apply (Qmult_le_compat'' 0 0).
+  split; intuition.
+  rewrite <- (Qplus_le_l _ _ x2). ring_simplify. auto.
+  intuition.
+  apply (Qmult_le_compat'' 0 0); intuition.
+  apply (Qmult_le_compat 0 0).
+  split. apply Qle_refl.
+  apply (Qmult_le_compat 0 0).
+  split; compute; discriminate.
+  split; auto.
+  compute; discriminate.
+  apply Qle_trans with 1%Q.
+  compute. discriminate.
+  unfold q. apply Q.le_max_l.
+  split. apply Qle_refl.
+  intuition.
+  
+  rewrite <- (Qplus_le_l _ _ (-(x2*y2))).
+  rewrite <- (Qplus_le_l _ _ ((x2*y1))). ring_simplify.
+  apply Qle_trans with (0+0+0)%Q.
+  compute. discriminate.
+  apply Qplus_le_compat.
+  apply Qplus_le_compat.
+  apply (Qmult_le_compat'' 0 0).
+  split; intuition.
+  rewrite <- (Qplus_le_l _ _ y2). ring_simplify. auto.
+  intuition.
+  apply (Qmult_le_compat'' 0 0); intuition.
+  apply (Qmult_le_compat 0 0).
+  split. apply Qle_refl.
+  apply (Qmult_le_compat 0 0).
+  split; compute; discriminate.
+  split; auto.
+  compute; discriminate.
+  apply Qle_trans with 1%Q.
+  compute. discriminate.
+  unfold q. apply Q.le_max_l.
+  split. apply Qle_refl.
+  intuition.
+Qed.
+
+Lemma converges_maximal A (f g:A → PreRealDom) :
+  canonical A g ->
+  realdom_converges A f ->
+  f ≤ g -> f ≈ g.
+Proof.
+  intros H H0 H1. split; auto.
+  apply realdom_napart_le; auto.
+  intro.
+  destruct H2 as [a [r [s [?[??]]]]].
+  apply H1 in H3.
+  destruct (plt_hom_directed2 _ _ _ g a r s) as [t [?[??]]]; auto.
+  apply rint_ord_test in H6.
+  apply rint_ord_test in H7.
+  intuition.
+  apply (Qlt_irrefl (rint_end r)).
+  apply Qlt_le_trans with (rint_start s); auto.
+  apply Qle_trans with (rint_start t); auto.
+  apply Qle_trans with (rint_end t); auto.
+  apply rint_proper.
+  apply (Qlt_irrefl (rint_end s)).
+  apply Qlt_le_trans with (rint_start r); auto.
+  apply Qle_trans with (rint_start t); auto.
+  apply Qle_trans with (rint_end t); auto.
+  apply rint_proper.
+Qed.
 
 
-Admitted.
+Lemma real_mult_1_le A (f:A → PreRealDom) :
+  (real_mult ∘ 《 f, injq 1 ∘ PLT.terminate true A 》 ≤ f)%plt.
+Proof.
+  intros [a r] H.
+  apply PLT.compose_hom_rel in H.
+  destruct H as [[s t] [H H0]].
+  apply (PLT.pair_hom_rel _ _ _ _ f (injq 1 ∘ PLT.terminate true A))in H.
+  destruct H as [H H1].
+  simpl in H0. apply real_mult_rel_elem in H0.
+  apply PLT.compose_hom_rel in H1.
+  destruct H1 as [[] [H1 H2]].
+  simpl in H2. apply injq_rel_elem in H2.
+  red in H2.
+  apply PLT.hom_order with a s; auto.
+  hnf; intros.
+  apply H0.
+  apply rint_mult_correct.
+  exists q. exists 1%Q.
+  split; auto.
+  split.
+  red. intuition.
+  ring.
+Qed.
+
+Lemma injq_converges A q :
+  realdom_converges A (injq q ∘ PLT.terminate _ A). 
+Proof.
+  red; intros.
+  set (x1 := q - ε/(2#1)).
+  set (x2 := (q + ε/(2#1))%Q).
+  assert (x1 <= x2).
+  unfold x1, x2.
+  rewrite <- (Qplus_le_l _ _ (ε/(2#1))). ring_simplify.
+  field_simplify.
+  field_simplify.
+  apply Qle_trans with (q + 0)%Q.
+  field_simplify. apply Qle_refl.
+  apply Qle_trans with (q + ε)%Q.
+  apply Qplus_le_compat; intuition.
+  field_simplify. 
+  field_simplify. intuition.
+  exists (RatInt x1 x2 H0).
+  simpl. split.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem.
+  split. apply eff_complete. apply single_axiom; auto.
+  simpl. apply injq_rel_elem.
+  split; simpl.
+  unfold x1.
+  rewrite <- (Qplus_lt_l _ _ (ε/(2#1))). ring_simplify.
+  apply Qle_lt_trans with (q + 0)%Q.
+  ring_simplify. apply Qle_refl.
+  rewrite (Qplus_comm q).
+  rewrite (Qplus_comm q).
+  apply Qplus_lt_le_compat.
+  apply Qlt_shift_div_l.
+  compute. auto.
+  ring_simplify. auto.
+  intuition.
+  unfold x2.
+  apply Qle_lt_trans with (q + 0)%Q.
+  ring_simplify. apply Qle_refl.
+  rewrite (Qplus_comm q).
+  rewrite (Qplus_comm q).
+  apply Qplus_lt_le_compat.
+  apply Qlt_shift_div_l.
+  compute. auto.
+  ring_simplify. auto.
+  intuition.
+  unfold x2, x1.
+  ring_simplify.
+  field_simplify.
+  field_simplify.
+  apply Qle_refl.
+Qed.
+
+
+(* This can probably be proved, which would give us
+   a version of real_mult_1 with weaker preconditions.
+
+   The trick is to find a small enough interval surrounding 1
+   to make the multiplication work out...  
+
+Lemma real_mult_1_le2 A (f:A → PreRealDom) :
+  canonical A f ->
+  (real_mult ∘ 《 f, injq 1 ∘ PLT.terminate true A 》 ≥ f)%plt.
+Proof.
+  intro Hf.
+  hnf; simpl; intros [a r] H.
+  destruct (Hf a r) as [r' [?[??]]]; auto.
+Abort.
 *)
+
+Lemma real_mult_1 A (f:A → PreRealDom) :
+  canonical A f -> realdom_converges A f ->
+  (real_mult ∘ 《 f, injq 1 ∘ PLT.terminate true A 》 ≈ f)%plt.
+Proof.
+  intros. apply converges_maximal; auto.
+  apply real_mult_converges; auto.
+  apply injq_converges.
+  apply real_mult_1_le.
+Qed.
 
 
 
