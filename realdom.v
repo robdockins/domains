@@ -1745,13 +1745,6 @@ Proof.
   apply Qle_refl.
 Qed.
 
-
-(* This can probably be proved, which would give us
-   a version of real_mult_1 with weaker preconditions.
-
-   The trick is to find a small enough interval surrounding 1
-   to make the multiplication work out...  
-
 Lemma real_mult_1_le2 A (f:A → PreRealDom) :
   canonical A f ->
   (real_mult ∘ 《 f, injq 1 ∘ PLT.terminate true A 》 ≥ f)%plt.
@@ -1759,19 +1752,361 @@ Proof.
   intro Hf.
   hnf; simpl; intros [a r] H.
   destruct (Hf a r) as [r' [?[??]]]; auto.
-Abort.
-*)
 
-Lemma real_mult_1 A (f:A → PreRealDom) :
-  canonical A f -> realdom_converges A f ->
-  (real_mult ∘ 《 f, injq 1 ∘ PLT.terminate true A 》 ≈ f)%plt.
-Proof.
-  intros. apply converges_maximal; auto.
-  apply real_mult_converges; auto.
-  apply injq_converges.
-  apply real_mult_1_le.
+  destruct (Qlt_le_dec 0 (rint_start r')).
+  
+  set (q1 := Qmax 0 (rint_start r / rint_start r')).
+  set (q2 := rint_end r / rint_end r').
+  assert (q1 < 1).
+    unfold q1.
+    apply Q.max_case. intros. rewrite <- H3. auto.
+    compute. auto.
+    apply Qlt_shift_div_r. auto.
+    ring_simplify. intuition.
+  assert (1 < q2).
+    unfold q2.
+    apply Qlt_shift_div_l.
+    apply Qlt_le_trans with (rint_start r'); auto. apply rint_proper.
+    ring_simplify. intuition.
+  assert (q1 <= q2).
+    apply Qle_trans with 1%Q; intuition.
+  apply PLT.compose_hom_rel.
+  exists (r', RatInt q1 q2 H5).
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem. split. apply eff_complete. apply single_axiom. auto.
+  simpl. apply injq_rel_elem.
+  split; auto.
+  simpl.
+  apply real_mult_rel_elem.
+  hnf; intros.
+  apply rint_mult_correct in H6.
+  destruct H6 as [p1 [p2 [?[??]]]].
+  red. rewrite H8.
+  destruct H6; destruct H7. simpl in *.
+  split.
+  apply Qle_trans with (rint_start r' * q1).
+  unfold q1.
+  apply Q.max_case_strong. intros.
+  rewrite <- H11; auto.
+  intros.
+  rewrite <- (Qmult_le_l _ _ (rint_start r')) in H11.
+  rewrite Qmult_div_r in H11.
+  auto.
+  intro. rewrite H12 in q. apply (Qlt_irrefl 0); auto.
+  auto.
+  intros.
+  field_simplify.
+  field_simplify. apply Qle_refl.
+  intro. rewrite H12 in q. apply (Qlt_irrefl 0); auto.
+  intro. rewrite H12 in q. apply (Qlt_irrefl 0); auto.
+  apply Qmult_le_compat; intuition.
+  unfold q1.
+  apply Q.le_max_l.
+  apply Qle_trans with (rint_end r' * q2).
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with (rint_start r'); intuition.
+  apply Qle_trans with q1; intuition.
+  unfold q1.
+  apply Q.le_max_l.
+  unfold q2.
+  field_simplify.
+  field_simplify. apply Qle_refl.
+  intro.
+  apply (Qlt_irrefl 0).
+  apply Qlt_le_trans with (rint_start r'); auto.
+  apply Qle_trans with (rint_end r').
+  apply rint_proper.
+  rewrite H11. apply Qle_refl.
+  
+  destruct (Qlt_le_dec (rint_end r') 0).
+  set (q1 := Qmax 0 (rint_end r / rint_end r')).
+  set (q2 := rint_start r / rint_start r').
+
+  assert (~rint_end r' == 0).
+    intro. apply (Qlt_irrefl 0).
+    rewrite H3 in q0. auto.
+
+  assert (~rint_start r' == 0).
+    intro. apply (Qlt_irrefl 0).
+    apply Qle_lt_trans with (rint_end r'); auto.
+    apply Qle_trans with (rint_start r'); auto.
+    rewrite H4; apply Qle_refl.
+    apply rint_proper.
+
+  assert (q1 < 1).
+    unfold q1.
+    apply Q.max_case. intros. rewrite <- H5; auto.
+    compute. auto.
+    apply Qle_lt_trans with ((-rint_end r) / (-rint_end r')). 
+    field_simplify; auto. field_simplify; auto. apply Qle_refl.
+    apply Qlt_shift_div_r. 
+    rewrite <- (Qplus_lt_l _ _ (rint_end r')). ring_simplify. auto.
+    ring_simplify.
+    rewrite <- (Qplus_lt_l _ _ (rint_end r')). 
+    rewrite <- (Qplus_lt_l _ _ (rint_end r)). 
+    ring_simplify. auto.
+
+  assert (1 < q2).
+    unfold q2.
+    apply Qlt_le_trans with ((-rint_start r) / (-rint_start r')). 
+    apply Qlt_shift_div_l; auto.
+    rewrite <- (Qplus_lt_l _ _ (rint_start r')). ring_simplify.
+    apply Qle_lt_trans with (rint_end r'). apply rint_proper. auto.
+    rewrite <- (Qplus_lt_l _ _ (rint_start r')). 
+    rewrite <- (Qplus_lt_l _ _ (rint_start r)). 
+    ring_simplify. auto.
+    field_simplify; auto. field_simplify; auto. apply Qle_refl.
+  assert (q1 <= q2).
+    apply Qle_trans with 1%Q; intuition.
+  apply PLT.compose_hom_rel.
+  exists (r', RatInt q1 q2 H7).
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem. split. apply eff_complete. apply single_axiom. auto.
+  simpl. apply injq_rel_elem.
+  split; auto.
+  simpl.
+  apply real_mult_rel_elem.
+  hnf; intros.
+  apply rint_mult_correct in H8.
+  destruct H8 as [p1 [p2 [?[??]]]].
+  red. rewrite H10.
+  destruct H8; destruct H9. simpl in *.
+  split.
+  apply Qle_trans with (rint_start r' * q2).
+  unfold q2.
+  rewrite Qmult_div_r; auto. apply Qle_refl.
+  rewrite (Qmult_comm (rint_start r')).
+  rewrite (Qmult_comm p1).
+  apply Qmult_le_compat'; intuition.
+  apply Qle_trans with q1; auto.
+  unfold q1. apply Q.le_max_l.
+  apply Qle_trans with (rint_end r'); intuition.
+  apply Qle_trans with (rint_end r' * q1).
+  rewrite (Qmult_comm p1).
+  rewrite (Qmult_comm (rint_end r')).
+  apply Qmult_le_compat'; intuition.
+  unfold q1. apply Q.le_max_l.
+  unfold q1.
+  apply Q.max_case_strong; intros.
+  rewrite <- H13; auto.
+  ring_simplify.
+  assert ( (- rint_end r) / (- rint_end r') <= 0 ).
+  field_simplify; auto.
+  field_simplify; auto.
+  rewrite <- (Qmult_le_l _ _ (-rint_end r')) in H14.
+  rewrite Qmult_div_r in H14.
+  ring_simplify in H14.
+  rewrite <- (Qplus_le_l _ _ (-rint_end r)). ring_simplify. auto.
+  intro. apply H3.
+  rewrite <- (Qopp_involutive (rint_end r')).
+  rewrite H15. compute. auto.
+  rewrite <- (Qplus_lt_l _ _ (rint_end r')). ring_simplify. auto.
+  rewrite (Qmult_div_r); auto. apply Qle_refl.
+  
+  apply Qle_lteq in q.
+  destruct q.
+  assert (~rint_start r' == 0).
+    intro. apply (Qlt_irrefl 0). rewrite H4 in H3. auto.
+  apply Qle_lteq in q0.
+  destruct q0.
+  assert (~rint_end r' == 0).
+    intro. apply (Qlt_irrefl 0). rewrite H6 in H5. auto.
+
+  set (q1 := 0%Q).
+  set (q2 := Qmin (rint_start r / rint_start r') (rint_end r / rint_end r')).
+
+  assert (q1 < 1).
+    unfold q1. compute. auto.
+  assert (1 < q2).
+    unfold q2.
+    apply Q.min_case; intros. rewrite <- H8; auto.
+    apply Qlt_le_trans with (-rint_start r / -rint_start r').
+    apply Qlt_shift_div_l.
+    rewrite <- (Qplus_lt_l _ _ (rint_start r')). ring_simplify. auto.
+    rewrite <- (Qplus_lt_l _ _ (rint_start r')).
+    rewrite <- (Qplus_lt_l _ _ (rint_start r)).
+    ring_simplify. auto.
+    field_simplify; auto.
+    field_simplify; auto.
+    apply Qle_refl.
+    apply Qlt_shift_div_l; auto.
+    ring_simplify. auto.
+  assert (q1 <= q2).
+    apply Qle_trans with 1%Q; intuition.
+
+  apply PLT.compose_hom_rel.
+  exists (r', RatInt q1 q2 H9).
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem. split. apply eff_complete. apply single_axiom. auto.
+  simpl. apply injq_rel_elem.
+  split; auto.
+  simpl.
+  apply real_mult_rel_elem.
+  hnf; intros.
+  apply rint_mult_correct in H10.
+  destruct H10 as [p1 [p2 [?[??]]]].
+  red. rewrite H12.
+  destruct H10; destruct H11. simpl in *.
+
+  destruct (Qlt_le_dec 0 p1).
+  split.
+  apply Qle_trans with 0%Q.
+  apply Qle_trans with (rint_start r'); intuition.
+  apply (Qmult_le_compat 0 0); intuition.
+  apply Qle_trans with (rint_end r' * q2).
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with (rint_end r' * (rint_end r / rint_end r')).
+  apply Qmult_le_compat; intuition.
+  unfold q2. apply Q.le_min_r.
+  field_simplify; auto.
+  field_simplify; auto. apply Qle_refl.
+  split.
+  apply Qle_trans with (rint_start r' * q2).
+  apply Qle_trans with (rint_start r' * (rint_start r / rint_start r')).
+  field_simplify; auto.
+  field_simplify; auto. apply Qle_refl.
+  rewrite (Qmult_comm (rint_start r')).
+  rewrite (Qmult_comm (rint_start r')).
+  apply Qmult_le_compat'; intuition.
+  unfold q2. apply Q.le_min_l.
+  rewrite (Qmult_comm (rint_start r')).
+  rewrite (Qmult_comm p1).
+  apply Qmult_le_compat'; intuition.
+  apply Qle_trans with 0%Q.
+  rewrite (Qmult_comm p1).
+  apply (Qmult_le_compat' 0 0); intuition.
+  apply Qle_trans with (rint_end r'); intuition.
+
+
+  set (q1 := 0%Q).
+  set (q2 := rint_start r / rint_start r').
+
+  assert (q1 < 1).
+    unfold q1. compute. auto.
+  assert (1 < q2).
+    unfold q2.
+    apply Qlt_le_trans with (-rint_start r / -rint_start r').
+    apply Qlt_shift_div_l.
+    rewrite <- (Qplus_lt_l _ _ (rint_start r')). ring_simplify. auto.
+    rewrite <- (Qplus_lt_l _ _ (rint_start r')).
+    rewrite <- (Qplus_lt_l _ _ (rint_start r)).
+    ring_simplify. auto.
+    field_simplify; auto.
+    field_simplify; auto.
+    apply Qle_refl.
+  assert (q1 <= q2).
+    apply Qle_trans with 1%Q; intuition.
+
+  apply PLT.compose_hom_rel.
+  exists (r', RatInt q1 q2 H8).
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem. split. apply eff_complete. apply single_axiom. auto.
+  simpl. apply injq_rel_elem.
+  split; auto.
+  simpl.
+  apply real_mult_rel_elem.
+  hnf; intros.
+  apply rint_mult_correct in H9.
+  destruct H9 as [p1 [p2 [?[??]]]].
+  red. rewrite H11.
+  destruct H9; destruct H10. simpl in *.
+  split.
+  apply Qle_trans with (rint_start r' * q2).
+  unfold q2.
+  field_simplify; auto.
+  field_simplify; auto. apply Qle_refl.
+  rewrite (Qmult_comm (rint_start r')).
+  rewrite (Qmult_comm p1).
+  apply Qmult_le_compat'; intuition.
+  rewrite H5. auto.
+  apply Qle_trans with (rint_end r' * q1).
+  rewrite (Qmult_comm p1).
+  rewrite (Qmult_comm (rint_end r')).
+  apply Qmult_le_compat'; intuition.
+  rewrite <- H5. apply Qle_refl.
+  rewrite <- H5.
+  ring_simplify.
+  apply Qle_trans with (rint_end r'); intuition.
+  
+  apply Qle_lteq in q0.
+  destruct q0.
+  assert (~rint_end r' == 0).
+    intro. apply (Qlt_irrefl 0). rewrite H5 in H4. auto.
+
+  set (q1 := 0%Q).
+  set (q2 := rint_end r / rint_end r').
+
+  assert (q1 < 1).
+    unfold q1. compute. auto.
+  assert (1 < q2).
+    unfold q2.
+    apply Qlt_shift_div_l. auto.
+    ring_simplify. auto.
+  assert (q1 <= q2).
+    apply Qle_trans with 1%Q; intuition.
+
+  apply PLT.compose_hom_rel.
+  exists (r', RatInt q1 q2 H8).
+  split.
+  apply PLT.pair_hom_rel. split; auto.
+  apply PLT.compose_hom_rel.
+  exists tt. split.
+  simpl. apply eprod_elem. split. apply eff_complete. apply single_axiom. auto.
+  simpl. apply injq_rel_elem.
+  split; auto.
+  simpl.
+  apply real_mult_rel_elem.
+  hnf; intros.
+  apply rint_mult_correct in H9.
+  destruct H9 as [p1 [p2 [?[??]]]].
+  red. rewrite H11.
+  destruct H9; destruct H10. simpl in *.
+  split.
+  apply Qle_trans with (rint_start r' * q2).
+  rewrite H3. ring_simplify.
+  apply Qle_trans with (rint_start r'); intuition.
+  rewrite H3. ring_simplify.
+  apply (Qmult_le_compat 0 0); intuition.
+  rewrite <- H3. auto.
+  apply Qle_trans with (rint_end r' * q2).
+  apply Qmult_le_compat; intuition.
+  apply Qle_trans with (rint_start r'); intuition.
+  rewrite H3. apply Qle_refl.
+  unfold q2.
+  field_simplify; auto.
+  field_simplify; auto. apply Qle_refl.
+  
+  destruct (Hf a r') as [r'' [??]]; auto.
+  destruct H6.
+  exfalso. apply (Qlt_irrefl 0).
+  apply Qlt_trans with (rint_start r'').
+  rewrite <- H3; auto.
+  apply Qle_lt_trans with (rint_end r'').
+  apply rint_proper.
+  rewrite H4. auto.
 Qed.
 
+
+Lemma real_mult_1 A (f:A → PreRealDom) :
+  canonical A f ->
+  (real_mult ∘ 《 f, injq 1 ∘ PLT.terminate true A 》 ≈ f)%plt.
+Proof.
+  intros. split.
+  apply real_mult_1_le.
+  apply real_mult_1_le2. auto.
+Qed.
 
 
 Definition rint_recip (x y:rational_interval) :=
