@@ -100,6 +100,7 @@ VFILES:=st_lam_fix.v\
   cont_profinite.v\
   profinite_adj.v\
   embed.v\
+  realops.v\
   realdom.v\
   rational_intervals.v\
   profinite.v\

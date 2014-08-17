@@ -77,6 +77,25 @@ Definition way_inside (x y:rational_interval) :=
   rint_end x < rint_end y.
 
 
+Lemma way_inside_alt r s :
+  (forall x, in_interval x r -> in_interior x s) <->
+  way_inside r s .
+Proof.
+  split; intros.
+  red.
+  split.
+  destruct (H (rint_start r)); auto.
+  split; intuition. apply rint_proper.
+  destruct (H (rint_end r)); auto.
+  split; intuition. apply rint_proper.
+  destruct H. destruct H0.
+  split.
+  apply Qlt_le_trans with (rint_start r); auto.
+  apply Qle_lt_trans with (rint_end r); auto.
+Qed.
+
+
+
 Definition in_interval_dec (q:Q) (r:rational_interval) :
   { in_interval q r } + { ~in_interval q r }.
 Proof.
@@ -1947,3 +1966,203 @@ Proof.
   apply Qmult_lt0; intuition.
   apply Qle_lt_trans with q2; auto.
 Qed.
+
+
+Definition rint_recip (x y:rational_interval) :=
+  forall a, in_interval a x -> exists a', in_interval a' y /\ a * a' == 1.
+
+Lemma rint_recip_dec x y : { rint_recip x y } + { ~rint_recip x y }.
+Proof.
+  destruct (in_interval_dec 0 x).
+  right. repeat intro.
+  red in H.
+  destruct (H 0%Q i) as [a' [??]].
+  ring_simplify  in H1.
+  hnf in H1.
+  simpl in H1.
+  discriminate.
+
+  destruct (Qlt_le_dec (1/rint_end x) (rint_start y) ).
+
+  right. intro.
+    hnf in H.
+    destruct (H (rint_end x)).
+    split; auto. apply rint_proper. apply Qle_refl.
+    destruct H0. destruct H0.
+    rewrite <- H1 in q.
+    field_simplify in q.
+    apply (Qlt_irrefl x0).
+    eapply Qlt_le_trans with (rint_start y); auto.
+    field_simplify; auto.
+    apply n. red. rewrite <- q.
+    split. apply rint_proper. intuition.
+
+  destruct (Qlt_le_dec (rint_end y) (1/rint_start x)).
+
+  right. intro.
+    hnf in H.
+    destruct (H (rint_start x)).
+    split; auto. apply Qle_refl. apply rint_proper.
+    destruct H0. destruct H0.
+    rewrite <- H1 in q0.
+    field_simplify in q0.
+    apply (Qlt_irrefl x0).
+    apply Qle_lt_trans with (rint_end y); auto.
+    field_simplify. auto.
+    apply n. red. rewrite <- q0.
+    split. apply Qle_refl. apply rint_proper.
+
+  left. red. intros.
+  assert (~ a == 0).
+  intro. apply n.
+  red. rewrite <- H0. auto.
+  exists (1/a).
+  split.
+  split; auto.
+
+  apply Qle_trans with (1/rint_end x); intuition.
+
+  destruct (Qlt_le_dec 0 a).
+  apply Qle_shift_div_l; auto.
+    apply Qle_trans with (a / rint_end x).
+    field_simplify. apply Qle_refl.
+    intro. apply n.
+    split. rewrite <- H1.
+    apply rint_proper.
+    rewrite H1. apply Qle_refl.
+    intro. apply n.
+    split; auto.
+    rewrite <- H1.
+    apply rint_proper.
+    rewrite H1. apply Qle_refl.
+    apply Qle_shift_div_r; auto.
+    apply Qlt_le_trans with a; auto.
+    destruct H; auto.
+    ring_simplify.
+    destruct H; auto.
+  apply Qle_shift_div_l'; auto.
+    apply Qle_lteq in q1. intuition.
+    apply Qle_trans with (a / rint_end x).
+    apply Qle_shift_div_l'.
+    destruct (Qlt_le_dec (rint_end x) 0); auto.
+    elim n.
+    split; auto.
+    apply Qle_trans with a; auto.
+    destruct H; auto.
+    ring_simplify.
+    destruct H; auto.
+    field_simplify. apply Qle_refl.
+    intro. apply n.
+    split. rewrite <- H1.
+    apply rint_proper.
+    rewrite <- H1. apply Qle_refl.
+    intro. apply n.
+    split. rewrite <- H1.
+    apply rint_proper.
+    rewrite <- H1. apply Qle_refl.
+    
+  apply Qle_trans with (1/rint_start x); auto.
+  destruct (Qlt_le_dec 0 a).
+  apply Qle_shift_div_r; auto.
+    apply Qle_trans with (a / rint_start x).
+    apply Qle_shift_div_l.
+    destruct (Qlt_le_dec 0 (rint_start x)); auto.
+    elim n.
+    split. auto. apply Qle_trans with a; intuition.
+    destruct H; auto.
+    ring_simplify.
+    destruct H; auto.
+    field_simplify. apply Qle_refl.
+    intro. apply n.
+    split. rewrite <- H1. apply Qle_refl.
+    rewrite <- H1.
+    apply rint_proper.
+    intro. apply n.
+    split; auto.
+    rewrite H1.
+    apply Qle_refl.
+    rewrite <- H1. apply rint_proper.
+  apply Qle_shift_div_r'; auto.
+    apply Qle_lteq in q1.
+    intuition.
+    apply Qle_trans with (a / rint_start x).
+    field_simplify. apply Qle_refl.
+    intro. apply n.
+    split. rewrite H1. apply Qle_refl.
+    rewrite <- H1. apply rint_proper.
+    intro. apply n.
+    split. rewrite H1. apply Qle_refl.
+    rewrite <- H1. apply rint_proper.
+    apply Qle_shift_div_r'.
+    apply Qle_lt_trans with a.
+    destruct H; auto.
+    apply Qle_lteq in q1. intuition.
+    ring_simplify.
+    destruct H; auto.
+  intuition.
+  rewrite Qmult_div_r; auto.
+  apply Qeq_refl.
+Qed.
+
+
+Lemma recip_find_interior (a1 a2 x b1 b2:Q) :
+  a1 * b1 == 1 ->
+  a2 * b2 == 1 ->
+  0 < a1 -> a1 <= x -> x <= a2 ->
+  (exists y, 0 < b2 /\ b2 <= y /\ y <= b1 /\ x * y == 1).
+Proof.
+  intros.
+  exists (1/x).
+  intuition.
+  rewrite <- (Qmult_lt_l _ _ a2).
+  ring_simplify. rewrite H0. compute; auto.
+  apply Qlt_le_trans with a1; auto.
+  apply Qle_trans with x; auto.
+  rewrite <- (Qmult_le_l _ _ a2).
+  rewrite H0.
+  rewrite <- (Qmult_le_l _ _ x).
+  field_simplify. field_simplify in H3. auto.
+  intro. rewrite H4 in H2.
+  apply (Qlt_irrefl 0).
+  apply Qlt_le_trans with a1; auto.
+  apply Qlt_le_trans with a1; auto.
+  apply Qlt_le_trans with a1; auto.
+  apply Qle_trans with x; auto.
+  rewrite <- (Qmult_le_l _ _ a1).
+  rewrite H.
+  rewrite <- (Qmult_le_l _ _ x).
+  field_simplify. field_simplify in H2. auto.
+  intro. rewrite H4 in H2.
+  apply (Qlt_irrefl 0).
+  apply Qlt_le_trans with a1; auto.
+  apply Qlt_le_trans with a1; auto.
+  auto.
+  field_simplify.
+  field_simplify. reflexivity.
+  intro. rewrite H4 in H2.
+  apply (Qlt_irrefl 0).
+  apply Qlt_le_trans with a1; auto.
+Qed.
+
+Lemma recip_find_interior' (a1 a2 x b1 b2:Q) :
+  a1 * b1 == 1 ->
+  a2 * b2 == 1 ->
+  a1 <= x -> x <= a2 -> a2 < 0 ->
+  (exists y, b2 <= y /\ y <= b1 /\ b1 < 0 /\ x * y == 1).
+Proof.
+  intros.
+  destruct (recip_find_interior (-a2) (-a1) (-x) (-b2) (-b1)) as [y [?[?[??]]]].
+  rewrite mult_opp_simpl; auto.
+  rewrite mult_opp_simpl; auto.
+  rewrite <- (Qplus_lt_l _ _ a2). ring_simplify. auto.
+  apply Qopp_le_compat. auto.
+  apply Qopp_le_compat. auto.
+  exists (-y). intuition.
+  rewrite <- (Qopp_involutive b2).
+  apply Qopp_le_compat. auto.
+  rewrite <- (Qopp_involutive b1).
+  apply Qopp_le_compat. auto.
+  rewrite <- (Qplus_lt_l _ _ (-b1)). ring_simplify. auto.
+  rewrite <- H7. ring.
+Qed.
+

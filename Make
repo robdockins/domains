@@ -21,6 +21,7 @@ bilimit.v
 profinite.v
 rational_intervals.v
 realdom.v
+realops.v
 embed.v
 profinite_adj.v
 cont_profinite.v

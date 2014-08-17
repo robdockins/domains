@@ -1002,6 +1002,29 @@ Proof.
   intros. apply PLT.curry_eq; auto.
 Qed.
 
+Lemma plt_hom_directed2 hf (A B:PLT.PLT hf) (f:A → B) a x y :
+  (a,x) ∈ PLT.hom_rel f ->
+  (a,y) ∈ PLT.hom_rel f ->
+  exists z, (a,z) ∈ PLT.hom_rel f /\ x ≤ z /\ y ≤ z.
+Proof.
+  intros.
+  destruct (PLT.hom_directed hf A B f a (x::y::nil)%list) as [z [??]].
+  destruct hf; simpl; auto.
+  exists x. apply cons_elem; auto.
+  red; intros.
+  apply erel_image_elem.
+  apply cons_elem in H1. destruct H1.
+  apply PLT.hom_order with a x; auto.
+  apply cons_elem in H1. destruct H1.
+  apply PLT.hom_order with a y; auto.
+  apply nil_elem in H1. elim H1.
+  apply erel_image_elem in H2.
+  exists z. split; auto.
+  split. 
+  apply H1. apply cons_elem; auto.
+  apply H1. apply cons_elem. right. apply cons_elem; auto.
+Qed.
+
 
 Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y' :
   (x,y,(x',y')) ∈ PLT.hom_rel (PLT.pair_map f g) <->
