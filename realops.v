@@ -2727,6 +2727,7 @@ Proof.
     eapply Qlt_le_trans. apply H2.
     apply Qplus_le_compat; apply Qlt_le_weak; auto.
     red in H10. omega.
+
   destruct (Qlt_le_dec (q1+q2) q).
     exfalso.
     set (ε := (q - (q1+q2)) / (2#1)).
@@ -2922,11 +2923,246 @@ Proof.
   ring_simplify. apply Qle_refl.
 Qed.
 
+Lemma terminate_1_univ :
+  id(1) ≈ PLT.terminate true 1.
+Proof.
+  split; hnf; simpl; intros.
+  destruct a.
+  apply eprod_elem.
+  destruct u. destruct u0.
+  split; apply single_axiom; auto.
+  destruct a.
+  destruct u. destruct u0.
+  apply ident_elem. hnf. auto.
+Qed.
 
-Lemma Q_real_recip_compat (q:Q) : (q == 0%Q -> False) ->
-  real_recip ∘ injq q ≈ injq (Qinv q).
-Admitted.
 
 Lemma Q_real_mult_compat (q q1 q2:Q) :
   (real_mult ∘ 《 injq q1, injq q2 》 ≈ injq q)%plt <-> q1 * q2 == q.
-Admitted.
+Proof.
+  split; intros.
+  destruct H.
+  destruct (Qcompare_spec (q1*q2) q); auto. 
+  elimtype False.
+  destruct (Q_dense (q1*q2) q) as [q' [??]]; auto.
+  assert (q' <= q + 1).
+  apply Qle_trans with q; intuition.
+  apply Qle_trans with (q + 0)%Q.
+  ring_simplify. apply Qle_refl.
+  apply Qplus_le_compat. apply Qle_refl. compute. discriminate.
+  assert ((tt,RatInt q' (q+1) H4) ∈ PLT.hom_rel (injq q)).
+  simpl. apply injq_rel_elem.
+  split; simpl; auto.
+  apply Qle_lt_trans with (0 + q)%Q.
+  ring_simplify. apply Qle_refl.
+  rewrite (Qplus_comm q 1).
+  apply Qplus_lt_le_compat. 
+  compute. auto. apply Qle_refl. 
+  apply H0 in H5.
+  apply PLT.compose_hom_rel in H5.
+  destruct H5 as [[a b] [??]].
+  rewrite (PLT.pair_hom_rel _ _ _ _ (injq q1) (injq q2)) in H5.
+  destruct H5.
+  simpl in H6.
+  apply real_mult_rel_elem in H6.
+  assert (in_interval (q1*q2) (RatInt q' (q+1) H4)).
+  apply H6.
+  apply rint_mult_correct.
+  simpl in *.
+  apply injq_rel_elem in H5.
+  apply injq_rel_elem in H7.
+  exists q1. exists q2. intuition.
+  destruct H5; split; intuition.
+  destruct H7; split; intuition.
+  destruct H8; simpl in *.
+  apply (Qlt_irrefl (q1*q2)).
+  apply Qlt_le_trans with q'; auto.
+
+  elimtype False.
+  destruct (Q_dense q (q1*q2)) as [q' [??]]; auto.
+  assert (q-1 <= q').
+  apply Qle_trans with q; intuition.
+  rewrite <- (Qplus_le_l _ _ 1). ring_simplify.
+  apply Qle_trans with (q + 0)%Q.
+  ring_simplify. apply Qle_refl.
+  apply Qplus_le_compat. apply Qle_refl. compute. discriminate.
+  assert ((tt,RatInt (q-1) q' H4) ∈ PLT.hom_rel (injq q)).
+  simpl. apply injq_rel_elem.
+  split; simpl; auto.
+  rewrite <- (Qplus_lt_l _ _ 1). ring_simplify.
+  apply Qle_lt_trans with (0 + q)%Q.
+  ring_simplify. apply Qle_refl.
+  rewrite (Qplus_comm q 1).
+  apply Qplus_lt_le_compat. 
+  compute. auto. apply Qle_refl. 
+  apply H0 in H5.
+  apply PLT.compose_hom_rel in H5.
+  destruct H5 as [[a b] [??]].
+  rewrite (PLT.pair_hom_rel _ _ _ _ (injq q1) (injq q2)) in H5.
+  destruct H5.
+  simpl in H6.
+  apply real_mult_rel_elem in H6.
+  assert (in_interval (q1*q2) (RatInt (q-1) q' H4)).
+  apply H6.
+  apply rint_mult_correct.
+  simpl in *.
+  apply injq_rel_elem in H5.
+  apply injq_rel_elem in H7.
+  exists q1. exists q2. intuition.
+  destruct H5; split; intuition.
+  destruct H7; split; intuition.
+  destruct H8; simpl in *.
+  apply (Qlt_irrefl (q1*q2)).
+  apply Qle_lt_trans with q'; auto.
+
+  apply converges_maximal.
+  apply canon_canonical_iff.
+  generalize (injq_canon 1 q).
+  intros.
+  apply canon_canonical_iff in H0.
+  transitivity (injq q ∘ PLT.terminate true 1).
+  transitivity (injq q ∘ id).
+  symmetry. apply cat_ident1.
+  apply cat_respects; auto.
+  apply terminate_1_univ.
+  rewrite H0.
+  apply cat_respects; auto.
+  transitivity (injq q ∘ id).
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  apply cat_ident1.
+  apply real_mult_converges.
+  apply realdom_converges_le with (injq q1 ∘ PLT.terminate true 1).
+  transitivity (injq q1 ∘ id).
+  apply eq_ord.
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  rewrite (cat_ident1 ∂PLT). auto.
+  apply injq_converges.
+  apply realdom_converges_le with (injq q2 ∘ PLT.terminate true 1).
+  transitivity (injq q2 ∘ id).
+  apply eq_ord.
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  rewrite (cat_ident1 ∂PLT). auto.
+  apply injq_converges.
+
+  hnf; simpl; intros.
+  destruct a.
+  apply PLT.compose_hom_rel in H0.
+  destruct H0 as [[a b] [??]].
+  simpl in H1. apply real_mult_rel_elem in H1.
+  rewrite (PLT.pair_hom_rel _ _ _ _ (injq q1) (injq q2)) in H0. destruct H0.
+  simpl in *.
+  apply injq_rel_elem in H0.
+  apply injq_rel_elem in H2.
+  apply injq_rel_elem.
+  cut (in_interior q (rint_mult a b)).
+  apply rint_ord_test in H1.
+  destruct H1.
+  intros [??]; split.
+  eapply Qle_lt_trans; eauto.
+  eapply Qlt_le_trans; eauto.
+  apply rint_mult_correct_interior with q1 q2; auto.
+  symmetry; auto.
+Qed.
+
+
+Lemma Q_real_recip_compat (q:Q) : (q == 0%Q -> False) ->
+  real_recip ∘ injq q ≈ injq (Qinv q).
+Proof.
+  intros.
+  apply converges_maximal.
+
+  apply canon_canonical_iff.
+  generalize (injq_canon 1 (/ q)).
+  intros.
+  apply canon_canonical_iff in H0.
+  transitivity (injq (/ q) ∘ PLT.terminate true 1).
+  transitivity (injq (/ q) ∘ id).
+  symmetry. apply cat_ident1.
+  apply cat_respects; auto.
+  apply terminate_1_univ.
+  rewrite H0.
+  apply cat_respects; auto.
+  transitivity (injq (/ q) ∘ id).
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  apply cat_ident1.
+
+  destruct (Qcompare_spec q 0).
+  elim H; auto.
+  apply real_recip_neg_converges.
+  assert (injq 0 ≈ injq 0 ∘ PLT.terminate true 1).
+  transitivity (injq 0 ∘ id).
+  rewrite (cat_ident1 ∂PLT). auto.
+  apply cat_respects; auto.
+  apply terminate_1_univ.
+  rewrite <- H1.
+  apply Q_real_lt_compat. auto.
+
+  apply realdom_converges_le with (injq q ∘ PLT.terminate true 1).
+  transitivity (injq q ∘ id).
+  apply eq_ord.
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  rewrite (cat_ident1 ∂PLT). auto.
+  apply injq_converges.
+  apply real_recip_pos_converges.
+  assert (injq 0 ≈ injq 0 ∘ PLT.terminate true 1).
+  transitivity (injq 0 ∘ id).
+  rewrite (cat_ident1 ∂PLT). auto.
+  apply cat_respects; auto.
+  apply terminate_1_univ.
+  rewrite <- H1.
+  apply Q_real_lt_compat. auto.
+
+  apply realdom_converges_le with (injq q ∘ PLT.terminate true 1).
+  transitivity (injq q ∘ id).
+  apply eq_ord.
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  rewrite (cat_ident1 ∂PLT). auto.
+  apply injq_converges.
+
+  hnf; simpl; intros.
+  assert (canonical 1 (real_recip ∘ injq q)).
+  apply real_recip_canonical.
+  apply canon_canonical_iff.
+  generalize (injq_canon 1 q).
+  intros.
+  apply canon_canonical_iff in H1.
+  transitivity (injq q ∘ PLT.terminate true 1).
+  transitivity (injq q ∘ id).
+  symmetry. apply cat_ident1.
+  apply cat_respects; auto.
+  apply terminate_1_univ.
+  rewrite H1.
+  apply cat_respects; auto.
+  transitivity (injq q ∘ id).
+  apply cat_respects; auto.
+  symmetry. apply terminate_1_univ.
+  apply cat_ident1.
+  destruct a.
+  destruct (H1 u r) as [r' [??]]; auto.
+  apply PLT.compose_hom_rel in H2.
+  destruct H2 as [y [??]].
+  simpl in H2.
+  apply injq_rel_elem in H2.
+  simpl in H4.
+  apply real_recip_rel_elem in H4.
+  red in H4.
+  destruct (H4 q) as [a' [??]].
+  destruct H2; split; intuition.
+  apply injq_rel_elem.
+  rewrite <- way_inside_alt in H3.
+  apply H3.
+
+  assert (a' == /q).
+  apply (Qmult_inj_l a' (/q) q); auto.
+  rewrite H6.
+  rewrite Qmult_inv_r; auto.
+  reflexivity.
+  red.
+  rewrite <- H7. auto.
+Qed.

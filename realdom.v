@@ -1,5 +1,6 @@
 Require Import QArith.
 Require Import Setoid.
+Require Import Coq.Program.Basics.
 
 Require Import basics.
 Require Import preord.
@@ -512,6 +513,52 @@ Proof.
   destruct (H a 0%Q) as [x [y [?[??]]]]. apply Qle_refl.
   exists x. exists y. intuition.
   ring_simplify in H2. auto.
+Qed.
+
+
+
+Add Parametric Morphism (A:∂PLT) :
+  (@realdom_lt A)
+    with signature (Preord.ord_op _) ==> (Preord.ord_op _) ==> impl
+    as realdom_lt_morphism.
+Proof.
+  repeat intro.
+  destruct (H1 a) as [?[?[?[??]]]].
+  exists x1. exists x2. intuition.
+Qed.
+
+Add Parametric Morphism (A:∂PLT) :
+  (@realdom_lt A)
+    with signature (eq_op _) ==> (eq_op _) ==> iff
+    as realdom_lt_eq_morphism.
+Proof.
+  split; intros.
+  generalize (realdom_lt_morphism).
+  unfold impl. intros. eapply H2; eauto.
+  generalize (realdom_lt_morphism).
+  unfold impl. intros. eapply H2; eauto.
+Qed.
+
+Add Parametric Morphism (A:∂PLT) :
+  (@realdom_le A)
+    with signature (Preord.ord_op _) ==> (Preord.ord_op _) ==> impl
+    as realdom_le_morphism.
+Proof.
+  repeat intro.
+  destruct (H1 a ε H2) as [?[?[?[??]]]].
+  exists x1. exists x2. intuition.
+Qed.
+
+Add Parametric Morphism (A:∂PLT) :
+  (@realdom_le A)
+    with signature (eq_op _) ==> (eq_op _) ==> iff
+    as realdom_le_eq_morphism.
+Proof.
+  split; intros.
+  generalize (realdom_le_morphism).
+  unfold impl. intros. eapply H2; eauto.
+  generalize (realdom_le_morphism).
+  unfold impl. intros. eapply H2; eauto.
 Qed.
 
 
