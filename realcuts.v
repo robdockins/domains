@@ -729,7 +729,6 @@ End limit.
 End interval_limit_cuts.
 
 
-Module cauchy_limit_cuts.
 
 Definition pow2 (n:N) : positive :=
  match n with
@@ -786,6 +785,118 @@ Proof.
   red. simpl. symmetry.
   f_equal. apply pow2_div_eq. auto.
 Qed.
+
+Lemma pow2_ge1 (a:N) :
+  (1 <= pow2 a)%positive.
+Proof.
+  induction a using N.peano_ind.
+  simpl. reflexivity.
+  replace (N.succ a) with (1+a)%N.
+  2: zify; omega.
+  rewrite <- pow2_commute.
+  simpl pow2 at 1. unfold shift_pos. simpl Pos.iter.
+  zify. omega.
+Qed.
+
+Lemma pow2_mono (a b:N) :
+  (a <= b)%N -> (pow2 a <= pow2 b)%positive.
+Proof.
+  revert b. induction a using N.peano_ind.
+  simpl; intros.
+  apply pow2_ge1.
+  intro b. induction b using N.peano_ind.
+  intros.
+  elimtype False. zify. omega.
+  intros.
+  replace (N.succ a) with (1+a)%N.
+  replace (N.succ b) with (1+b)%N.
+  2: zify; omega.
+  2: zify; omega.
+  rewrite <- pow2_commute.
+  rewrite <- pow2_commute.
+  cut (pow2 a <= pow2 b)%positive.
+  simpl. zify. omega.
+  apply IHa. zify. omega.
+Qed.
+
+Lemma oneOver2n_subsumes (a b c:N) :
+    (a < b)%N -> (a < c)%N -> 
+       oneOver2n b + oneOver2n c <= oneOver2n a.
+Proof.
+  intros. unfold oneOver2n.
+  red. simpl.
+  cut ((pow2 c + pow2 b) * pow2 a <= (pow2 b * pow2 c))%positive. auto.
+  rewrite pow2_commute.
+  rewrite Pos.mul_add_distr_r.
+  rewrite pow2_commute.
+  rewrite pow2_commute.
+  replace (b + c)%N with (1 + (b+c-1))%N by (zify; omega).
+  rewrite <- (pow2_commute 1).
+  simpl pow2 at 3. unfold shift_pos. simpl Pos.iter.
+  replace 2%positive with (1 + 1)%positive.
+  rewrite Pos.mul_add_distr_r.
+  simpl.
+  apply Pos.add_le_mono.
+  apply pow2_mono.
+  zify. omega.
+  apply pow2_mono.
+  zify. omega.
+  zify. omega.
+Qed.  
+
+Fixpoint pos_log2 (p:positive) : N :=
+  match p with
+    | xH => 1%N
+    | xO p' => N.succ (pos_log2 p')
+    | xI p' => N.succ (pos_log2 p')
+  end.
+
+Lemma pow2_succ (n:N) : (pow2 (N.succ n) = (pow2 n)~0)%positive.
+Proof.
+  destruct n.
+  compute. auto.
+  simpl.
+  unfold shift_pos. simpl.
+  rewrite Pos.iter_succ.
+  auto.
+Qed.    
+
+Lemma pow2_pos_log2 (p:positive) : (p < pow2 (pos_log2 p))%positive.
+Proof.
+  red. unfold Pos.compare.
+  generalize Eq.
+  induction p.
+  simpl; intros.
+  rewrite pow2_succ.
+  simpl. apply IHp.
+  simpl; intros.
+  rewrite pow2_succ.
+  simpl. apply IHp.
+  simpl. auto.
+Qed.    
+
+Lemma oneOver2n_small : forall ε:Q, 0 < ε -> exists n, oneOver2n n <= ε.
+Proof.
+  intros.
+  exists (pos_log2 (Qden ε)).
+  destruct ε.
+  red in H. simpl in H.
+  ring_simplify in H.
+  simpl.
+  red; simpl.
+  apply Z.le_trans with (1 * 'Qden)%Z.
+  simpl. reflexivity.
+  apply Zmult_le_compat.
+  omega.
+  cut ( Qden <  pow2 (pos_log2 Qden))%positive.
+  zify. omega.
+  apply pow2_pos_log2.
+  omega.
+  compute. discriminate.
+Qed.
+
+
+Module cauchy_limit_cuts.
 
 Program Definition widen_cut (n:N) (x:cut) : cut :=
   Cut (image (Preord.Hom _ _ (Qplus (oneOver2n n)) _) (cut_upper x))
@@ -873,59 +984,6 @@ Next Obligation.
   apply image_axiom1'. exists z. split; auto.
 Qed.
 
-
-
-Fixpoint pos_log2 (p:positive) : N :=
-  match p with
-    | xH => 1%N
-    | xO p' => N.succ (pos_log2 p')
-    | xI p' => N.succ (pos_log2 p')
-  end.
-
-Lemma pow2_succ (n:N) : (pow2 (N.succ n) = (pow2 n)~0)%positive.
-Proof.
-  destruct n.
-  compute. auto.
-  simpl.
-  unfold shift_pos. simpl.
-  rewrite Pos.iter_succ.
-  auto.
-Qed.    
-
-Lemma pow2_pos_log2 (p:positive) : (p < pow2 (pos_log2 p))%positive.
-Proof.
-  red. unfold Pos.compare.
-  generalize Eq.
-  induction p.
-  simpl; intros.
-  rewrite pow2_succ.
-  simpl. apply IHp.
-  simpl; intros.
-  rewrite pow2_succ.
-  simpl. apply IHp.
-  simpl. auto.
-Qed.    
-
-Lemma oneOver2n_small : forall ε:Q, 0 < ε -> exists n, oneOver2n n <= ε.
-Proof.
-  intros.
-  exists (pos_log2 (Qden ε)).
-  destruct ε.
-  red in H. simpl in H.
-  ring_simplify in H.
-  simpl.
-  red; simpl.
-  apply Z.le_trans with (1 * 'Qden)%Z.
-  simpl. reflexivity.
-  apply Zmult_le_compat.
-  omega.
-  cut ( Qden <  pow2 (pos_log2 Qden))%positive.
-  zify. omega.
-  apply pow2_pos_log2.
-  omega.
-  compute. discriminate.
-Qed.
-
 Definition near ε (x y:cut) :=
   (exists u l, u ∈ cut_upper x /\ l ∈ cut_lower y /\ u - l <= ε) /\
   (exists u l, u ∈ cut_upper y /\ l ∈ cut_lower x /\ u - l <= ε).
@@ -973,7 +1031,7 @@ Definition cauchy_sequence (seq:N -> cut) :=
      (o <= m)%N -> (o <= n)%N ->
         exists u, u ∈ cut_upper (seq m) /\
         exists l, l ∈ cut_lower (seq n) /\
-        u - l <= oneOver2n o.
+        u - l < oneOver2n o.
 
 Section cut_cauchy_limit.
   Variable seq : N -> cut.
@@ -1032,7 +1090,7 @@ Section cut_cauchy_limit.
     apply Qle_trans with u'; auto.
     rewrite <- (Qplus_le_l _ _ (-l')).
     apply Qle_trans with (oneOver2n (N.min n m)).
-    ring_simplify in H5. ring_simplify. auto.
+    ring_simplify in H5. ring_simplify. intuition.
     rewrite <- (Qplus_le_l _ _ (l')). ring_simplify.
     apply Qplus_le_compat; auto.
     apply N.min_case.
@@ -1111,7 +1169,6 @@ Section cut_cauchy_limit.
     exists u. split; auto.
   Qed.    
 
-
   Lemma limit_correct : is_limit seq limit.
   Proof.
     red; intros.
@@ -1132,7 +1189,7 @@ Section cut_cauchy_limit.
     rewrite <- (Qplus_le_l _ _ (-oneOver2n (m+1))).
     ring_simplify.
     apply Qle_trans with (oneOver2n (m+1)).
-    ring_simplify in H4. auto.
+    ring_simplify in H4. intuition.
     rewrite <- (Qplus_le_l _ _ (oneOver2n (m+1))).
     ring_simplify.
     rewrite <- oneOver2n_commute.
@@ -1156,7 +1213,7 @@ Section cut_cauchy_limit.
     rewrite <- (Qplus_le_l _ _ (-oneOver2n (m+1))).
     ring_simplify.
     apply Qle_trans with (oneOver2n (m+1)).
-    ring_simplify in H4. auto.
+    ring_simplify in H4. intuition.
     rewrite <- (Qplus_le_l _ _ (oneOver2n (m+1))).
     ring_simplify.
     rewrite <- oneOver2n_commute.
@@ -1174,3 +1231,304 @@ End cut_cauchy_limit.
 
 End cauchy_limit_cuts.
 
+
+
+Program Definition shift_cut (q:Q) (c:cut) :=
+  Cut (image (Preord.Hom _ _ (Qplus q) _) (cut_upper c))
+      (image (Preord.Hom _ _ (Qplus q) _) (cut_lower c))
+      _ _ _ _.
+Next Obligation.
+  red; intros.
+  simpl. red in H. simpl in H. rewrite H. reflexivity.
+Qed.
+Next Obligation.
+  red; intros.
+  simpl. red in H. simpl in H. rewrite H. reflexivity.
+Qed.
+Next Obligation.
+  simpl; intros.
+  apply image_axiom2 in H.
+  destruct H as [u' [??]].
+  apply image_axiom2 in H0.
+  destruct H0 as [l' [??]].
+  simpl in *.
+  destruct H1. destruct H2.
+  red in H1. simpl in H1.
+  red in H2. simpl in H2.
+  rewrite H2. rewrite H1.
+  apply Qplus_le_compat.
+  apply Qle_refl.
+  eapply cut_proper; eauto.
+Qed.
+Next Obligation.
+  intros.
+  apply image_axiom2 in H0.
+  destruct H0 as [y [??]]. simpl in *.
+  apply image_axiom1'. simpl.
+  exists (q1 - q)%Q.
+  split.
+  split; red; simpl; ring.
+  apply cut_is_lower with y; auto.
+  rewrite <- (Qplus_le_l _ _ q).
+  ring_simplify.
+  apply Qle_trans with q2; auto.
+  destruct H1. red in H1. simpl in H1.
+  rewrite H1.
+  ring_simplify. apply Qle_refl.
+Qed.
+Next Obligation.
+  intros.
+  apply image_axiom2 in H0.
+  destruct H0 as [y [??]]. simpl in *.
+  apply image_axiom1'. simpl.
+  exists (q2 - q)%Q.
+  split.
+  split; red; simpl; ring.
+  apply cut_is_upper with y; auto.
+  rewrite <- (Qplus_le_l _ _ (q)).
+  ring_simplify.
+  apply Qle_trans with q1; auto.
+  destruct H1. red in H1. simpl in H1.
+  rewrite H1.
+  ring_simplify. apply Qle_refl.
+Qed.
+Next Obligation.
+  intros.
+  split; intros.
+  destruct H as [x ?].
+  apply image_axiom2 in H.
+  destruct H as [y [??]]. simpl in*.
+  destruct (cut_nonextended c).
+  destruct H1 as [l ?]; eauto.
+  exists (l + q)%Q.
+  apply image_axiom1'. simpl.
+  exists l. split.
+  split; red; simpl; ring.
+  auto.
+  destruct H as [x ?].
+  apply image_axiom2 in H.
+  destruct H as [y [??]]. simpl in*.
+  destruct (cut_nonextended c).
+  destruct H2 as [u ?]; eauto.
+  exists (u + q)%Q.
+  apply image_axiom1'. simpl.
+  exists u. split.
+  split; red; simpl; ring.
+  auto.
+Qed.
+
+
+Record cut_telescope := CutTelescope
+  { seq_upper : N -> cut
+  ; seq_lower : N -> cut
+  ; seq_proper : forall n, cut_lt (seq_lower n) (seq_upper n)
+  ; seq_upper_inside : forall n m, (n < m)%N -> cut_lt (seq_upper m) (seq_upper n)
+  ; seq_lower_inside : forall n m, (n < m)%N -> cut_lt (seq_lower n) (seq_lower m)
+  ; seq_converges : forall ε, 0 < ε ->
+     exists n a b,
+       a ∈ cut_upper (seq_upper n) /\
+       b ∈ cut_lower (seq_lower n) /\
+       a - b <= ε
+  }.
+
+Section cauchy_to_telescope.
+  Variable seq : N -> cut.
+  Hypothesis Hcauchy : cauchy_limit_cuts.cauchy_sequence seq.
+
+  Program Definition cauchy_telescope :=
+    CutTelescope
+      (fun n => shift_cut (oneOver2n n) (seq (n+1)))
+      (fun n => shift_cut (-oneOver2n n) (seq (n+1)))
+      _ _ _ _.
+  Next Obligation.
+    repeat intro.
+    red. simpl.
+    destruct (Hcauchy (n+1) (n+1) n)%N as [u [? [l [??]]]]; auto.
+    zify; omega.
+    zify; omega.
+
+    exists (u - oneOver2n n)%Q.
+    exists (l + oneOver2n n)%Q.
+    split.
+    apply image_axiom1'. simpl.
+    exists u. split.
+    split; red; simpl; ring. auto.
+    split.
+    apply image_axiom1'. simpl.
+    exists l. split.
+    split; red; simpl; ring. auto.
+    rewrite <- (Qplus_lt_l _ _ (oneOver2n n)).
+    ring_simplify.
+    rewrite <- (Qplus_lt_l _ _ (-l)). ring_simplify.
+    apply Qle_lt_trans with (u-l).
+    ring_simplify. apply Qle_refl.
+    eapply Qlt_le_trans. apply H1.
+    rewrite <- (Qplus_le_l _ _ (-oneOver2n n)).
+    ring_simplify.
+    apply Qlt_le_weak.
+    apply oneOver2n_pos.
+  Qed.    
+  Next Obligation.
+    repeat intro. red.
+    destruct (Hcauchy (n+1) (m+1) (n+1))%N as [u [? [l [??]]]]; intuition.
+    zify. omega.
+
+    exists (u + oneOver2n m)%Q.
+    exists (l + oneOver2n n)%Q.
+    split.
+    simpl.
+    apply image_axiom1'.
+    simpl. exists u. split.
+    split; red; simpl; ring.
+    auto.
+    split.
+    apply image_axiom1'.
+    simpl. exists l. split.
+    split; red; simpl; ring.
+    auto.
+    rewrite <- (Qplus_lt_l _ _ (-oneOver2n m)).
+    ring_simplify.
+    rewrite <- (Qplus_lt_l _ _ (-l)).
+    apply Qle_lt_trans with (u-l); auto.
+    ring_simplify. apply Qle_refl.
+    eapply Qlt_le_trans. apply H2.
+    ring_simplify.
+    rewrite <- (Qplus_le_l _ _ (oneOver2n m)).
+    ring_simplify.
+    apply oneOver2n_subsumes; auto.
+    zify. omega.
+  Qed.
+  Next Obligation.
+    repeat intro. red.
+    destruct (Hcauchy (m+1) (n+1) (n+1))%N as [u [? [l [??]]]]; intuition.
+    zify. omega.
+
+    exists (u - oneOver2n n)%Q.
+    exists (l - oneOver2n m)%Q.
+    split.
+    simpl.
+    apply image_axiom1'.
+    simpl. exists u. split.
+    split; red; simpl; ring.
+    auto.
+    split.
+    apply image_axiom1'.
+    simpl. exists l. split.
+    split; red; simpl; ring.
+    auto.
+    rewrite <- (Qplus_lt_l _ _ (oneOver2n n)).
+    ring_simplify.
+    rewrite <- (Qplus_lt_l _ _ (-l)).
+    ring_simplify.
+    apply Qle_lt_trans with (u-l); auto.
+    ring_simplify. apply Qle_refl.
+    eapply Qlt_le_trans. apply H2.
+    rewrite <- (Qplus_le_l _ _ (oneOver2n m)).
+    ring_simplify.
+    apply oneOver2n_subsumes; auto.
+    zify. omega.
+  Qed.
+  Next Obligation.
+    intros.
+    destruct (oneOver2n_small (ε/(3#1))).
+    apply Qlt_shift_div_l. compute. auto.
+    ring_simplify. auto.
+
+    exists x.
+    destruct (Hcauchy (x+1) (x+1) (x+1))%N as [u [? [l [??]]]]; intuition.
+    exists (u + oneOver2n x)%Q.
+    exists (l - oneOver2n x)%Q.
+    split.
+    simpl.
+    apply image_axiom1'.
+    simpl.
+    exists u. split; auto.
+    split; red; simpl; ring.
+    split.
+    simpl.
+    apply image_axiom1'.
+    simpl.
+    exists l. split; auto.
+    split; red; simpl; ring.
+    ring_simplify.
+    rewrite <- (Qplus_le_l _ _ (-(2#1) * oneOver2n x)).
+    ring_simplify.
+    apply Qlt_le_weak.
+    eapply Qlt_le_trans. apply H3.
+    rewrite <- (Qplus_le_l _ _ ((2#1) * oneOver2n x)).
+    ring_simplify.
+    rewrite <- oneOver2n_commute.
+    unfold oneOver2n at 2. simpl.
+    unfold shift_pos. simpl.
+    ring_simplify.
+    apply Qle_trans with ((5#2)*(ε/(3#1))).
+    apply Qmult_le_compat; intuition.
+    unfold Qdiv. unfold Qinv. simpl.
+    ring_simplify.
+    apply Qle_trans with (1*ε).
+    apply Qmult_le_compat; intuition.
+    ring_simplify. apply Qle_refl.
+  Qed.
+
+  Let interval_limit (t:cut_telescope) : cut :=
+    interval_limit_cuts.interval_limit 
+      (seq_upper t) (seq_lower t)
+      (seq_proper t) (seq_upper_inside t) (seq_lower_inside t).
+
+  Lemma telescope_limit_is_limit :
+    cauchy_limit_cuts.is_limit seq (interval_limit cauchy_telescope).
+  Proof.
+    red. intros.
+    destruct (oneOver2n_small (ε/(2#1))).
+    apply Qlt_shift_div_l. compute. auto.
+    ring_simplify. auto.
+    exists x. intros. split.
+    destruct (Hcauchy (x+1) n x)%N as [u [? [l [??]]]]; auto.
+    zify; omega. 
+    exists u. exists (l - oneOver2n x). split; auto.
+    split; simpl.
+    unfold interval_limit_cuts.limit_lower.
+    apply union_axiom.
+    exists (cut_lower (shift_cut (- oneOver2n x) (seq (x+1)))).
+    split. exists x. auto.
+    simpl. apply image_axiom1'.
+    simpl. exists l. split; auto.
+    split; red; simpl; ring.
+    ring_simplify.
+    rewrite <- (Qplus_le_l _ _ (- oneOver2n x)).
+    ring_simplify.
+    apply Qlt_le_weak. eapply Qlt_le_trans. apply H4.
+    rewrite <- (Qplus_le_l _ _ (oneOver2n x)).
+    ring_simplify.
+    apply Qle_trans with ((2#1) * (ε / (2#1))).
+    apply Qmult_le_compat; intuition.
+    field_simplify.
+    field_simplify.
+    intuition.
+        
+    destruct (Hcauchy n (x+1) x)%N as [u [? [l [??]]]]; auto.
+    zify; omega. 
+    exists (u + oneOver2n x)%Q. exists l. 
+    split.
+    simpl.
+    unfold interval_limit_cuts.limit_upper.
+    apply union_axiom.
+    exists (cut_upper (shift_cut (oneOver2n x) (seq (x+1)))).
+    split. exists x. auto.
+    simpl. apply image_axiom1'.
+    simpl. exists u. split; auto.
+    split; red; simpl; ring.
+    split; auto.
+    rewrite <- (Qplus_le_l _ _ (- oneOver2n x)).
+    ring_simplify.
+    apply Qlt_le_weak. eapply Qlt_le_trans. apply H4.
+    rewrite <- (Qplus_le_l _ _ (oneOver2n x)).
+    ring_simplify.
+    apply Qle_trans with ((2#1) * (ε / (2#1))).
+    apply Qmult_le_compat; intuition.
+    field_simplify.
+    field_simplify.
+    intuition.
+  Qed.
+
+End cauchy_to_telescope.
