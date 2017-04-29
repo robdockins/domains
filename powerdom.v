@@ -440,20 +440,20 @@ Section powerdom.
       assert (Qdec : forall m, {Q m}+{~Q m}).
       intro m. unfold Q. apply dec_conj.
       destruct (finset_find_dec _ (fun n => n ≤ m)) with (elem x').
-      intros. rewrite <- H6; auto.
+      simpl. intros. rewrite <- H6; auto.
       intro. apply (eff_ord_dec X Xeff).
       left. destruct s; eauto.
       right. intros [??]. apply (n x0); auto.
       destruct H6; auto. destruct H6; auto.
       apply dec_conj.
       destruct (finset_find_dec _ (fun n => n ≤ m)) with (elem y').
-      intros. rewrite <- H6; auto.
+      simpl; intros. rewrite <- H6; auto.
       intro. apply (eff_ord_dec X Xeff).
       left. destruct s; eauto.
       right. intros [??]. apply (n x0); auto.
       destruct H6; auto. destruct H6; auto.
       destruct (finset_find_dec _ (fun n => m ≤ n)) with (elem z).
-      intros. rewrite <- H6; auto.
+      simpl; intros. rewrite <- H6; auto.
       intro. apply (eff_ord_dec X Xeff).
       left. destruct s; eauto.
       right. intros [??]. apply (n x0); auto.
@@ -681,8 +681,8 @@ Section powerdom.
       apply nil_elem in H16. elim H16.
       auto.
 
-      intros. rewrite <- H2; auto.
-      intros. rewrite <- H2; auto.
+      simpl; intros. rewrite <- H3; auto.
+      simpl; intros. rewrite <- H3; auto.
     Qed.
 
     Definition pdom_plt sort : plotkin_order hf (pdom_ord sort) :=
@@ -867,7 +867,7 @@ Section powerdom.
       exists m; split; auto. rewrite <- H5; auto.
       intro c.
       destruct (finset_find_dec Y (fun m => c ≤ m)) with z0.
-      intros. rewrite <- H5; auto.
+      simpl; intros. rewrite <- H5; auto.
       apply (eff_ord_dec _ (PLT.effective Y)).
       destruct s as [s [??]]. left; eauto.
       right; intros [?[??]]. apply (n x0); auto.
@@ -933,7 +933,7 @@ Section powerdom.
       exists m; split; auto. rewrite <- H5; auto.
       intro c.
       destruct (finset_find_dec Y (fun m => c ≤ m)) with z0.
-      intros. rewrite <- H5; auto.
+      simpl; intros. rewrite <- H5; auto.
       apply (eff_ord_dec _ (PLT.effective Y)).
       destruct s as [s [??]]. left; eauto.
       right; intros [?[??]]. apply (n x0); auto.
@@ -1560,7 +1560,7 @@ Section powerdom.
     intros. destruct H8 as [t [??]]. exists t; split; auto.
     rewrite <- H7. auto.
     intro. destruct (finset_find_dec B (fun y' => x ≤ y')) with z; auto.
-    intros. rewrite <- H7; auto.
+    simpl; intros. rewrite <- H7; auto.
     intro. apply eff_ord_dec. apply PLT.effective.
     destruct s as [?[??]]; left; eauto.
     right; intros [?[??]]. apply (n x0); auto.
@@ -5176,20 +5176,20 @@ Section powerdom_functor.
       assert (Qdec : forall m, {Q m}+{~Q m}).
       intro m. unfold Q. apply dec_conj.
       destruct (finset_find_dec _ (fun n => n ≤ m)) with (powerdom.elem _ _ a).
-      intros. rewrite <- H1; auto.
+      simpl; intros. rewrite <- H1; auto.
       intro. apply (eff_ord_dec X (PLT.effective X)).
       left. destruct s; eauto.
       right. intros [??]. apply (n x); auto.
       destruct H1; auto. destruct H1; auto.
       apply dec_conj.
       destruct (finset_find_dec _ (fun n => n ≤ m)) with (powerdom.elem _ _ b).
-      intros. rewrite <- H1; auto.
+      simpl; intros. rewrite <- H1; auto.
       intro. apply (eff_ord_dec X (PLT.effective X)).
       left. destruct s; eauto.
       right. intros [??]. apply (n x); auto.
       destruct H1; auto. destruct H1; auto.
       destruct (finset_find_dec _ (fun n => f m ≤ n)) with (powerdom.elem _ _ y).
-      intros. rewrite <- H1; auto.
+      simpl; intros. rewrite <- H1; auto.
       intro. apply (eff_ord_dec Y (PLT.effective Y)).
       left. destruct s; eauto.
       right. intros [??]. apply (n x); auto.
@@ -5202,7 +5202,9 @@ Section powerdom_functor.
       destruct H2 as [n [??]]. exists n. rewrite <- H1; auto.
       split.
       destruct H3 as [n [??]]. exists n. rewrite <- H1; auto.
-      destruct H4 as [n [??]]. exists n. rewrite <- H1; auto.
+      destruct H4 as [n [??]]. exists n. split; auto.
+      transitivity (f x); auto.
+      apply embed_map_eq_morphism; auto.
 
     destruct Hqelems as [qelems Hq].
 

@@ -144,16 +144,16 @@ Notation term_subst := (ENV.tm_subst term).
   *)
 Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : cxt Γ → U (tydom τ) :=
   match m in term _ τ' return cxt Γ → U (tydom τ') with
-  | tvar x σ IN => castty IN ∘ proj Γ x
+  | tvar _ x σ IN => castty IN ∘ proj Γ x
 
-  | tbool b => flat_elem' b
-  | tif σ x y z => 
+  | tbool _ b => flat_elem' b
+  | tif _ σ x y z => 
       flat_cases' (fun b:bool => if b then 〚y〛 else 〚z〛) ∘ 〈 id, 〚x〛 〉
 
-  | tapp σ₁ σ₂ m₁ m₂ => strict_app' ∘ 〈 〚m₁〛, 〚m₂〛 〉
-  | tlam x σ₁ σ₂ m' => strict_curry' (〚m'〛 ∘ bind Γ x σ₁)
+  | tapp m₁ m₂ => strict_app' ∘ 〈 〚m₁〛, 〚m₂〛 〉
+  | tlam _ x σ₁ σ₂ m' => strict_curry' (〚m'〛 ∘ bind Γ x σ₁)
 
-  | tfix x σ m' => fixes (PLT.curry (〚m'〛 ∘ bind Γ x σ))
+  | tfix _ x σ m' => fixes (PLT.curry (〚m'〛 ∘ bind Γ x σ))
 
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
@@ -178,23 +178,23 @@ Section traverse.
     (m:term Γ₁ σ) : term Γ₂ σ :=
 
     match m with
-    | tvar x σ IN => thingy_term Γ₂ x σ (VAR x σ IN)
-    | tbool b => tbool Γ₂ b
-    | tapp σ₁ σ₂ m₁ m₂ =>
+    | tvar _ x σ IN => thingy_term Γ₂ x σ (VAR x σ IN)
+    | tbool _ b => tbool Γ₂ b
+    | @tapp _ σ₁ σ₂ m₁ m₂ =>
         @tapp Γ₂ σ₁ σ₂ (traverse Γ₁ Γ₂ (σ₁ ⇒ σ₂) VAR m₁)
                        (traverse Γ₁ Γ₂ σ₁ VAR m₂)
-    | tif σ x y z =>
+    | tif _ σ x y z =>
            tif Γ₂ σ (traverse Γ₁ Γ₂ ty_bool VAR x)
                     (traverse Γ₁ Γ₂ σ VAR y)
                     (traverse Γ₁ Γ₂ σ VAR z)
-    | tlam x σ₁ σ₂ m' =>
+    | tlam _ x σ₁ σ₂ m' =>
            let x' := rename_var Γ₂ x in
            tlam Γ₂ x' σ₁ σ₂
                 (traverse ((x,σ₁)::Γ₁) ((x',σ₁)::Γ₂) σ₂
                   (weaken_vars Γ₁ Γ₂ x σ₁ VAR)
                   m')
 
-    | tfix x σ m' =>
+    | tfix _ x σ m' =>
            let x' := rename_var Γ₂ x in
            tfix Γ₂ x' σ
                 (traverse ((x,σ)::Γ₁) ((x',σ)::Γ₂) σ
@@ -1859,7 +1859,7 @@ Proof.
   destruct (proj2_sig XS (x::x0::nil)). hnf; auto.
   hnf; intros. apply cons_elem in H4.
   destruct H4. rewrite H4. auto.
-  apply cons_elem in H4.
+  rewrite (cons_elem _ x0) in H4.
   destruct H4. rewrite H4. auto.
   apply nil_elem in H4. elim H4.
   destruct H4.
@@ -1899,7 +1899,7 @@ Proof.
   destruct (PLT.hom_directed _ _ _ x1 c ((Some c0::Some b::nil))).
   hnf; auto.
   red; intros.
-  apply cons_elem in H10. destruct H10. rewrite H10.
+  apply -> cons_elem in H10. destruct H10. rewrite H10.
   apply erel_image_elem. auto.
   apply cons_elem in H10. destruct H10. rewrite H10.
   apply erel_image_elem. auto.
@@ -1916,7 +1916,7 @@ Proof.
   rewrite <- H3. rewrite <- H6.
   apply H4.
   apply cons_elem. right.
-  apply cons_elem. auto.
+  apply (cons_elem _ x0). auto.
   apply CPO.sup_is_ub. rewrite <- H3. auto.
 
   simpl; intros.
@@ -2411,14 +2411,14 @@ Inductive context τ : env -> ty -> Type :=
 
 Fixpoint plug τ Γ σ (C:context τ Γ σ) : term Γ σ -> term nil τ :=
   match C in context _ Γ' σ' return term Γ' σ' -> term nil τ with
-  | cxt_top => fun x => x
-  | cxt_if1 Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
-  | cxt_if2 Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ y x z)
-  | cxt_if3 Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ y z x)
-  | cxt_appl Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
-  | cxt_appr Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
-  | cxt_lam  Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
-  | cxt_fix Γ a σ C' => fun x => plug τ _ _ C' (tfix Γ a σ x)
+  | cxt_top _ => fun x => x
+  | cxt_if1 _ Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
+  | cxt_if2 _ Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ y x z)
+  | cxt_if3 _ Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ y z x)
+  | cxt_appl _ Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
+  | cxt_appr _ Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
+  | cxt_lam  _ Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
+  | cxt_fix _ Γ a σ C' => fun x => plug τ _ _ C' (tfix Γ a σ x)
   end.
 Arguments plug [τ Γ σ] C _.
 

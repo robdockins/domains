@@ -230,8 +230,9 @@ Module CPO.
     apply image_axiom1'. exists x. split; auto.
   Qed.
 
+
   Program Definition compose {CL:color} {X Y Z:type CL} (g:hom CL Y Z) (f:hom CL X Y)
-    := build_hom X Z (g ∘ f) _.
+    := build_hom X Z (ord_hom g ∘ ord_hom f) _.
   Next Obligation.
     repeat intro. 
     cut (least_upper_bound (g (f lub)) (image g (image f XS))).
@@ -669,7 +670,7 @@ Section iter_chain.
   Variable step : X -> X.
 
   Hypothesis step_mono : forall x y, x ≤ y -> step x ≤ step y.
-  Hypothesis step_base : base ≤ step base. 
+  Hypothesis step_base : base ≤ step base.
 
   Definition iter_chain_set : eset X :=
     fun n => Some (N.iter n step base).

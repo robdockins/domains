@@ -232,7 +232,7 @@ Fixpoint denote (τ:ty) (m:term τ) : 1 → tydom τ :=
   match m in term τ return 1 → tydom τ with
   | tbool b => disc_elem b
 
-  | tapp σ₁ σ₂ m₁ m₂ => apply ∘ 〈〚m₁〛, 〚m₂〛〉
+  | tapp m₁ m₂ => apply ∘ 〈〚m₁〛, 〚m₂〛〉
 
   | tI σ => Λ(π₂)
 
@@ -771,9 +771,9 @@ Inductive context τ : ty -> Type :=
 
 Fixpoint plug τ σ (C:context τ σ) : term σ -> term τ :=
   match C in context _ σ return term σ -> term τ with
-  | cxt_top => fun x => x
-  | cxt_appl σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp x t)
-  | cxt_appr σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp t x)
+  | cxt_top _ => fun x => x
+  | cxt_appl _ σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp x t)
+  | cxt_appr _ σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp t x)
   end.
 
 Definition cxt_eq τ σ (m n:term σ):=

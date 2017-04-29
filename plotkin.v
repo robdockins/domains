@@ -104,13 +104,13 @@ Qed.
   *)
 Program Definition empty_plotkin hf : plotkin_order hf emptypo :=
   PlotkinOrder hf emptypo _ (fun _ => nil) _ _ _.
-Solve Obligations of empty_plotkin using (repeat intro; simpl in *; intuition).
+Solve Obligations of empty_plotkin with (repeat intro; simpl in *; intuition).
 
 (**  The unit preorder is Plotkin.
   *)
 Program Definition unit_plotkin hf : plotkin_order hf unitpo :=
   PlotkinOrder hf _ _ (fun M => if hf then M else (tt::nil)) _ _ _.
-Solve Obligations of unit_plotkin using (repeat intro; hnf; auto).
+Solve Obligations of unit_plotkin with (repeat intro; hnf; auto).
 Next Obligation.
   repeat intro. exists tt.
   split; hnf; auto.
@@ -289,7 +289,7 @@ Section normal_sets.
       apply H in H0.
       apply finsubset_elem in H0.
       destruct H0; auto.
-      intros. rewrite <- H1; auto.
+      intros. rewrite <- H2; auto.
       destruct H0.
       exists x. split; auto.
       destruct H0; auto.
@@ -301,7 +301,7 @@ Section normal_sets.
       apply H in H2.
       apply finsubset_elem in H2.
       destruct H2; auto.
-      intros. rewrite <- H3; auto.
+      intros. rewrite <- H4; auto.
     Qed.
   End plt_normal.
 
@@ -346,7 +346,7 @@ Section normal_sets.
     apply finsubset_elem.
     apply upper_bound_ok.
     split; auto.
-    intros. rewrite <- H3. auto.
+    intros. rewrite <- H4. auto.
   Qed.
 
   (**  Moreover, under the same conditions, we can calculate the set
@@ -548,7 +548,7 @@ Section normal_sets.
     unfold P'.
     destruct (inh_dec A hf x).
     destruct (finset_find_dec' A
-      (fun p:A => p ∈ M)) with x.
+      (fun p:A => p ∈ M)) with x; simpl.
     intros. rewrite <- H0; auto.
     intros. apply finset_in_dec. 
     constructor. apply eff_ord_dec. auto.
@@ -558,7 +558,7 @@ Section normal_sets.
     apply H0 in H1. elim H2; auto.
     destruct (normal_has_mubs Q HQ x) as [MUBS [?[??]]]; auto.
     red; intros. apply HM. apply m. auto.
-    destruct (finset_find_dec' A (fun p => p ∈ M)) with MUBS.
+    destruct (finset_find_dec' A (fun p => p ∈ M)) with MUBS; simpl.
     intros. rewrite <- H3; auto.
     intros. apply finset_in_dec. 
     constructor. apply eff_ord_dec. auto.
@@ -755,7 +755,7 @@ Section normal_sets.
     destruct (normal_set_mub_closed_sets Q H) as [CLS ?]; auto.
     assert (Hsubdec : forall X:finset A, {M⊆X}+{~(M ⊆ X)}).
     intros.
-    destruct (finset_find_dec' A (fun z => z ∈ X)) with M.
+    destruct (finset_find_dec' A (fun z => z ∈ X)) with M; simpl.
     intros. rewrite <- H1; auto.
     apply finset_in_dec.
     constructor. apply eff_ord_dec; auto.
@@ -774,7 +774,7 @@ Section normal_sets.
     apply finsubset_elem in H2.
     destruct H2.
     apply H3; auto.
-    intros. rewrite <- H3; auto.
+    intros. rewrite <- H4; auto.
     split.
     cut (forall x, x ∈ CLS' -> mub_closed hf A x).
     generalize CLS'. clear -H.
@@ -794,7 +794,7 @@ Section normal_sets.
     destruct H1.
     apply i in H1.
     destruct H1 as [Hx [??]]; auto.
-    intros. rewrite <- H2; auto.
+    intros. rewrite <- H3; auto.
     intros.
     red; intros.
     apply fin_list_intersect_elem in H3.
@@ -841,14 +841,14 @@ Section normal_sets.
     red; intros.
     unfold Q' in H2.
     apply finsubset_elem in H2. destruct H2; auto.
-    intros. rewrite <- H3; auto.
+    intros. rewrite <- H4; auto.
     destruct H2.
     assert (x ∈ Q).
     apply (H0 Q'); auto.
     apply inh_sub with M; auto.
     unfold Q'; red; intros.
     apply finsubset_elem in H4. destruct H4; auto.
-    intros. rewrite <- H5; auto.
+    intros. rewrite <- H6; auto.
     exists x. split; auto.
     red; intros.
     destruct H2.
@@ -859,10 +859,10 @@ Section normal_sets.
     split; auto.
     apply H1 in H5.
     apply finsubset_elem in H5. destruct H5; auto.
-    intros. rewrite <- H7; auto.
+    intros. rewrite <- H8; auto.
     apply H1 in H5.
     apply finsubset_elem in H5. destruct H5; auto.
-    intros. rewrite <- H7; auto.
+    intros. rewrite <- H8; auto.
     unfold Q'.
     apply finsubset_elem.
     intros. rewrite <- H5; auto.
@@ -890,7 +890,7 @@ Section normal_sets.
     | left _ => nil
     | right Xinh =>
       match Hnorm X Xinh with
-      | exist Q (conj HQ1 HQ2) => proj1_sig (normal_set_mub_closure Q HQ2 X Xinh HQ1)
+      | exist _ Q (conj HQ1 HQ2) => proj1_sig (normal_set_mub_closure Q HQ2 X Xinh HQ1)
       end
     end.
 
@@ -1142,7 +1142,7 @@ Proof.
   destruct Hm.
   apply finsum_left_elem in H3.
   apply nil_elem in H3. elim H3.
-  intros. rewrite <- H3; auto.
+  intros. rewrite <- H4; auto.
   generalize (H2 (inr m) Hm).  
   intros.
   apply finsubset_elem in H3.
@@ -1161,7 +1161,7 @@ Proof.
   destruct H6. split; auto.
   apply finsum_right_elem in H6.
   auto.
-  intros. rewrite <- H7. auto.
+  intros. rewrite <- H8. auto.
   apply finsubset_elem in H7. destruct H7.
   exists (inr q). split.
   hnf; intros.
@@ -1169,15 +1169,15 @@ Proof.
   apply H2 in H9.
   apply finsubset_elem in H9.
   destruct H9. elim H10.
-  intros. rewrite <- H10; auto.
+  intros. rewrite <- H11; auto.
   apply H6.
   apply right_finset_elem. auto.
   apply finsubset_elem.
   intros. rewrite <- H9; auto.
   split; auto.
   apply finsum_right_elem. auto.
-  intros. rewrite <- H8. auto.
-  intros. rewrite <- H4. auto.
+  intros. rewrite <- H9. auto.
+  intros. rewrite <- H5. auto.
 
   intros c l HL.
   case_eq R; intro.
@@ -1218,7 +1218,7 @@ Proof.
   destruct H6. split; auto.
   apply finsum_left_elem in H6.
   auto.
-  intros. rewrite <- H7. auto.
+  intros. rewrite <- H8. auto.
   apply finsubset_elem in H7. destruct H7.
   exists (inl q). split.
   hnf; intros.
@@ -1228,19 +1228,19 @@ Proof.
   apply H2 in H9.
   apply finsubset_elem in H9.
   destruct H9. elim H10.
-  intros. rewrite <- H10; auto.
+  intros. rewrite <- H11; auto.
   apply finsubset_elem.
-  intros. rewrite <- H9; auto.
+  intros. rewrite <- H10; auto.
   split; auto.
   apply finsum_left_elem. auto.
-  intros. rewrite <- H8. auto.
-  intros. rewrite <- H4. auto.
+  intros. rewrite <- H9. auto.
+  intros. rewrite <- H5. auto.
   apply H2 in Hm.
   apply finsubset_elem in Hm.
   destruct Hm.
   apply finsum_right_elem in H3.
   apply nil_elem in H3. elim H3.
-  intros. rewrite <- H3; auto.
+  intros. rewrite <- H4; auto.
 
   intros l' HR.
   destruct (plt_has_normals A HAeff true HA L) as [ZL [??]].
@@ -1274,7 +1274,7 @@ Proof.
   apply H3 in H5.
   apply finsubset_elem in H5.
   destruct H5. elim H6.
-  intros. rewrite <- H6; auto.
+  intros. rewrite <- H7; auto.
   hnf; simpl; intros.
   apply left_finset_elem in H5.
   apply H3 in H5.
@@ -1284,7 +1284,7 @@ Proof.
   intros. rewrite <- H7; auto.
   split; auto.
   apply finsum_left_elem in H5; auto.
-  intros. rewrite <- H6; auto.
+  intros. rewrite <- H7; auto.
   destruct H5. exists (inl x).
   split.
   hnf; intros.
@@ -1294,13 +1294,13 @@ Proof.
   apply H3 in H7.
   apply finsubset_elem in H7.
   destruct H7. elim H8.
-  intros. rewrite <- H8; auto.
+  intros. rewrite <- H9; auto.
   apply finsubset_elem.
   intros. rewrite <- H7; auto.
   apply finsubset_elem in H6.
   destruct H6. split; auto.
   apply finsum_left_elem; auto.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
   destruct H2.
   destruct (H4 z (right_finset A B M)).
   destruct Hinh0 as [m Hm].
@@ -1308,7 +1308,7 @@ Proof.
   apply H3 in Hm.
   apply finsubset_elem in Hm.
   destruct Hm. elim H6.
-  intros. rewrite <- H5; auto.
+  intros. rewrite <- H6; auto.
   exists c1. apply right_finset_elem; auto.
   hnf; intros.
   apply right_finset_elem in H5.
@@ -1318,21 +1318,21 @@ Proof.
   apply finsubset_elem in H5.
   destruct H5. split; auto.
   apply finsum_right_elem in H5. auto.
-  intros. rewrite <- H6; auto.
+  intros. rewrite <- H7; auto.
   exists (inr x).
   destruct H5. split.
   hnf; intros.
   destruct x0.
   apply H3 in H7.
   apply finsubset_elem in H7. destruct H7. elim H8.
-  intros. rewrite <- H8; auto.
+  intros. rewrite <- H9; auto.
   apply H5. apply right_finset_elem; auto.
   apply finsubset_elem.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
   apply finsubset_elem in H6.
   destruct H6. split; auto.
   apply finsum_right_elem; auto.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
   
   destruct (plt_has_normals A HAeff false HA L) as [ZL [??]].
   hnf; auto.
@@ -1365,7 +1365,7 @@ Proof.
   intros. rewrite <- H7; auto.
   split; auto.
   apply finsum_left_elem in H5; auto.
-  intros. rewrite <- H6; auto.
+  intros. rewrite <- H7; auto.
   destruct H5. exists (inl x).
   split.
   hnf; intros.
@@ -1375,13 +1375,13 @@ Proof.
   apply H3 in H7.
   apply finsubset_elem in H7.
   destruct H7. elim H8.
-  intros. rewrite <- H8; auto.
+  intros. rewrite <- H9; auto.
   apply finsubset_elem.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
   apply finsubset_elem in H6.
   destruct H6. split; auto.
   apply finsum_left_elem; auto.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
   destruct H2.
   destruct (H4 z (right_finset A B M)).
   hnf; auto.
@@ -1393,21 +1393,21 @@ Proof.
   apply finsubset_elem in H5.
   destruct H5. split; auto.
   apply finsum_right_elem in H5. auto.
-  intros. rewrite <- H6; auto.
+  intros. rewrite <- H7; auto.
   exists (inr x).
   destruct H5. split.
   hnf; intros.
   destruct x0.
   apply H3 in H7.
   apply finsubset_elem in H7. destruct H7. elim H8.
-  intros. rewrite <- H8; auto.
+  intros. rewrite <- H9; auto.
   apply H5. apply right_finset_elem; auto.
   apply finsubset_elem.
   intros. rewrite <- H7; auto.
   apply finsubset_elem in H6.
   destruct H6. split; auto.
   apply finsum_right_elem; auto.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
 Qed.
 
 (** The disjoint union of two effective Plotkin orders is Plotkin. *)
@@ -1560,7 +1560,7 @@ Proof.
   apply H0 in H3.
   apply finsubset_elem in H3.
   destruct H3. auto.
-  intros. rewrite <- H5; auto.
+  intros. rewrite <- H6; auto.
   exists (Some ub).
   split.
   hnf; intros.
@@ -1590,7 +1590,7 @@ Proof.
   unfold lift_mub_closure in H5.
   rewrite H4 in H5.
   apply single_axiom in H5. destruct H5. elim H5.
-  intros. rewrite <- H6; auto.
+  intros. rewrite <- H7; auto.
   intros.
   apply cons_elem. right.
   apply image_axiom1'.
@@ -1619,7 +1619,7 @@ Proof.
   destruct H6 as [y [??]].
   simpl in H8.
   apply member_eq with y; auto.
-  intros. rewrite <- H7; auto.
+  intros. rewrite <- H8; auto.
   
   assert (Some c ∈ M).
   exists (Some c); split; auto.
@@ -1627,7 +1627,7 @@ Proof.
   apply H0 in H2.
   apply finsubset_elem in H2.
   destruct H2. elim H3.
-  intros. rewrite <- H3. auto.
+  intros. rewrite <- H4. auto.
 Qed.
 
 (** The lift preorder of an effective Plotkin order is Plotkin. *)

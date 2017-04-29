@@ -445,12 +445,12 @@ Proof.
   destruct H1. destruct H1; auto.
   transitivity c0; auto.
   intros.
-  destruct H4. destruct H4. destruct H6.
+  destruct H5. destruct H5. destruct H7.
   transitivity (snd x); auto.
   transitivity (fst x); auto.
   intros.
-  destruct H2. destruct H2. destruct H4.
-  destruct H2. destruct H5. destruct H4. destruct H6.
+  destruct H3. destruct H3. destruct H5.
+  destruct H3. destruct H6. destruct H5. destruct H7.
   eauto.
   
   red; simpl; intros.
@@ -1713,11 +1713,11 @@ Section curry.
     unfold curry_acceptable.
     intros. destruct a0. destruct b0.
     intros. 
-    destruct H1 as [[??][??]]. simpl in *.
+    destruct H2 as [[??][??]]. simpl in *.
     destruct ab; simpl in *.
-    destruct (H6 c4 c5) as [p [q [?[??]]]]; auto.
-    apply H2 in H7. simpl in H7.
-    revert H7. apply HR; auto.
+    destruct (H7 c4 c5) as [p [q [?[??]]]]; auto.
+    apply H3 in H8. simpl in H8.
+    revert H8. apply HR; auto.
     split; auto.
 
     unfold curry_rel.
@@ -1791,9 +1791,9 @@ Section curry.
     split; split; simpl; auto.
     split; auto. split; auto.
     intros.
-    rewrite <- H2.
-    destruct H1 as [[??][??]].
-    destruct H1. destruct H4.
+    rewrite <- H3.
+    destruct H2 as [[??][??]].
+    destruct H2. destruct H5.
     split; auto.
   Qed.
 

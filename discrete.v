@@ -70,8 +70,8 @@ Module fintype.
     split; repeat intro.
     apply H in H0. apply finsubset_elem in H0.
     destruct H0; auto.
-    intros. hnf in H1, H2. destruct H1.
-    hnf. hnf in H3. rewrite H3; auto.
+    intros. hnf in H2, H3. destruct H2.
+    hnf. hnf in H4. rewrite H4; auto.
     apply finsubset_elem. intros.
     destruct H0. rewrite H2. auto.
     split; auto.

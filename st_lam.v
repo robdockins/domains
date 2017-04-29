@@ -141,12 +141,12 @@ Definition dom (Γ:env) (τ:ty) : Type := cxt Γ → tydom τ.
 
 Fixpoint denote (Γ:env) (τ:ty) (m:term Γ τ) : dom Γ τ :=
   match m in term _ τ' return dom Γ τ' with
-  | tvar x σ IN => castty IN ∘ proj Γ x
-  | tbool b => disc_elem b ∘ PLT.terminate false (cxt Γ)
-  | tif σ x y z => disc_cases (fun b:bool => if b then 〚y〛 else 〚z〛)  
+  | tvar _ x σ IN => castty IN ∘ proj Γ x
+  | tbool _ b => disc_elem b ∘ PLT.terminate false (cxt Γ)
+  | tif _ σ x y z => disc_cases (fun b:bool => if b then 〚y〛 else 〚z〛)  
                      ∘ 〈 id, 〚x〛 〉
-  | tapp σ₁ σ₂ m₁ m₂ => apply ∘ 〈 〚m₁〛, 〚m₂〛 〉
-  | tlam x σ₁ σ₂ m' => Λ(〚m'〛 ∘ bind Γ x σ₁)
+  | tapp m₁ m₂ => apply ∘ 〈 〚m₁〛, 〚m₂〛 〉
+  | tlam _ x σ₁ σ₂ m' => Λ(〚m'〛 ∘ bind Γ x σ₁)
   end
  where "〚 m 〛" := (denote _ _ m) : lam_scope.
 
@@ -171,16 +171,16 @@ Section traverse.
     (m:term Γ₁ σ) : term Γ₂ σ :=
 
     match m with
-    | tvar x σ IN => thingy_term Γ₂ x σ (VAR x σ IN)
-    | tbool b => tbool Γ₂ b
-    | tapp σ₁ σ₂ m₁ m₂ =>
+    | tvar _ x σ IN => thingy_term Γ₂ x σ (VAR x σ IN)
+    | tbool _ b => tbool Γ₂ b
+    | @tapp _ σ₁ σ₂ m₁ m₂ =>
         @tapp Γ₂ σ₁ σ₂ (traverse Γ₁ Γ₂ (σ₁ ⇒ σ₂) VAR m₁)
                        (traverse Γ₁ Γ₂ σ₁ VAR m₂)
-    | tif σ x y z =>
+    | tif _ σ x y z =>
            tif Γ₂ σ (traverse Γ₁ Γ₂ 2 VAR x)
                     (traverse Γ₁ Γ₂ σ VAR y)
                     (traverse Γ₁ Γ₂ σ VAR z)
-    | tlam x σ₁ σ₂ m' =>
+    | tlam _ x σ₁ σ₂ m' =>
            let x' := rename_var Γ₂ x in
            tlam Γ₂ x' σ₁ σ₂
                 (traverse ((x,σ₁)::Γ₁) ((x',σ₁)::Γ₂) σ₂
@@ -231,7 +231,7 @@ Section traverse.
     rewrite IHm1. auto.
 
     symmetry.
-    rewrite PLT.curry_compose_commute.
+    rewrite (PLT.curry_compose_commute _ _ _ _ _ (〚 m 〛∘ bind Γ x σ₁)).
     apply PLT.curry_eq.
     rewrite <- (cat_assoc PLT).
     rewrite IHm.
@@ -556,7 +556,8 @@ Proof.
   apply IHalpha_cong3; auto.
 
   simpl; intros.
-  do 2 rewrite (PLT.curry_compose_commute false).
+  rewrite (PLT.curry_compose_commute false _ _ _ _ (〚 m₁ 〛 ∘ bind Γ x₁ σ₁)).
+  rewrite (PLT.curry_compose_commute false _ _ _ _ (〚 m₂ 〛 ∘ bind Γ' x₂ σ₁)).
   apply PLT.curry_eq.
   do 2 rewrite <- (cat_assoc PLT).
   apply IHalpha_cong.  
@@ -1593,11 +1594,11 @@ Inductive context τ : env -> ty -> Type :=
 
 Fixpoint plug τ Γ σ (C:context τ Γ σ) : term Γ σ -> term nil τ :=
   match C in context _ Γ' σ' return term Γ' σ' -> term nil τ with
-  | cxt_top => fun x => x
-  | cxt_if Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
-  | cxt_appl Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
-  | cxt_appr Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
-  | cxt_lam  Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
+  | cxt_top _ => fun x => x
+  | cxt_if _ Γ σ y z C' => fun x => plug τ _ _ C' (tif Γ σ x y z)
+  | cxt_appl _ Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp x t)
+  | cxt_appr _ Γ σ₁ σ₂ t C' => fun x => plug τ _ _ C' (tapp t x)
+  | cxt_lam _ Γ a σ₁ σ₂ C' => fun x => plug τ _ _ C' (tlam Γ a σ₁ σ₂ x)
   end.
 
 Definition cxt_eq τ Γ σ (m n:term Γ σ):=

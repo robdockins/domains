@@ -367,8 +367,8 @@ Section bilimit.
     transitivity (ds_hom DS k m Hkm c); auto.
     apply embed_mono.
     rewrite <- H11; auto.
-    intros. rewrite <- H1. auto.
-    intros. rewrite <- H1. auto.
+    intros. rewrite <- H2. auto.
+    intros. rewrite <- H2. auto.
   Qed.
 
   (**  Altogether, this makes the bilimit a plotkin order.
@@ -682,7 +682,7 @@ Section colimit_decompose2.
   Definition decompose_univ_func (YC:cocone DS) (x:cocone_point CC) :=
     cocone_spoke YC 
        (projT1 (decompose x))
-       (projT1 (projT2 (decompose x))).
+       (proj1_sig (projT2 (decompose x))).
 
   Program Definition decompose_univ (YC:cocone DS) : CC ⇀ YC :=
     Embedding hf (cocone_point CC: ob (EMBED hf)) 
@@ -791,16 +791,17 @@ Section colimit_decompose2.
   Qed.    
   Next Obligation.
     simpl; intros.
-    intros. apply embed_lift'. simpl.
-    unfold decompose_univ_func. simpl. intro x.
+    intros. apply embed_lift'.
+    intro x.
+    simpl. unfold decompose_univ_func.
     destruct (decompose x) as [i [x' ?]]. simpl.
-    rewrite <- e.
+    (* FIXME, why can I not just rewrite using <- e here? *)
+    transitivity (f (cocone_spoke CC i x')).
+    apply embed_map_eq_morphism; auto.
     rewrite (H i).
     simpl; auto.
   Qed.
 End colimit_decompose2.
-
-
 
 (** With the bilimit in hand, we can construct the least
     fixpoint of continuous functors in the embeddings

@@ -88,7 +88,7 @@ Canonical Structure comp := Comp.Pack ob hom comp_mixin.
 Program Definition hom_eq_mixin (A B:ob) : Eq.mixin_of (hom A B) :=
   Eq.Mixin (hom A B) (fun f g => forall x, f x ≈ g x) _ _ _.
 Next Obligation.
-  rewrite H; auto.
+  simpl; intros; rewrite H; auto.
 Qed.
 
 Lemma category_axioms : Category.axioms ob hom hom_eq_mixin comp_mixin.
@@ -564,7 +564,7 @@ Canonical Structure nom_terminated :=
 (**  NOMINAL is a cartesian category. *)
 Program Definition nom_prod_eq_mixin (A B :nominal) :=
    Eq.Mixin (A*B) (fun x y => fst x ≈ fst y /\ snd x ≈ snd y) _ _ _.
-Solve Obligations using intuition eauto.
+Solve Obligations with intuition eauto.
 
 Program Definition nom_prod_mixin (A B:nominal) :=
   Nominal.Mixin (A*B) (nom_prod_eq_mixin A B)
@@ -714,7 +714,7 @@ Next Obligation.
   apply papp_morphism. auto.
   apply papp_morphism. auto.
   apply exp_eq_axiom.
-  rewrite inv_compose.
+  rewrite (inv_compose _ _ _ _ p0).
   rewrite <- nom_compose.
   rewrite nom_compose.
   symmetry.
@@ -794,7 +794,7 @@ Qed.
 Program Definition nom_exp_eq_mixin (A B:nominal) :=
   Eq.Mixin (nom_exp_type A B) (fun f g => forall x, f x ≈ g x) _ _ _.
 Next Obligation.
-  rewrite H; auto.
+  simpl; intros; rewrite H; auto.
 Qed.
 
 Canonical Structure nom_exp_eq (A B:nominal) :=

@@ -98,9 +98,9 @@ Canonical Structure perm_support (A B:unit)  : supported :=
 
 Program Definition eq_mixin (A B:unit) : Eq.mixin_of (perm A B) :=
   Eq.Mixin (perm A B) (fun a b => forall x, f a x = f b x) _ _ _.
-Solve Obligations using intuition eauto.
+Solve Obligations with intuition eauto.
 Next Obligation. 
-  intros. rewrite H. auto.
+  simpl; intros. rewrite H. auto.
 Qed.
 
 Canonical Structure eq (A B:unit) : Eq.type :=
@@ -119,17 +119,17 @@ Program Definition compose A B C (p1:perm B C) (p2:perm A B) : perm A C :=
        (‖p1‖ ++ ‖p2‖)
        _ _ _.
 Next Obligation.
-  intros.
+  simpl; intros.
   rewrite (gf p1).
   rewrite (gf p2). auto.
 Qed.
 Next Obligation.
-  intros.
+  simpl; intros.
   rewrite (fg p2).
   rewrite (fg p1). auto.
 Qed.
 Next Obligation.
-  intros.
+  simpl; intros.
   destruct (support_axiom p2 v).
   left. apply app_elem; auto.
   rewrite H.
@@ -227,7 +227,7 @@ Program Definition swap (x y:atom) : perm tt tt  :=
        (x::y::nil)
        _ _ _.
 Next Obligation.
-  intros. rename x0 into z.
+  simpl; intros. rename x0 into z.
   destruct (string_dec x z).
   destruct (string_dec x y). congruence.
   destruct (string_dec y y); congruence.
@@ -237,7 +237,7 @@ Next Obligation.
   destruct (string_dec y z); try congruence.
 Qed.
 Next Obligation.
-  intros. rename x0 into z.
+  simpl; intros. rename x0 into z.
   destruct (string_dec x z).
   destruct (string_dec x y).
   congruence.
@@ -248,7 +248,7 @@ Next Obligation.
   destruct (string_dec y z); congruence.
 Qed.
 Next Obligation.
-  intros.
+  simpl; intros.
   destruct (string_dec x v).
   left.
   apply cons_elem; auto.

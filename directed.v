@@ -1,5 +1,7 @@
 (* Copyright (c) 2014, Robert Dockins *)
 
+Require Import Max.
+
 Require Import basics.
 Require Import preord.
 Require Import categories.
@@ -111,9 +113,6 @@ Record directed_preord :=
   ; dir_effective : effective_order dir_preord
   ; choose_ub_set : forall M:finset dir_preord, { k | upper_bound k M }
   }.
-Arguments dir_preord _.
-Arguments dir_effective _.
-Arguments choose_ub_set _ _.
 
 Lemma choose_ub (I:directed_preord) (i j:I) :
   { k | i ≤ k /\ j ≤ k }.
@@ -270,7 +269,7 @@ Require Import Arith.
 Require Import NArith.
 
 Program Definition nat_ord := Preord.Pack nat (Preord.Mixin nat le _ _).
-Solve Obligations using eauto with arith.
+Solve Obligations with eauto with arith.
   
 Program Definition nat_eff : effective_order nat_ord :=
   EffectiveOrder nat_ord le_dec (fun x => Some (N.to_nat x)) _.

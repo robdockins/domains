@@ -70,7 +70,7 @@ Module enumtype.
     split. red; simpl; intros.
     apply H in H0.
     apply finsubset_elem in H0. destruct H0; auto.
-    intros. hnf in H1. destruct H1. eauto.
+    intros. hnf in H2. destruct H2. eauto.
     apply finsubset_elem.
     intros. hnf in H1. subst x. destruct H0; auto.
     hnf in Hinh0.
@@ -79,7 +79,7 @@ Module enumtype.
     apply finsubset_elem in H0.
     destruct H0. hnf in H1. subst x.
     split; auto.
-    intros. hnf in H2. subst z. destruct H1; auto.
+    intros. hnf in H3. subst z. destruct H2; auto.
   Qed.
 
   Definition enumtype_plotkin (X:enumtype) : plotkin_order true (ord X) :=
@@ -138,15 +138,15 @@ Section flat_cases.
   Variables (A B:∂PLT).
   Variable f : X -> (A → B).
 
-  Program Definition insert_index (x:X) : Preord.hom (A×B)%cat_ob ((A×flat X)×B)%cat_ob :=
-    Preord.Hom (A×B)%cat_ob ((A×flat X)×B)%cat_ob (fun ab => ((fst ab, x), snd ab)) _.
+  Program Definition insert_index (x:X) : Preord.hom (prod_preord A B) (prod_preord (prod_preord A (flat X)) B) :=
+    Preord.Hom _ _ (fun ab => ((fst ab, x), snd ab)) _.
   Next Obligation.
     intros x [??] [??] [??]; simpl in *; auto.
     split; simpl; auto. split; auto.
   Qed.
 
   Program Definition map_indexes : Preord.hom (flat X) (eset ((PLT.ord A×flat X)×PLT.ord B)%cat_ob) :=
-    Preord.Hom (flat X) (eset ((A× flat X)×B)%cat_ob)
+    Preord.Hom _ _
       (fun x => image (insert_index x) (PLT.hom_rel (f x))) _.
   Next Obligation.
     intros. hnf in H. subst a. auto.

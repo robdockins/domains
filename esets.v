@@ -173,31 +173,35 @@ Section countable_ID.
     { a:A & { n | P n = Some a /\
       forall n' a', P n' = Some a' -> (n <= n')%N} }.
   Proof.
-    fix 2. intros.
-    case H.
-    generalize (refl_equal (P N0)).
-    pattern (P N0) at 2 3.
-    case (P N0); intros.
-    exists c. exists N0.
-    split; auto.
-    intros. 
-    intros. compute. destruct n'; discriminate.
+    refine (
+        fix find_inhabitant P (H:einhabited P) :
+          { a:A & { n | P n = Some a /\
+                        forall n' a', P n' = Some a' -> (n <= n')%N} } :=
+          match H with | einh _ H' => _ end).
 
-    case (find_inhabitant _ (H1 (refl_equal _))). intros x Hx.
-    case Hx as [n ?].
-    exists x. exists (N.succ n). 
-    destruct a.
-    split; auto.
-    intros.
-    revert H4.
-    pattern n'.
-    apply (N.case_analysis).
-    hnf. simpl. intuition. subst; auto.
-    subst; auto.
-    intros. rewrite H4 in H0. discriminate.
-    intros.
-    apply H3 in H4; auto.
-    rewrite <- N.succ_le_mono; auto.
+    generalize (refl_equal (P N0)).
+    pattern (P N0) at 2.
+    case (P N0).
+    - intros a HP. exists a. exists N0.
+      split; auto.
+      intros. 
+      intros. compute. destruct n'; discriminate.
+    - intros HP. case (find_inhabitant _ (H' HP)).
+      intros x Hx. clear find_inhabitant.
+      case Hx as [n ?].
+      exists x. exists (N.succ n). 
+      destruct a.
+      split; auto.
+      intros.
+      revert H2.
+      pattern n'.
+      apply (N.case_analysis).
+      + hnf. simpl. intuition. subst; auto.
+        subst; auto.
+      + intros. rewrite H2 in HP. discriminate.
+      + intros.
+        apply H1 in H2; auto.
+        rewrite <- N.succ_le_mono; auto.
   Defined.
 
 Global Opaque find_inhabitant.
@@ -974,7 +978,7 @@ Proof.
   split; split; auto.
   rewrite <- H2. auto.
   intros.
-  rewrite <- H1. auto.
+  rewrite <- H2. auto.
   unfold erel_image.
   change y with (π₂# ((x,y) : A×B)).
   apply image_axiom1.
@@ -1003,7 +1007,7 @@ Proof.
   destruct H1; destruct H0.
   split; split; auto.
   rewrite <- H2; auto.
-  intros. rewrite <- H1; auto.
+  intros. rewrite <- H2; auto.
   unfold erel_inv_image.
   change x with (π₁# ((x,y) : A × B)).
   apply image_axiom1.
@@ -1029,7 +1033,7 @@ Qed.
      Here, we instead require [R] to be enumerable and [A] to have a decidable
      order.  Because [R] is total, this implies [A] is countable (and
      effective, as defined in "effective.v.")  Hence this statement is
-     implied by countable choice (more precisely, a statmenet of countable choice
+     implied by countable choice (more precisely, a statement of countable choice
      that constructs a function, rather than merely asserting it to exist).
      This statement is _strictly_ weaker, as the usual version of
      countable choice is not provable in Coq.

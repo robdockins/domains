@@ -57,11 +57,9 @@ Section cPLT.
        (fun f g => cplt_retract B ∘ cplt_hom f ∘ cplt_retract A 
                  ≤ cplt_retract B ∘ cplt_hom g ∘ cplt_retract A)
        _ _.
+  Solve Obligations of hom_ord_mixin with (simpl; intros; auto).
   Next Obligation.
-    intros; auto.
-  Qed.
-  Next Obligation.
-    intros. etransitivity; eauto.
+    simpl; intros. etransitivity; eauto.
   Qed.
 
   Canonical Structure hom_ord (A B:ob) := Preord.Pack (hom A B) (hom_ord_mixin A B).

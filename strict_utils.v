@@ -235,7 +235,7 @@ Proof.
   destruct H4 as [?[?[?[??]]]]. subst x1. inversion H6. subst.
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [?[??]].
-  simpl in H4. apply ident_elem in H4.
+  apply ident_elem in H4.
   apply PLT.compose_hom_rel in H5.
   destruct H5 as [?[??]].
   destruct x3.
@@ -257,7 +257,6 @@ Proof.
   elim H9.
 Qed.  
   
-
 
 Lemma strict_curry_app (Γ:PLT) (A B:∂PLT) 
   (f : Γ×U A → U B) (g : Γ → U A)
@@ -505,7 +504,7 @@ Proof.
   destruct H3 as [p' [q' [?[??]]]]. subst q. inversion H5; subst.
   apply PLT.compose_hom_rel in H3.
   destruct H3 as [[??][??]].
-  simpl in H3. apply ident_elem in H3.
+  apply ident_elem in H3.
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [[??][??]].
   rewrite (hom_rel_pair_map _ _ _ _ _ _ _ c c0 c1 c2) in H4.
@@ -540,7 +539,7 @@ Proof.
   destruct H3 as [p' [q' [?[??]]]]. subst q. inversion H5; subst.
   apply PLT.compose_hom_rel in H3.
   destruct H3 as [[??][??]].
-  simpl in H3. apply ident_elem in H3.
+  apply ident_elem in H3.
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [[??][??]].
   rewrite (hom_rel_pair_map _ _ _ _ _ _ _ c c0 c1 c2) in H4.
@@ -658,7 +657,7 @@ Proof.
   destruct H1; subst.
   apply PLT.compose_hom_rel in H0.
   destruct H0 as [?[??]].
-  simpl in H0. apply ident_elem in H0.
+  apply ident_elem in H0.
   apply PLT.compose_hom_rel in H1.
   destruct H1 as [?[??]]. destruct x2.
   destruct x0.
@@ -735,7 +734,7 @@ Proof.
   apply PLT.compose_hom_rel in H1.
   destruct H1 as [?[??]].
   destruct x0.
-  simpl in H1. apply ident_elem in H1.
+  apply ident_elem in H1.
   apply PLT.compose_hom_rel in H2.
   destruct H2 as [?[??]].
   destruct x0.
@@ -820,13 +819,13 @@ Proof.
   apply PLT.compose_hom_rel.
   exists (a, Some x).
   split.
-  unfold lift_prod; simpl.
+  unfold lift_prod.
   apply ident_elem. auto.
   apply PLT.compose_hom_rel.
   exists (a,x). split; auto.
   simpl.
   rewrite (pair_rel_elem' _ _ _ _ _ _ (ident_ordering _ _) 
-    (adj_counit_hom_obligation_1 _) a (Some x) a x).
+      (profinite_adj.adj_counit_hom_obligation_1 _) a (Some x) a x).
   split. apply ident_elem; auto.
   apply adj_counit_rel_elem. auto.
   simpl.
@@ -959,11 +958,11 @@ Proof.
   destruct (PLT.hom_directed _ _ _ g tt (Some x::Some c0::nil)).
   hnf. auto.
   hnf; intros.
-  apply cons_elem in H2. destruct H2. rewrite H2.
+  apply -> cons_elem in H2. destruct H2. rewrite H2.
   apply erel_image_elem; auto.
-  apply cons_elem in H2. destruct H2. rewrite H2.
+  apply -> cons_elem in H2. destruct H2. rewrite H2.
   apply erel_image_elem; auto.
-  apply nil_elem in H2. elim H2.
+  elim (nil_elem _ a H2).
   destruct H2.  
   apply erel_image_elem in H3.
   assert (Some x ≤ x0). apply H2.

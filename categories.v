@@ -320,7 +320,7 @@ Program Definition mono_cat_axioms (C:category) :
   Category.axioms (ob C) (monomorphism C)
      (mono_eq C) (mono_comp_mixin C).
 Proof.
-  intro. constructor.
+  constructor.
 
   intros. apply cat_ident1.
   intros. apply cat_ident2.
@@ -389,7 +389,6 @@ Program Definition epi_compose
   (C:category) (X Y Z:C) (g:Y ↠ Z) (f:X ↠ Y) :=
   Epimorphism C X Z (epi_hom g ∘ epi_hom f) _.
 Next Obligation.
-  intros.
   rewrite (cat_assoc C) in H.
   rewrite (cat_assoc C) in H.
   apply epi_axiom in H.
@@ -404,7 +403,7 @@ Program Definition epi_cat_axioms (C:category) :
   Category.axioms (ob C) (epimorphism C)
      (epi_eq C) (epi_comp_mixin C).
 Proof.
-  intro. constructor.
+  constructor.
 
   intros. apply cat_ident1.
   intros. apply cat_ident2.
@@ -509,7 +508,7 @@ Program Definition iso_cat_axioms (C:category) :
   Category.axioms (ob C) (isomorphism C)
      (iso_eq C) (iso_comp_mixin C).
 Proof.
-  intros. constructor.
+  constructor.
 
   intros; simpl. apply cat_ident1.
   intros; simpl. apply cat_ident2.
@@ -2142,7 +2141,7 @@ Program Definition ONE : category :=
       (fun A B => Eq.Mixin _ (fun x y => True) _ _ _)
       (Comp.Mixin _ _ (fun _ => tt) (fun _ _ _ _ _ => tt))
       _.
-Solve Obligations of ONE using auto.
+Solve Obligations of ONE with auto.
 Next Obligation.
   constructor.
   intros. hnf. auto.

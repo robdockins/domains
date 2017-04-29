@@ -612,7 +612,7 @@ Section directed_joinables.
     split; intros.    
     unfold XS in H.
     apply finsubset_elem in H; auto.
-    intros. rewrite <- H0. auto.
+    intros. rewrite <- H1. auto.
     unfold XS.
     apply finsubset_elem; auto.
     intros. rewrite <- H0. auto.
@@ -752,9 +752,9 @@ Section joinable_plt.
     rewrite <- H2 in H1. auto.
     intros.
     destruct x0; destruct y0.
-    eapply HR. 3: apply H4.
-    destruct H3 as [[??][??]]; auto.
-    destruct H3 as [[??][??]]; auto.
+    eapply HR. 3: apply H5.
+    destruct H4 as [[??][??]]; auto.
+    destruct H4 as [[??][??]]; auto.
 
     destruct (HRdir x (image π₂ G)).
     apply inh_image; auto.
@@ -774,8 +774,8 @@ Section joinable_plt.
     intros. 
     destruct x0; destruct y.
     apply HR with c c0; auto.
-    destruct H4 as [[??][??]]; auto.
-    destruct H4 as [[??][??]]; auto.
+    destruct H5 as [[??][??]]; auto.
+    destruct H5 as [[??][??]]; auto.
     destruct H2.
     destruct (mub_complete HBplt (image π₂ G) x0) as [y [??]]; auto.
     apply inh_image; auto.
@@ -803,8 +803,8 @@ Section joinable_plt.
     intros.
     destruct x1; destruct y0.
     apply HR with c c0; auto.
-    destruct H8 as [[??][??]]; auto.
-    destruct H8 as [[??][??]]; auto.
+    destruct H9 as [[??][??]]; auto.
+    destruct H9 as [[??][??]]; auto.
     apply HR with x x0; auto.
     destruct H4; auto.
   Qed.
@@ -892,7 +892,7 @@ Section joinable_plt.
     rewrite H1; auto.
     intros.
     transitivity (fst x1); auto.
-    destruct H2 as [[??][??]]; auto.
+    destruct H3 as [[??][??]]; auto.
     destruct H0.
     assert (is_joinable_relation hf (proj1_sig R)). apply proj2_sig.
     destruct H2 as [_ ?].
@@ -903,7 +903,7 @@ Section joinable_plt.
     destruct H3; auto.
     intros.
     transitivity (fst x0); auto.
-    destruct H4 as [[??][??]]; auto.
+    destruct H5 as [[??][??]]; auto.
     destruct H3.
     exists x0. split.
     exists x. exists x0.
@@ -1161,7 +1161,7 @@ Section joinable_plt.
       generalize (H2 (p,q) H3); intros.
       apply finprod_elem in H4.
       destruct H4; split; auto.
-      intros. rewrite <- H1; auto.
+      intros. rewrite <- H2; auto.
 
       exists (exist _ R H0).
       split.

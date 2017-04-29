@@ -275,7 +275,7 @@ Proof.
   split.
   repeat intro. apply H in H0.
   apply finsubset_elem in H0. destruct H0; auto.
-  intros. rewrite <- H1. auto.
+  intros. rewrite <- H2. auto.
   apply finsubset_elem. 
   intros. rewrite <- H0. auto.
   split; auto.
@@ -287,7 +287,7 @@ Proof.
   split; auto.
   red. simpl. red in H1. simpl in H1.
   apply Qeq_sym. auto.
-  intros. rewrite <- H1; auto.
+  intros. rewrite <- H2; auto.
 Qed.
 
 Definition Q_plotkin : plotkin_order true Qpreord
@@ -993,5 +993,3 @@ Require Import cont_profinite.
 
 Definition RealDom : c∂PLT :=
   cPLT.Ob true PreRealDom canon canon_idem.
-
-

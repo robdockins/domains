@@ -33,7 +33,7 @@ Definition forgetEMBED_map (A B:ob PLT) (f:A ⇀ B) : forgetPLT_ob A ⇀ forgetP
 
 Program Definition forgetEMBED : functor (EMBED false) (EMBED true) :=
   Functor (EMBED false) (EMBED true) forgetPLT_ob forgetEMBED_map _ _ _.
-Solve Obligations of forgetEMBED using auto.
+Solve Obligations of forgetEMBED with auto.
 
 Program Definition liftEMBED_map (A B:ob ∂PLT) (f:A ⇀ B) : liftPPLT_ob A ⇀ liftPPLT_ob B :=
   Embedding false (liftPPLT_ob A) (liftPPLT_ob B)
@@ -106,4 +106,3 @@ Proof.
   destruct (directed.choose_ub_set I nil) as [i0 ?].
   exists i0. exists None. auto.
 Qed.
-

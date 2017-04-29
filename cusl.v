@@ -67,7 +67,7 @@ Fixpoint calc_lubs A (C:cusl A) (l:list (finset A)) : finset A :=
       match inh_dec A true x with
       | left Hx => 
         match cusl_finset A C x Hx with
-        | inleft (exist z Hz) => z::nil
+        | inleft (exist _ z Hz) => z::nil
         | inright _ => nil
         end
       | right Hx => nil
@@ -218,8 +218,8 @@ Proof.
   constructor. apply (eff_ord_dec A Heff).
   constructor. apply (eff_ord_dec A Heff).
   apply H5; auto.    
-  intros. destruct H1. transitivity x0; auto.
-  intros. destruct H1. transitivity x0; auto.
+  intros. destruct H2. transitivity x0; auto.
+  intros. destruct H2. transitivity x0; auto.
 Qed.
 
 

@@ -66,7 +66,7 @@ Section finset.
     destruct H1; subst.
     destruct H2 as [a' [??]].
     destruct H3.
-    destruct (H3 a') as [a'' [??]]; eauto.
+    destruct (H3 a') as [a'' [??]]; simpl; eauto.
     exists a''. split; auto.
     apply in_or_app. auto.
     eauto.
@@ -492,14 +492,14 @@ Lemma fin_intersect_elem : forall A Hdec X Y x,
 Proof.
   intros.
   split; intros.
-  unfold fin_intersect in H.
-  apply finsubset_elem in H.
-  destruct H; split; auto.
-  intros. rewrite <- H0; auto.
-  unfold fin_intersect.
-  apply finsubset_elem.
-  intros. rewrite <- H0; auto.
-  destruct H; split; auto.
+  - unfold fin_intersect in H.
+    apply finsubset_elem in H.
+    destruct H; split; simpl; auto.
+    intros. rewrite <- H1; auto.
+  - unfold fin_intersect.
+    apply finsubset_elem.
+    intros. rewrite <- H0; auto.
+    destruct H; split; auto.
 Qed.
 
 Definition fin_list_intersect 

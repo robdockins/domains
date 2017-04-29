@@ -303,7 +303,7 @@ Inductive inert : forall σ₁ σ₂, term (σ₁ ⇒ σ₂) -> Prop :=
 
 Fixpoint tmsize τ (x:term τ) : nat :=
   match x with
-  | tapp σ₁ σ₂ a b => (1 + tmsize _ a + tmsize _ b)%nat
+  | tapp a b => (1 + tmsize _ a + tmsize _ b)%nat
   | _ => 1%nat
   end.
 
@@ -507,7 +507,7 @@ Notation "'Λ' f" := (strict_curry' f) : ski_scope.
 Fixpoint denote (τ:ty) (m:term τ) : 1 → U (tydom τ) :=
   match m in term τ return 1 → U (tydom τ) with
   | tbool b => flat_elem' b
-  | tapp σ₁ σ₂ m₁ m₂ => strict_app' ∘ 〈〚m₁〛,〚m₂〛〉
+  | tapp m₁ m₂ => strict_app' ∘ 〈〚m₁〛,〚m₂〛〉
   | tI σ => Λ(π₂)
   | tK σ₁ σ₂ => Λ(Λ(π₂ ∘ π₁))
   | tS σ₁ σ₂ σ₃ => Λ(Λ(Λ(
@@ -947,7 +947,7 @@ Proof.
   destruct (proj2_sig XS (x::x0::nil)). hnf; auto.
   hnf; intros. apply cons_elem in H4.
   destruct H4. rewrite H4. auto.
-  apply cons_elem in H4.
+  rewrite (cons_elem _ x0 nil a) in H4.
   destruct H4. rewrite H4. auto.
   apply nil_elem in H4. elim H4.
   destruct H4.
@@ -988,7 +988,7 @@ Proof.
   destruct (PLT.hom_directed _ _ _ x1 tt ((Some c0::Some b::nil))).
   hnf; auto.
   red; intros.
-  apply cons_elem in H10. destruct H10. rewrite H10.
+  rewrite (cons_elem _ _ _ a) in H10. destruct H10. rewrite H10.
   apply erel_image_elem. auto.
   apply cons_elem in H10. destruct H10. rewrite H10.
   apply erel_image_elem. auto.
@@ -1005,7 +1005,7 @@ Proof.
   rewrite <- H3. rewrite <- H6.
   apply H4.
   apply cons_elem. right.
-  apply cons_elem. auto.
+  apply (cons_elem _ x0). auto.
   apply CPO.sup_is_ub. rewrite <- H3. auto.
 
   simpl; intros.
@@ -1080,7 +1080,7 @@ Proof.
   intros.
   apply semvalue_app_out1' in H2.
   destruct (H2 tt) as [q ?].
-  apply (PLT.compose_hom_rel _ _ _ _ hf ⊥ tt (Some q)) in H3.
+  apply (PLT.compose_hom_rel _ _ _ _ hf ⊥ tt (Some q : (colift _))) in H3.
   destruct H3 as [?[??]].  
   elimtype False. revert H4.
   clear. simpl bottom.
@@ -1565,9 +1565,9 @@ Inductive context τ : ty -> Type :=
 
 Fixpoint plug τ σ (C:context τ σ) : term σ -> term τ :=
   match C in context _ σ return term σ -> term τ with
-  | cxt_top => fun x => x
-  | cxt_appl σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp x t)
-  | cxt_appr σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp t x)
+  | cxt_top _ => fun x => x
+  | cxt_appl _ σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp x t)
+  | cxt_appr _ σ₁ σ₂ t C' => fun x => plug τ _ C' (tapp t x)
   end.
 
 Definition cxt_eq τ σ (m n:term σ):=

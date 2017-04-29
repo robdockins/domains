@@ -343,15 +343,15 @@ Section exp_functor.
 
   Definition exp_fmap_func (X:joinable_relation hf A C) : joinable_relation hf B D :=
     match X with
-    | exist G H => exist (is_joinable_relation hf) 
-                         (map_rel f g G)
-                         (is_joinable_map_rel G H)
+    | exist _ G H => exist (is_joinable_relation hf) 
+                          (map_rel f g G)
+                          (is_joinable_map_rel G H)
     end.
 
 
-  Program Definition unimage_jrel (y:finset (B×D)%cat_ob) :=
+  Program Definition unimage_jrel (y:finset (prod_preord B D)%preord) :=
     esubset
-      (fun ac =>
+      (fun ac:(prod_preord A C) =>
         exists b d, (b,d) ∈ y /\ b ≤ f (fst ac) /\ g (snd ac) ≤ d)
       _
       (eprod (eff_enum A (PLT.effective A)) (eff_enum C (PLT.effective C))).
@@ -414,13 +414,13 @@ Section exp_functor.
     apply embed_mono; auto.
     transitivity (g y0); auto.
     apply embed_mono; auto.
-    intros. destruct H3 as [?[?[?[??]]]].
+    intros. destruct H4 as [?[?[?[??]]]].
     exists x0. exists x1. intuition.
-    rewrite H4. apply embed_mono.
-    destruct H2 as [[??][??]]; auto.
-    rewrite <- H5.
+    rewrite H5. apply embed_mono.
+    destruct H3 as [[??][??]]; auto.
+    rewrite <- H6.
     apply embed_mono.
-    destruct H2 as [[??][??]]; auto.
+    destruct H3 as [[??][??]]; auto.
   Qed.    
 
   Lemma unimage_jrel_directed (y:joinable_relation hf B D) :
@@ -518,21 +518,21 @@ Section exp_functor.
     apply eprod_elem; split; apply eff_complete.
     exists m. exists n. split; simpl; auto.
 
-    intros. destruct H2 as [?[?[?[??]]]].
+    intros. destruct H3 as [?[?[?[??]]]].
     exists x0. exists x1. intuition.
-    rewrite H3. apply embed_mono.
-    destruct H1 as [[??][??]]; auto.
-    rewrite <- H4.
+    rewrite H4. apply embed_mono.
+    destruct H2 as [[??][??]]; auto.
+    rewrite <- H5.
     apply embed_mono.
-    destruct H1 as [[??][??]]; auto.
+    destruct H2 as [[??][??]]; auto.
 
-    intros. destruct H2 as [?[?[?[??]]]].
+    intros. destruct H3 as [?[?[?[??]]]].
     exists x0. exists x1. intuition.
-    rewrite H3. apply embed_mono.
-    destruct H1 as [[??][??]]; auto.
-    rewrite <- H4.
+    rewrite H4. apply embed_mono.
+    destruct H2 as [[??][??]]; auto.
+    rewrite <- H5.
     apply embed_mono.
-    destruct H1 as [[??][??]]; auto.
+    destruct H2 as [[??][??]]; auto.
   Qed.
 
 
@@ -609,13 +609,13 @@ Section exp_functor.
     rewrite <- H5. auto.
     rewrite <- H6. auto.
 
-    intros. destruct H8 as [?[?[?[??]]]].
+    intros. destruct H9 as [?[?[?[??]]]].
     exists x0. exists x1. intuition.
-    rewrite H9. apply embed_mono.
-    destruct H7 as [[??][??]]; auto.
-    rewrite <- H10.
+    rewrite H10. apply embed_mono.
+    destruct H8 as [[??][??]]; auto.
+    rewrite <- H11.
     apply embed_mono.
-    destruct H7 as [[??][??]]; auto.
+    destruct H8 as [[??][??]]; auto.
   Qed.
   Next Obligation.
     intros.
@@ -685,13 +685,13 @@ Section exp_functor.
     rewrite H9; auto.  
     rewrite <- H10; auto.
 
-    intros. destruct H9 as [?[?[?[??]]]].
+    intros. destruct H10 as [?[?[?[??]]]].
     exists x. exists x0. intuition.
-    rewrite H10. apply embed_mono.
-    destruct H8 as [[??][??]]; auto.
-    rewrite <- H11.
+    rewrite H11. apply embed_mono.
+    destruct H9 as [[??][??]]; auto.
+    rewrite <- H12.
     apply embed_mono.
-    destruct H8 as [[??][??]]; auto.
+    destruct H9 as [[??][??]]; auto.
 
     split; hnf; simpl; intros.
     assert ((a0,b0) ∈ X) .
@@ -751,8 +751,8 @@ Proof.
   apply map_rel_in. auto.
   rewrite <- H. rewrite <- H0.
   split; simpl; auto.
-  rewrite <- H2. rewrite <- H4. auto.
-  rewrite <- H3. rewrite <- H5. auto.
+  rewrite <- H2. apply embed_map_morphism; auto.
+  rewrite <- H3. apply embed_map_morphism; auto.
   
   apply unmap_rel in H1.
   destruct H1 as [p [q [?[??]]]].

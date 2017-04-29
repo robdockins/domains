@@ -68,7 +68,7 @@ Section PLT.
 
   Program Definition hom_ord_mixin (A B:ob) : Preord.mixin_of (hom A B) :=
     Preord.Mixin (hom A B) (fun f g => hom_rel f ≤ hom_rel g) _ _.
-  Solve Obligations of hom_ord_mixin using (intros; eauto).
+  Solve Obligations of hom_ord_mixin with (simpl; intros; eauto).
   
   Canonical Structure hom_ord (A B:ob) := Preord.Pack (hom A B) (hom_ord_mixin A B).
 
@@ -681,7 +681,7 @@ Section PLT.
     Next Obligation. simpl. auto. Qed.
 
     Program Definition homset_sup (M:cl_eset (directed_hf_cl hf) (hom_ord A B)) 
-      : hom A B := Hom A B (∪(image hom_rel' M)) _ _.
+      : hom A B := Hom A B (∪ (image hom_rel' M : eset (eset (ord A×ord B)))) _ _.
     Next Obligation.
       intros. apply union_axiom in H1. apply union_axiom.
       destruct H1 as [X [??]].
@@ -1093,7 +1093,7 @@ Section plt_const.
     repeat intro. unfold plt_const_rel. split; intro.
     apply eprod_elem in H. destruct H.
     apply esubset_dec_elem in H0. destruct H0; auto.
-    intros. rewrite <- H1; auto.
+    intros. rewrite <- H2; auto.
     apply eprod_elem. split.
     apply eff_complete.
     apply esubset_dec_elem.
@@ -1269,4 +1269,3 @@ Proof.
   simpl in H4. apply ident_elem in H4.
   exists c0; auto.
 Qed.
-

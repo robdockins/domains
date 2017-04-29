@@ -1,6 +1,8 @@
 (* Copyright (c) 2014, Robert Dockins *)
 
 Require Import Setoid.
+Require Import Morphisms.
+
 Require Import Coq.Program.Basics.
 
 Require Import basics.
@@ -267,7 +269,7 @@ Canonical Structure PREORD_concrete.
   *)
 Lemma preord_eq : forall (X Y:preord) (f:X → Y) (x y:X), x ≈ y -> f x ≈ f y.
 Proof.
-  intros. rewrite H. auto.
+  intros. apply preord_map_eq_morphism; auto.
 Qed.
 
 Lemma preord_ord : forall (X Y:preord) (f:X → Y) (x y:X), x ≤ y -> f x ≤ f y.
