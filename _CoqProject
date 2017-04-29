@@ -1,4 +1,4 @@
-# coq_makefile -f Make -o Makefile
+-R . Domains
 
 notations.v
 pairing.v
