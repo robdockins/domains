@@ -23,7 +23,7 @@ Lemma continuous_sequence CL (A B C:preord)
 Proof.
   repeat intro. 
   cut (least_upper_bound (g (f lub)) (image g (image f XS))).
-  rewrite image_compose. auto.
+  { rewrite image_compose. auto. }
   apply H. apply H0. auto.
 Qed.
 
@@ -31,11 +31,10 @@ Lemma continuous_equiv CL (A B:preord) (f f':A → B) :
   f ≈ f' -> continuous CL f -> continuous CL f'.
 Proof.
   unfold continuous. intros.
-  eapply least_upper_bound_morphism.
-  3: apply H0.
-  apply H. apply image_morphism.
-  split; intro x; destruct (H x); auto.
-  reflexivity. auto.
+  eapply least_upper_bound_morphism; [ | | apply H0; eauto ].
+  - apply H.
+  - apply image_morphism; [ | reflexivity ].
+    split; intro x; destruct (H x); auto.
 Qed.
 
 Lemma continuous_pair CL (C A B:preord) (f:C → A) (g:C → B) :
@@ -44,26 +43,27 @@ Proof.
   repeat intro. simpl.
   destruct (H lub XS); auto.
   destruct (H0 lub XS); auto.
-  split. red; intros.
-  apply image_axiom2 in H6. destruct H6 as [c [??]].
-  simpl in H7. rewrite H7. split; simpl.
-  apply Preord.axiom. apply H1. auto.
-  apply Preord.axiom. apply H1. auto.
-  intros. destruct b. split; simpl.
-  apply H3. red; intros.
-  apply image_axiom2 in H7. destruct H7 as [q [??]].
-  rewrite H8.
-  cut ((f q, g q) ≤ (c,c0)).
-  intros [??]; auto.
-  apply H6.
-  apply image_axiom1'. exists q. split; auto.
-  apply H5. red; intros.
-  apply image_axiom2 in H7. destruct H7 as [q [??]].
-  rewrite H8.
-  cut ((f q, g q) ≤ (c,c0)).
-  intros [??]; auto.
-  apply H6.
-  apply image_axiom1'. exists q. split; auto.
+  split.
+  - red; intros.
+    apply image_axiom2 in H6. destruct H6 as [c [??]].
+    simpl in H7. rewrite H7. split; simpl.
+    + apply Preord.axiom. apply H1. auto.
+    + apply Preord.axiom. apply H1. auto.
+  - intros. destruct b. split; simpl.
+    + apply H3. red; intros.
+      apply image_axiom2 in H7. destruct H7 as [q [??]].
+      rewrite H8.
+      cut ((f q, g q) ≤ (c,c0)).
+      { intros [??]; auto. }
+      apply H6.
+      apply image_axiom1'. exists q. split; auto.
+    + apply H5. red; intros.
+      apply image_axiom2 in H7. destruct H7 as [q [??]].
+      rewrite H8.
+      cut ((f q, g q) ≤ (c,c0)).
+      { intros [??]; auto. }
+      apply H6.
+      apply image_axiom1'. exists q. split; auto.
 Qed.
 
 Lemma continuous_pi1 CL (A B:preord) :
@@ -71,19 +71,20 @@ Lemma continuous_pi1 CL (A B:preord) :
 Proof.
   repeat intro.
   split; repeat intro.
-  apply image_axiom2 in H0. destruct H0 as [q [??]].
-  rewrite H1.
-  cut (q ≤ lub).
-  intros [??]; auto.  
-  apply H. auto.
-  destruct H.
-  destruct (H1 (b,snd lub)); auto.
-  red; intros.
-  split; simpl.
-  apply H0.  
-  apply image_axiom1'. exists x; auto.
-  cut (x ≤ lub). intros [??]; auto.
-  apply H; auto.
+  - apply image_axiom2 in H0. destruct H0 as [q [??]].
+    rewrite H1.
+    cut (q ≤ lub).
+    { intros [??]; auto. }
+    apply H. auto.
+  - destruct H.
+    destruct (H1 (b,snd lub)); auto.
+    red; intros.
+    split; simpl.
+    + apply H0.  
+      apply image_axiom1'. exists x; auto.
+    + cut (x ≤ lub).
+      { intros [??]; auto. }
+      apply H; auto.
 Qed.
 
 Lemma continuous_pi2 CL (A B:preord) :
@@ -91,19 +92,20 @@ Lemma continuous_pi2 CL (A B:preord) :
 Proof.
   repeat intro.
   split; repeat intro.
-  apply image_axiom2 in H0. destruct H0 as [q [??]].
-  rewrite H1.
-  cut (q ≤ lub).
-  intros [??]; auto.  
-  apply H. auto.
-  destruct H.
-  destruct (H1 (fst lub,b)); auto.
-  red; intros.
-  split; simpl.
-  cut (x ≤ lub). intros [??]; auto.
-  apply H; auto.
-  apply H0.  
-  apply image_axiom1'. exists x; auto.
+  - apply image_axiom2 in H0. destruct H0 as [q [??]].
+    rewrite H1.
+    cut (q ≤ lub).
+    { intros [??]; auto. }
+    apply H. auto.
+  - destruct H.
+    destruct (H1 (fst lub,b)); auto.
+    red; intros.
+    split; simpl.
+    + cut (x ≤ lub).
+      { intros [??]; auto. }
+      apply H; auto.
+    + apply H0.  
+      apply image_axiom1'. exists x; auto.
 Qed.
 
 
@@ -162,19 +164,19 @@ Module CPO.
     forall (XS:cl_eset CL (ord A)), f (sup_op XS) ≤ sup_op (image f XS).
   Proof.
     intros. split; intros.
-    destruct (H (∐XS) XS (sup_is_lub CL A XS)).
-    apply H1. red; intros. apply sup_is_ub; auto.
+    - destruct (H (∐XS) XS (sup_is_lub CL A XS)).
+      apply H1. red; intros. apply sup_is_ub; auto.
 
-    red; intros; split; repeat intro.
-    apply image_axiom2 in H1.
-    destruct H1 as [y [??]]. rewrite H2.
-    apply Preord.axiom.
-    apply H0. auto.
-    transitivity (f (∐XS)).
-    apply Preord.axiom.
-    apply H0. apply sup_is_ub.
-    transitivity (∐(image f XS)). apply H.
-    apply sup_is_least. auto.
+    - red; intros; split; repeat intro.
+      + apply image_axiom2 in H1.
+        destruct H1 as [y [??]]. rewrite H2.
+        apply Preord.axiom.
+        apply H0. auto.
+      + transitivity (f (∐XS)).
+        * apply Preord.axiom.
+          apply H0. apply sup_is_ub.
+        * transitivity (∐(image f XS)); [ apply H |].
+          apply sup_is_least. auto.
   Qed.    
 
   Lemma continuous_sup' : forall CL (A B:type CL) (f:ord A → ord B),
@@ -182,11 +184,11 @@ Module CPO.
     forall (XS:cl_eset CL (ord A)), f (sup_op XS) ≈ sup_op (image f XS).
   Proof.
     intros. rewrite continuous_sup.
-    split; intros. split. apply H.
+    split; intros; [ | apply H ].
+    split; [ apply H |].
     apply sup_is_least. red; intros.
     apply image_axiom2 in H0. destruct H0 as [y [??]].
     rewrite H1. apply Preord.axiom. apply sup_is_ub. auto.
-    apply H.
   Qed.
 
   Record hom CL (A B:type CL) :=
@@ -223,11 +225,11 @@ Module CPO.
     repeat intro.
     simpl.
     destruct H; split; repeat intro.
-    apply image_axiom2 in H1. destruct H1 as [?[??]].
-    simpl in H2. rewrite H2; apply H; auto.
-    apply H0. red; intros.
-    apply H1.
-    apply image_axiom1'. exists x. split; auto.
+    - apply image_axiom2 in H1. destruct H1 as [?[??]].
+      simpl in H2. rewrite H2; apply H; auto.
+    - apply H0. red; intros.
+      apply H1.
+      apply image_axiom1'. exists x. split; auto.
   Qed.
 
 
@@ -236,23 +238,24 @@ Module CPO.
   Next Obligation.
     repeat intro. 
     cut (least_upper_bound (g (f lub)) (image g (image f XS))).
-    intros [??]; split; repeat intro.
-    apply H0. apply image_axiom2 in H2.
-    destruct H2 as [q [??]]. simpl in H3.
-    rewrite H3.
-    apply image_axiom1'. exists (f q); split; auto.
-    apply image_axiom1'. exists q; split; auto.
-    apply H1. repeat intro.
-    apply H2.
-    apply image_axiom2 in H3.
-    destruct H3 as [y [??]].
-    apply image_axiom2 in H3.
-    destruct H3 as [y' [??]].
-    apply image_axiom1'. exists y'.
-    split; auto.
-    simpl.
-    rewrite H4.
-    rewrite H5. auto.
+    { intros [??]; split; repeat intro.
+      apply H0. apply image_axiom2 in H2.
+      destruct H2 as [q [??]]. simpl in H3.
+      rewrite H3.
+      apply image_axiom1'. exists (f q); split; auto.
+      apply image_axiom1'. exists q; split; auto.
+      apply H1. repeat intro.
+      apply H2.
+      apply image_axiom2 in H3.
+      destruct H3 as [y [??]].
+      apply image_axiom2 in H3.
+      destruct H3 as [y' [??]].
+      apply image_axiom1'.
+      exists y'. split; auto.
+      simpl.
+      rewrite H4.
+      rewrite H5. auto.
+    } 
     apply (cont g). apply (cont f). auto.
   Qed.
 
@@ -293,40 +296,39 @@ Module CPO.
     destruct H0 as [y [??]].
     rewrite H1.
     transitivity (app_to CL X Y b y).
-    simpl. apply mono. auto.
-    apply sup_is_ub.
-    apply image_axiom1. auto.
+    - simpl. apply mono. auto.
+    - apply sup_is_ub. apply image_axiom1. auto.
   Qed.
   Next Obligation.
     repeat intro.
     split; repeat intro.
-    apply image_axiom2 in H0. destruct H0 as [y [??]].
-    simpl in H1.
-    rewrite H1.
-    apply sup_is_least. red; intros.
-    apply image_axiom2 in H2.
-    destruct H2 as [y' [??]]. simpl in H3. simpl.
-    rewrite H3.
-    transitivity (y' lub).
-    apply mono. apply H. auto.
-    apply sup_is_ub.
-    apply image_axiom1'.
-    simpl. exists y'. split; auto.
+    - apply image_axiom2 in H0. destruct H0 as [y [??]].
+      simpl in H1.
+      rewrite H1.
+      apply sup_is_least. red; intros.
+      apply image_axiom2 in H2.
+      destruct H2 as [y' [??]]. simpl in H3. simpl.
+      rewrite H3.
+      transitivity (y' lub).
+      + apply mono. apply H. auto.
+      + apply sup_is_ub.
+        apply image_axiom1'.
+        simpl. exists y'. split; auto.
 
-    simpl. apply sup_is_least.
-    repeat intro.
-    apply image_axiom2 in H1. destruct H1 as [y [??]].
-    simpl in H2. rewrite H2.
-    destruct (cont y lub XS); auto.
-    apply H4.
-    hnf; intros.
-    apply image_axiom2 in H5. destruct H5 as [q [??]].
-    simpl in H6. rewrite H6.
-    transitivity (sup_op (image (app_to CL X Y q) FS)).
-    apply sup_is_ub. simpl.
-    apply image_axiom1'. simpl. exists y. split; auto.
-    apply H0.
-    apply image_axiom1'. simpl. exists q. split; auto.
+    - simpl. apply sup_is_least.
+      repeat intro.
+      apply image_axiom2 in H1. destruct H1 as [y [??]].
+      simpl in H2. rewrite H2.
+      destruct (cont y lub XS); auto.
+      apply H4.
+      hnf; intros.
+      apply image_axiom2 in H5. destruct H5 as [q [??]].
+      simpl in H6. rewrite H6.
+      transitivity (sup_op (image (app_to CL X Y q) FS)).
+      + apply sup_is_ub. simpl.
+        apply image_axiom1'. simpl. exists y. split; auto.
+      + apply H0.
+        apply image_axiom1'. simpl. exists q. split; auto.
   Qed.    
 
   Program Definition hom_mixin CL X Y :=
@@ -361,30 +363,32 @@ Module CPO.
   Proof.
     constructor.
     
-    repeat intro. split. red; simpl; intros. red; simpl; intros. apply ord_refl.
-    repeat intro. red; simpl; intros. apply ord_refl.
+    - repeat intro. split.
+      + red; simpl; intros. red; simpl; intros. apply ord_refl.
+      + repeat intro. red; simpl; intros. apply ord_refl.
 
-    repeat intro. split. red; simpl; intros. red; simpl; intros. apply ord_refl.
-    repeat intro. red; simpl; intros. apply ord_refl.
+    - repeat intro. split.
+      + red; simpl; intros. red; simpl; intros. apply ord_refl.
+      + repeat intro. red; simpl; intros. apply ord_refl.
 
-    repeat intro. split. 
-    red; simpl; intros. red; simpl; intros. apply ord_refl.
-    red; simpl; intros. red; simpl; intros. apply ord_refl.
+    - repeat intro. split. 
+      + red; simpl; intros. red; simpl; intros. apply ord_refl.
+      + red; simpl; intros. red; simpl; intros. apply ord_refl.
     
-    repeat intro. split.
-    red; simpl; intros. red; simpl; intros.
-    apply ord_trans with (app f (app g' x)).
-    unfold app.
-    apply mono.
-    destruct H0. apply H0.
-    destruct H. apply H.
-    red; simpl; intros.
-    red; simpl; intros.
-    apply ord_trans with (app f (app g' x)).
-    destruct H. apply H1.
-    unfold app; simpl.
-    apply mono.
-    destruct H0. apply H1.
+    - repeat intro. split.
+      + red; simpl; intros. red; simpl; intros.
+        apply ord_trans with (app f (app g' x)).
+        * unfold app.
+          apply mono.
+          destruct H0. apply H0.
+        * destruct H. apply H.
+      + red; simpl; intros.
+        red; simpl; intros.
+        apply ord_trans with (app f (app g' x)).
+        * destruct H. apply H1.
+        * unfold app; simpl.
+          apply mono.
+          destruct H0. apply H1.
   Qed.
 
   Canonical Structure CPO CL := Category (type CL) (hom CL) _ _ (cat_axioms CL).
@@ -393,23 +397,21 @@ Module CPO.
     forall X, f (∐X) ≈ ∐(image f X).
   Proof.
     intros. apply ord_antisym.
-    destruct (cont f (sup_op X) X).
-    split. apply sup_is_ub.
-    apply sup_is_least.
-    apply H0; auto.
-    repeat intro.
-    apply image_axiom2 in H1. destruct H1 as [q [??]].
-    simpl in H2. rewrite H2.
-    apply sup_is_ub. apply image_axiom1'. exists q; split; auto.
+    - destruct (cont f (sup_op X) X).
+      + split; [ apply sup_is_ub | apply sup_is_least ].
+      + apply H0; auto.
+        repeat intro.
+        apply image_axiom2 in H1. destruct H1 as [q [??]].
+        simpl in H2. rewrite H2.
+        apply sup_is_ub. apply image_axiom1'. exists q; split; auto.
 
-    apply sup_is_least.
-    red. intros.
-    apply image_axiom2 in H.
-    destruct H as [y [??]].
-    transitivity (f y).
-    destruct H0; auto.
-    apply mono.
-    apply sup_is_ub; auto.
+    - apply sup_is_least.
+      red. intros.
+      apply image_axiom2 in H.
+      destruct H as [y [??]].
+      transitivity (f y).
+      + destruct H0; auto.
+      + apply mono. apply sup_is_ub; auto.
   Qed.
 
   Section prod.  
@@ -424,25 +426,27 @@ Module CPO.
     Next Obligation.
       repeat intro. destruct x as [a b].
       unfold prod_sup. split; simpl.
-      apply sup_is_ub. apply image_axiom1'.
-      exists (a,b); auto.
-      apply sup_is_ub. apply image_axiom1'.
-      exists (a,b); auto.
+      - apply sup_is_ub. apply image_axiom1'.
+        exists (a,b); auto.
+      - apply sup_is_ub. apply image_axiom1'.
+        exists (a,b); auto.
     Qed.
     Next Obligation.
       repeat intro. destruct ub as [ua ub].
       unfold prod_sup; split; simpl;
         apply sup_is_least; repeat intro.
-      apply image_axiom2 in H0.
-      destruct H0 as [y [??]].
-      rewrite H1.
-      assert (y ≤ (ua,ub)).
-      apply H; auto. destruct H2; auto.
-      apply image_axiom2 in H0.
-      destruct H0 as [y [??]].
-      rewrite H1.
-      assert (y ≤ (ua,ub)).
-      apply H; auto. destruct H2; auto.
+      - apply image_axiom2 in H0.
+        destruct H0 as [y [??]].
+        rewrite H1.
+        assert (y ≤ (ua,ub)).
+        { apply H; auto. }
+        destruct H2; auto.
+      - apply image_axiom2 in H0.
+        destruct H0 as [y [??]].
+        rewrite H1.
+        assert (y ≤ (ua,ub)).
+        { apply H; auto. }
+        destruct H2; auto.
     Qed.     
 
     Definition prod_cpo :=
@@ -457,19 +461,19 @@ Module CPO.
       simpl; intros.
       red; intros.
       split; simpl; repeat intro.
-      apply image_axiom2 in H0. destruct H0 as [q [??]].
-      simpl in H1. rewrite H1.
-      destruct H. apply H in H0.
-      destruct H0; auto.
+      - apply image_axiom2 in H0. destruct H0 as [q [??]].
+        simpl in H1. rewrite H1.
+        destruct H. apply H in H0.
+        destruct H0; auto.
 
-      destruct H.
-      destruct (H1 (b,snd lub)).
-      hnf; intros.
-      split; simpl; auto.
-      apply H0.
-      apply image_axiom1'. simpl. exists x. split; auto.
-      apply H in H2. destruct H2; auto.
-      simpl in *. auto.
+      - destruct H.
+        destruct (H1 (b,snd lub)).
+        + hnf; intros.
+          split; simpl; auto.
+          * apply H0.
+            apply image_axiom1'. simpl. exists x. split; auto.
+          * apply H in H2. destruct H2; auto.
+        + simpl in *. auto.
     Qed.    
     
     Program Definition pi2 : prod_cpo → B :=
@@ -481,19 +485,19 @@ Module CPO.
       simpl; intros.
       red; intros.
       split; simpl; repeat intro.
-      apply image_axiom2 in H0. destruct H0 as [q [??]].
-      simpl in H1. rewrite H1.
-      destruct H. apply H in H0.
-      destruct H0; auto.
+      - apply image_axiom2 in H0. destruct H0 as [q [??]].
+        simpl in H1. rewrite H1.
+        destruct H. apply H in H0.
+        destruct H0; auto.
 
-      destruct H.
-      destruct (H1 (fst lub, b)).
-      hnf; intros.
-      split; simpl; auto.
-      apply H in H2. destruct H2; auto.
-      apply H0.
-      apply image_axiom1'. simpl. exists x. split; auto.
-      simpl in *. auto.
+      - destruct H.
+        destruct (H1 (fst lub, b)).
+        + hnf; intros.
+          split; simpl; auto.
+          * apply H in H2. destruct H2; auto.
+          * apply H0.
+            apply image_axiom1'. simpl. exists x. split; auto.
+        + simpl in *. auto.
     Qed.    
   End prod.
 
@@ -505,24 +509,26 @@ Module CPO.
   Next Obligation.
     repeat intro. 
     split; hnf; intros.
-    apply image_axiom2 in H0. destruct H0 as [y [??]]. simpl in *.
-    rewrite H1.
-    apply H in H0.
-    split; simpl. apply (mono f); auto. apply (mono g); auto.
-    simpl.
-    split; simpl.
-    destruct (cont f lub XS); auto.
-    apply H2. hnf; intros.
-    apply image_axiom2 in H3. destruct H3 as [q [??]]. 
-    destruct (H0 (f q, g q)).
-    apply image_axiom1'. simpl. exists q; split; auto.
-    simpl in H5. simpl in H4. rewrite H4; auto.
-    destruct (cont g lub XS); auto.
-    apply H2. hnf; intros.
-    apply image_axiom2 in H3. destruct H3 as [q [??]]. 
-    destruct (H0 (f q, g q)).
-    apply image_axiom1'. simpl. exists q; split; auto.
-    simpl in H6. simpl in H4. rewrite H4; auto.
+    - apply image_axiom2 in H0. destruct H0 as [y [??]]. simpl in *.
+      rewrite H1.
+      apply H in H0.
+      split; simpl.
+      + apply (mono f); auto.
+      + apply (mono g); auto.
+    - simpl.
+      split; simpl.
+      + destruct (cont f lub XS); auto.
+        apply H2. hnf; intros.
+        apply image_axiom2 in H3. destruct H3 as [q [??]]. 
+        destruct (H0 (f q, g q)).
+        * apply image_axiom1'. simpl. exists q; split; auto.
+        * simpl in H5. simpl in H4. rewrite H4; auto.
+      + destruct (cont g lub XS); auto.
+        apply H2. hnf; intros.
+        apply image_axiom2 in H3. destruct H3 as [q [??]]. 
+        destruct (H0 (f q, g q)).
+        * apply image_axiom1'. simpl. exists q; split; auto.
+        * simpl in H6. simpl in H4. rewrite H4; auto.
   Qed.    
 
 End CPO.
@@ -627,12 +633,12 @@ Proof.
   rewrite (CPO.axiom f (empty_dir X)).
   apply sup_equiv.
   split; intros a H.
-  apply image_axiom2 in H.
-  destruct H as [?[??]].
-  red in H; simpl in H.
-  apply empty_elem in H. elim H.
-  red in H; simpl in H.
-  apply empty_elem in H. elim H.
+  - apply image_axiom2 in H.
+    destruct H as [?[??]].
+    red in H; simpl in H.
+    apply empty_elem in H. elim H.
+  - red in H; simpl in H.
+    apply empty_elem in H. elim H.
 Qed.    
 Arguments strict_map [X Y] f.
 
@@ -679,46 +685,45 @@ Section iter_chain.
     (n1 <= n2)%N -> N.iter n1 step base ≤ N.iter n2 step base.
   Proof.
     induction n1 using N.peano_ind; simpl; intros.
-    clear H.
-    induction n2 using N.peano_ind; simpl; intros.
-    auto.    
-    transitivity (step base); auto.
-    repeat rewrite Niter_succ.
-    apply step_mono. auto.
+    - clear H.
+      induction n2 using N.peano_ind; simpl; intros.
+      + auto.    
+      + transitivity (step base); auto.
+        repeat rewrite Niter_succ.
+        apply step_mono. auto.
     
-    induction n2 using N.peano_ind; simpl.
-    elim H. destruct n1; simpl; auto.
-    repeat rewrite Niter_succ.
-    apply step_mono.
-    apply IHn1.
-    apply N.succ_le_mono; auto.
+    - induction n2 using N.peano_ind; simpl.
+      + elim H. destruct n1; simpl; auto.
+      + repeat rewrite Niter_succ.
+        apply step_mono.
+        apply IHn1.
+        apply N.succ_le_mono; auto.
   Qed.    
 
   Lemma iter_set_directed : color_prop (directed_hf_cl hf) iter_chain_set.
   Proof.
     red. simpl. apply prove_directed; auto.
-    pattern hf at 1. case hf. auto.
-    exists base. exists 0%N.
-    simpl. auto.
+    - pattern hf at 1. case hf. auto.
+      exists base. exists 0%N.
+      simpl. auto.
     
-    simpl; intros.
-    destruct H as [n1 ?].
-    destruct H0 as [n2 ?].
-    simpl in H. simpl in H0.
-    destruct (N.lt_ge_cases n1 n2).
-    exists y.
-    split.
-    rewrite H. rewrite H0.
-    apply iter_le.
-    hnf in H1. hnf.
-    rewrite H1. discriminate.
-    split; auto. exists n2. auto.
-    exists x.
-    split. auto.
-    split.
-    rewrite H. rewrite H0.
-    apply iter_le; auto.
-    exists n1. auto.
+    - simpl; intros.
+      destruct H as [n1 ?].
+      destruct H0 as [n2 ?].
+      simpl in H. simpl in H0.
+      destruct (N.lt_ge_cases n1 n2).
+      + exists y.
+        repeat split; auto.
+        * rewrite H. rewrite H0.
+          apply iter_le.
+          hnf in H1. hnf.
+          rewrite H1. discriminate.
+        * exists n2. auto.
+      + exists x.
+        repeat split; auto.
+        * rewrite H. rewrite H0.
+          apply iter_le; auto.
+        * exists n1. auto.
   Qed.
 
   Definition iter_chain : dirset X := 
@@ -751,12 +756,12 @@ Section iter_chain.
     intros. unfold chain_sup.
     destruct H.
     apply (H2 iter_chain); intros; auto.
-    apply iter_chain_base.
-    destruct H3 as [n ?]. simpl in *.
-    symmetry in H3. apply (H0 _ _ H3). clear x H3.
-    induction n using N.peano_ind; simpl; auto.
-    rewrite Niter_succ.
-    apply H1. auto.
+    - apply iter_chain_base.
+    - destruct H3 as [n ?]. simpl in *.
+      symmetry in H3. apply (H0 _ _ H3). clear x H3.
+      induction n using N.peano_ind; simpl; auto.
+      rewrite Niter_succ.
+      apply H1. auto.
   Qed.
 End iter_chain.
 
@@ -796,22 +801,22 @@ Section lfp.
   Proof.
     split.
 
-    unfold lfp, chain_sup.
-    simpl.
-    rewrite (CPO.axiom f (iter_chain false X ⊥ f _ _)).
-    apply CPO.sup_is_least; simpl.
-    hnf; simpl; intros.
-    apply image_axiom2 in H. destruct H as [q [??]]. rewrite H0.
-    apply CPO.sup_is_ub. simpl.
-    apply iter_chain_step. auto.
+    - unfold lfp, chain_sup.
+      simpl.
+      rewrite (CPO.axiom f (iter_chain false X ⊥ f _ _)).
+      apply CPO.sup_is_least; simpl.
+      hnf; simpl; intros.
+      apply image_axiom2 in H. destruct H as [q [??]]. rewrite H0.
+      apply CPO.sup_is_ub. simpl.
+      apply iter_chain_step. auto.
 
-    apply scott_induction; auto.
-    split; intros; auto.
-    apply CPO.sup_is_least.
-    hnf; intros.
-    transitivity (f x). apply H0; auto.
-    apply CPO.mono. apply CPO.sup_is_ub. auto.
-    intros. rewrite <- H; auto.
+    - apply scott_induction; auto.
+      + split; intros; auto.
+        apply CPO.sup_is_least.
+        hnf; intros.
+        transitivity (f x). apply H0; auto.
+        apply CPO.mono. apply CPO.sup_is_ub. auto.
+      + intros. rewrite <- H; auto.
   Qed.
 End lfp.
 
@@ -831,24 +836,24 @@ Lemma lfp_uniform (D E:cpo)
 Proof.
   intros. split.
 
-  apply (scott_induction e); intros.
-  split; auto. intros.
-  apply CPO.sup_is_least. repeat intro; auto.
-  rewrite <- H1; auto.
-  rewrite H1.
-  rewrite <- (lfp_fixpoint D d) at 2.
-  destruct H0. apply H0.
+  - apply (scott_induction e); intros.
+    + split; auto. intros.
+      apply CPO.sup_is_least. repeat intro; auto.
+    + rewrite <- H1; auto.
+    + rewrite H1.
+      rewrite <- (lfp_fixpoint D d) at 2.
+      destruct H0. apply H0.
 
-  apply (scott_induction d); intros.
-  split; intros.
-  rewrite H. apply bottom_least.
-  rewrite (CPO.axiom f XS).
-  apply CPO.sup_is_least. repeat intro.
-  apply image_axiom2 in H3. destruct H3 as [y [??]].
-  apply H2 in H3.
-  rewrite H4. auto.
-  rewrite <- H2; auto.
-  rewrite <- (lfp_fixpoint E e).
-  rewrite <- H1.
-  destruct H0. apply H2.
+  - apply (scott_induction d); intros.
+    + split; intros.
+      * rewrite H. apply bottom_least.
+      * rewrite (CPO.axiom f XS).
+        apply CPO.sup_is_least. repeat intro.
+        apply image_axiom2 in H3. destruct H3 as [y [??]].
+        apply H2 in H3.
+        rewrite H4. auto.
+    + rewrite <- H2; auto.
+    + rewrite <- (lfp_fixpoint E e).
+      rewrite <- H1.
+      destruct H0. apply H2.
 Qed.

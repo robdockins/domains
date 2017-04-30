@@ -77,11 +77,11 @@ Proof.
   generalize (eff_complete A Heff x).
   intros [n ?].
   case_eq (eff_enum A Heff n); intros.
-  rewrite H0 in H.
-  exists c. exists n.
-  unfold unenumerate_set. rewrite H0.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c); auto.
-  rewrite H0 in H. elim H.
+  - rewrite H0 in H.
+    exists c. exists n.
+    unfold unenumerate_set. rewrite H0.
+    destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c); auto.
+  - rewrite H0 in H. elim H.
 Qed.
   
 Definition unenumerate (A:preord) (Heff:effective_order A) (x:A) : N :=
@@ -100,14 +100,14 @@ Proof.
   destruct s as [n ?].
   destruct a. simpl.
   case_eq (eff_enum A Heff n); intros.
-  unfold unenumerate_set in e.
-  rewrite H in e.
-  destruct ((PREORD_EQ_DEC A (eff_to_ord_dec A Heff)) x c).
-  inversion e. subst x0.
-  exists c. split; auto.
-  discriminate.
-  unfold unenumerate_set in e.
-  rewrite H in e. discriminate.
+  - unfold unenumerate_set in e.
+    rewrite H in e.
+    destruct ((PREORD_EQ_DEC A (eff_to_ord_dec A Heff)) x c).
+    + inversion e. subst x0.
+      exists c. split; auto.
+    + discriminate.
+  - unfold unenumerate_set in e.
+    rewrite H in e. discriminate.
 Qed.
 
 (**  The unenumeration index is unique (up to Leibniz equality)
@@ -130,29 +130,29 @@ Proof.
   simpl.
   unfold unenumerate_set in e.
   case_eq (eff_enum A Heff n); intros.
-  rewrite H0 in e.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c).
-  inversion e; subst x0. clear e.
-  unfold unenumerate_set in e0.
-  case_eq (eff_enum A Heff n'); intros.
-  rewrite H1 in e0.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x' c0).
-  inversion e0; subst x1. clear e0.
-  apply N.le_antisymm.
-  apply l with c0; auto.
-  unfold unenumerate_set.
-  rewrite H1.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c0). auto.
-  elim n0. rewrite H; auto.
-  apply l0 with c; auto.
-  unfold unenumerate_set.
-  rewrite H0.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x' c). auto.
-  elim n0. rewrite <- H; auto.
-  discriminate.
-  rewrite H1 in e0. discriminate.
-  discriminate.
-  rewrite H0 in e. discriminate.
+  - rewrite H0 in e.
+    destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c).
+    + inversion e; subst x0. clear e.
+      unfold unenumerate_set in e0.
+      case_eq (eff_enum A Heff n'); intros.
+      * rewrite H1 in e0.
+        destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x' c0).
+        ** inversion e0; subst x1. clear e0.
+           apply N.le_antisymm.
+           *** apply l with c0; auto.
+               unfold unenumerate_set.
+               rewrite H1.
+               destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c0); auto.
+               elim n0. rewrite H; auto.
+           *** apply l0 with c; auto.
+               unfold unenumerate_set.
+               rewrite H0.
+               destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x' c); auto.
+               elim n0. rewrite <- H; auto.
+        ** discriminate.
+      * rewrite H1 in e0. discriminate.
+    + discriminate.
+  - rewrite H0 in e. discriminate.
 Qed.
 
 Lemma unenumerate_reflects A Heff x x' :
@@ -174,15 +174,15 @@ Proof.
   unfold unenumerate_set in e.
   unfold unenumerate_set in e0.
   case_eq (eff_enum A Heff n); intros.
-  rewrite H in e, e0.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c).
-  inversion e; subst x0.
-  destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x' c).
-  inversion e0; subst x1.
-  rewrite e1; auto.
-  discriminate.
-  discriminate.
-  rewrite H in e. discriminate.
+  - rewrite H in e, e0.
+    destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x c).
+    + inversion e; subst x0.
+      destruct (PREORD_EQ_DEC A (eff_to_ord_dec A Heff) x' c).
+      * inversion e0; subst x1.
+        rewrite e1; auto.
+      * discriminate.
+    + discriminate.
+  - rewrite H in e. discriminate.
 Qed.
 
 Lemma eff_in_dec : forall {A:preord} (Heff:effective_order A) (M:finset A) (x:A),
@@ -220,10 +220,10 @@ Program Definition effective_prod {A B:preord}
 Next Obligation.
   intros. destruct x; destruct y.
   destruct (eff_ord_dec A HA c c1).
-  destruct (eff_ord_dec B HB c0 c2).
-  left. split; auto.
-  right. intros [??]; apply n; auto.
-  right. intros [??]; apply n; auto.
+  - destruct (eff_ord_dec B HB c0 c2).
+    + left. split; auto.
+    + right. intros [??]; apply n; auto.
+  - right. intros [??]; apply n; auto.
 Qed.
 Next Obligation.
   intros.
@@ -241,20 +241,20 @@ Program Definition effective_sum {A B:preord}
 Next Obligation.
   intros.
   destruct x; destruct y.
-  destruct (eff_ord_dec A HA c c0).
-  left. auto.
-  right. auto.
-  right. intro. elim H.
-  right. intro. elim H.
-  destruct (eff_ord_dec B HB c c0).
-  left. auto.
-  right. auto.
+  - destruct (eff_ord_dec A HA c c0).
+    + left. auto.
+    + right. auto.
+  - right. intro. elim H.
+  - right. intro. elim H.
+  - destruct (eff_ord_dec B HB c c0).
+    + left. auto.
+    + right. auto.
 Qed.
 Next Obligation.
   intros.
   destruct x.
-  apply esum_left_elem. apply eff_complete.
-  apply esum_right_elem. apply eff_complete.
+  - apply esum_left_elem. apply eff_complete.
+  - apply esum_right_elem. apply eff_complete.
 Qed.
 
 
@@ -269,16 +269,16 @@ Program Definition effective_lift {A:preord}
 Next Obligation.
   intros.
   destruct x; destruct y; simpl; auto.
-  destruct (eff_ord_dec A HA c c0); auto.
-  left. hnf. auto.
+  - destruct (eff_ord_dec A HA c c0); auto.
+  - left. hnf. auto.
 Qed.
 Next Obligation.
   intros. unfold enum_lift.
   apply union2_elem.
-  destruct x. right.
-  apply image_axiom1'. exists c. split; auto.
-  apply eff_complete.
-  left. apply single_axiom; auto.
+  destruct x.
+  - right. apply image_axiom1'. exists c. split; auto.
+    apply eff_complete.
+  - left. apply single_axiom; auto.
 Qed.
 
 
@@ -300,30 +300,31 @@ Proof.
        | Some b => decset _ (X (a,b)) q
        end).
   split; simpl; intros.
-  destruct H as [n ?].
-  case_eq (pairing.unpairing n); intros.
-  rewrite H0 in H.
-  destruct (eff_enum B HB n0); intros.
-  case_eq (decset (P a c) (X (a,c)) n1); intros.
-  rewrite H1 in H.
-  exists c.
-  rewrite <- (decset_correct _ (X (a,c))). simpl.
-  hnf; simpl. exists n1. rewrite H1. auto.
-  rewrite H1 in H. elim H. elim H.
+  - destruct H as [n ?].
+    case_eq (pairing.unpairing n); intros.
+    rewrite H0 in H.
+    destruct (eff_enum B HB n0); intros.
+    + case_eq (decset (P a c) (X (a,c)) n1); intros.
+      * rewrite H1 in H.
+        exists c.
+        rewrite <- (decset_correct _ (X (a,c))). simpl.
+        hnf; simpl. exists n1. rewrite H1. auto.
+      * rewrite H1 in H. elim H.
+    + elim H.
 
-  destruct H.
-  generalize (eff_complete B HB x).
-  intros [p ?].
-  case_eq (eff_enum B HB p); intros.
-  rewrite H1 in H0.
-  assert (P a c).
-  apply Hok with x; auto.
-  rewrite <- (decset_correct _ (X (a,c))) in H2.
-  destruct H2 as [q ?].
-  simpl in *.
-  exists (pairing.pairing (p,q)).
-  rewrite pairing.unpairing_pairing.
-  rewrite H1.
-  destruct (decset (P a c) (X (a,c)) q); auto.
-  rewrite H1 in H0. elim H0.
+  - destruct H.
+    generalize (eff_complete B HB x).
+    intros [p ?].
+    case_eq (eff_enum B HB p); intros.
+    + rewrite H1 in H0.
+      assert (P a c).
+      { apply Hok with x; auto. }
+      rewrite <- (decset_correct _ (X (a,c))) in H2.
+      destruct H2 as [q ?].
+      simpl in *.
+      exists (pairing.pairing (p,q)).
+      rewrite pairing.unpairing_pairing.
+      rewrite H1.
+      destruct (decset (P a c) (X (a,c)) q); auto.
+    + rewrite H1 in H0. elim H0.
 Qed.

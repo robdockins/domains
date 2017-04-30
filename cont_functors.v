@@ -145,9 +145,9 @@ Section fixpoint.
   Proof.
     induction i; simpl; intros; auto.
     destruct j.
-    elimtype False. inversion H1.
-    apply Functor.respects.
-    apply IHi.
+    - elimtype False. inversion H1.
+    - apply Functor.respects.
+      apply IHi.
   Qed.
 
   (** The Kleene chain is a directed system. *)
@@ -155,19 +155,20 @@ Section fixpoint.
     DirSys nat_dirord C iterF iter_hom _ _.
   Next Obligation.      
     induction i; simpl; intros.
-    symmetry. apply initiate_univ.
-    apply Functor.ident; auto.
+    - symmetry. apply initiate_univ.
+    - apply Functor.ident; auto.
   Qed.
   Next Obligation.
     induction i. simpl; intros.
-    apply initiate_univ.
-    intros. destruct j.
-    elimtype False. inversion Hij.
-    destruct k.
-    elimtype False. inversion Hjk.
-    simpl.
-    rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
-    reflexivity. auto.
+    - apply initiate_univ.
+    - intros. destruct j.
+      + elimtype False. inversion Hij.
+      + destruct k.
+        * elimtype False. inversion Hjk.
+        * simpl.
+          rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
+          ** reflexivity.
+          ** auto.
   Qed.
 
   (** The fixpoint we desire is the point of the colimiting cocone
@@ -199,7 +200,7 @@ Section fixpoint.
       (fun i => cocone_spoke (colimit_cocone nat_dirord kleene_chain) (S i)) _.
   Next Obligation.
     simpl; intros.
-    assert (Hij' : S i <= S j). auto with arith.
+    assert (Hij' : S i <= S j) by auto with arith.
     rewrite (cocone_commute (colimit_cocone nat_dirord kleene_chain) (S i) (S j) Hij').
     simpl. apply cat_respects; auto.
     apply Functor.respects.
@@ -226,14 +227,13 @@ Section fixpoint.
       cata_hom' i ≈ cata_hom' j ∘ (iter_hom i j Hij).
     Proof.
       induction i; intros.
-      simpl. symmetry. apply initiate_univ.
-      destruct j. inversion Hij.
-      simpl.
-      rewrite <- (cat_assoc _ _ _ _ _ (Alg.iota AG)).
-      apply cat_respects; auto.
-      rewrite <- (Functor.compose F).
-      2: reflexivity.
-      rewrite IHi; eauto.
+      - simpl. symmetry. apply initiate_univ.
+      - destruct j; [ inversion Hij |].
+        simpl.
+        rewrite <- (cat_assoc _ _ _ _ _ (Alg.iota AG)).
+        apply cat_respects; auto.
+        rewrite <- (Functor.compose F); [ | reflexivity ].
+        rewrite IHi; eauto.
     Qed.      
 
     Program Definition AG_cocone : cocone kleene_chain :=
@@ -245,8 +245,7 @@ Section fixpoint.
     Next Obligation.
       simpl; intros.
       rewrite (cata_hom_iter_hom i j Hij).
-      rewrite Functor.compose.
-      2: reflexivity.
+      rewrite Functor.compose; [ | reflexivity ].
       apply cat_assoc.
     Qed.
 
@@ -260,21 +259,21 @@ Section fixpoint.
       generalize (colim_uniq BL AG_cocone').
       intros.
       rewrite (H (cata_hom ∘ colim_univ BL cocone_plus1)).
-      symmetry. apply H.
+      - symmetry. apply H.
 
-      intros. simpl.
-      rewrite <- (cat_assoc _ _ _ _ _ (Alg.iota AG)).
-      rewrite <- (Functor.compose F). 2: reflexivity.
-      apply cat_respects; auto.
-      apply Functor.respects.
-      unfold cata_hom.
-      apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone).
+        intros. simpl.
+        rewrite <- (cat_assoc _ _ _ _ _ (Alg.iota AG)).
+        rewrite <- (Functor.compose F); [ | reflexivity ].
+        apply cat_respects; auto.
+        apply Functor.respects.
+        unfold cata_hom.
+        apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone).
 
-      intros.
-      rewrite <- (cat_assoc _ _ _ _ _ cata_hom).
-      rewrite <- (colim_commute BL cocone_plus1).
-      unfold cata_hom.
-      apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone (S i)).
+      - intros.
+        rewrite <- (cat_assoc _ _ _ _ _ cata_hom).
+        rewrite <- (colim_commute BL cocone_plus1).
+        unfold cata_hom.
+        apply (colim_commute (has_colimits nat_dirord kleene_chain) AG_cocone (S i)).
     Qed.
   End cata.
 
@@ -288,17 +287,18 @@ Section fixpoint.
     unfold cata_hom.
     apply (colim_uniq (has_colimits nat_dirord kleene_chain) (AG_cocone M)).
     intro i. simpl.
-    induction i. simpl.
-    symmetry. apply initiate_univ.
-    simpl.
-    rewrite IHi.
-    rewrite Functor.compose. 2: reflexivity.
-    rewrite (cat_assoc _ _ _ _ _ (Alg.iota M)).
-    rewrite <- (Alg.hom_axiom h). simpl.
-    repeat rewrite <- (cat_assoc C).
-    apply cat_respects; auto.
-    symmetry.
-    apply (colim_commute BL cocone_plus1).
+    induction i.
+    - simpl.
+      symmetry. apply initiate_univ.
+    - simpl.
+      rewrite IHi.
+      rewrite Functor.compose; [ | reflexivity ].
+      rewrite (cat_assoc _ _ _ _ _ (Alg.iota M)).
+      rewrite <- (Alg.hom_axiom h). simpl.
+      repeat rewrite <- (cat_assoc C).
+      apply cat_respects; auto.
+      symmetry.
+      apply (colim_commute BL cocone_plus1).
   Qed.
 
   (**  With the initial algebra in hand, we immediately 
@@ -346,12 +346,12 @@ Proof.
     (dir_sys_app DS (fconst C D X)) 
     (cocone_app CC (fconst C D X))
     (fun YC => cocone_spoke YC j)); simpl; intros.
-  destruct (choose_ub I i j) as [k [??]].
-  rewrite (cocone_commute YC i k H). simpl.
-  rewrite (cocone_commute YC j k H0). simpl.
-  rewrite (cat_ident1 _ _ _ (cocone_spoke YC k)).
-  rewrite (cat_ident1 _ _ _ (cocone_spoke YC k)). auto.
-  rewrite (H j). symmetry. apply cat_ident1.
+  - destruct (choose_ub I i j) as [k [??]].
+    rewrite (cocone_commute YC i k H). simpl.
+    rewrite (cocone_commute YC j k H0). simpl.
+    rewrite (cat_ident1 _ _ _ (cocone_spoke YC k)).
+    rewrite (cat_ident1 _ _ _ (cocone_spoke YC k)). auto.
+  - rewrite (H j). symmetry. apply cat_ident1.
 Qed.
 
 
@@ -365,17 +365,18 @@ Proof.
   cut (directed_colimit
     (dir_sys_app (dir_sys_app DS G) F)
     (cocone_app (cocone_app CC G) F)).
-  intros.
-  apply (DirectedColimit 
-    (dir_sys_app DS (F∘G)) (cocone_app CC (F∘G))
-    (fun YC => colim_univ X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
+  { intros.
+    apply (DirectedColimit 
+             (dir_sys_app DS (F∘G)) (cocone_app CC (F∘G))
+             (fun YC => colim_univ X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
                  (cocone_point YC) (cocone_spoke YC) (cocone_commute YC)))).
-  simpl; intros.
-  apply (colim_commute X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
+    - simpl; intros.
+      apply (colim_commute X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
                  (cocone_point YC) (cocone_spoke YC) (cocone_commute YC)) i).
-  intros.
-  apply (colim_uniq X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
+    - intros.
+      apply (colim_uniq X2 (Cocone (dir_sys_app (dir_sys_app DS G) F)
                  (cocone_point YC) (cocone_spoke YC) (cocone_commute YC))); auto.
+  } 
   apply X. apply X0. auto.
 Qed.
 
@@ -425,14 +426,14 @@ Section pairF_continuous.
         (cocone_point YC)
         (colim_univ X0 (cocone_fstF I DS YC))
         (colim_univ X1 (cocone_sndF I DS YC))).
-    simpl; intros. split; simpl.
-    apply (colim_commute X0 (cocone_fstF I DS YC)).
-    apply (colim_commute X1 (cocone_sndF I DS YC)).
-    simpl; intros. split; simpl.
-    apply (colim_uniq X0 (cocone_fstF I DS YC)).
-    intro i; destruct (H i); auto.
-    apply (colim_uniq X1 (cocone_sndF I DS YC)).
-    intro i; destruct (H i); auto.
+    - simpl; intros. split; simpl.
+      apply (colim_commute X0 (cocone_fstF I DS YC)).
+      apply (colim_commute X1 (cocone_sndF I DS YC)).
+    - simpl; intros. split; simpl.
+      + apply (colim_uniq X0 (cocone_fstF I DS YC)).
+        intro i; destruct (H i); auto.
+      + apply (colim_uniq X1 (cocone_sndF I DS YC)).
+        intro i; destruct (H i); auto.
   Qed.  
 End pairF_continuous.
 
@@ -456,8 +457,8 @@ Section fstF_continuous.
                  _.
   Next Obligation.
     intros. split; simpl.
-    apply (cocone_commute CC1 i).
-    apply (cocone_commute CC i).
+    - apply (cocone_commute CC1 i).
+    - apply (cocone_commute CC i).
   Qed.
 
   Definition fstF_univ (YC : cocone (dir_sys_app DS (fstF C D))) :
@@ -468,18 +469,18 @@ Section fstF_continuous.
     directed_colimit (dir_sys_app DS (fstF C D)) (cocone_app CC (fstF C D)).
   Proof.
     apply DirectedColimit with fstF_univ.
-    simpl. intros.
-    destruct (colim_commute Hcolim (fstF_cocone YC) i). auto.
-    intros.
-    destruct (colim_uniq Hcolim (fstF_cocone YC)
-      (PROD.Hom C D
-         (cocone_point CC)
-         (PROD.Ob _ _ (cocone_point YC) (obr (cocone_point CC)))
-         f id
-         )); auto.
-    intros. split; simpl; auto.
-    apply H.
-    symmetry. apply cat_ident2.
+    - simpl. intros.
+      destruct (colim_commute Hcolim (fstF_cocone YC) i). auto.
+    - intros.
+      destruct (colim_uniq Hcolim (fstF_cocone YC)
+        (PROD.Hom C D
+           (cocone_point CC)
+           (PROD.Ob _ _ (cocone_point YC) (obr (cocone_point CC)))
+           f id
+           )); auto.
+      intros. split; simpl; auto.
+      + apply H.
+      + symmetry. apply cat_ident2.
   Qed.
 End fstF_continuous.
 
@@ -508,8 +509,8 @@ Section sndF_continuous.
                  _.
   Next Obligation.
     intros. split; simpl.
-    apply (cocone_commute CC i).
-    apply (cocone_commute CC1 i).
+    - apply (cocone_commute CC i).
+    - apply (cocone_commute CC1 i).
   Qed.
 
   Definition sndF_univ (YC : cocone (dir_sys_app DS (sndF C D))) :
@@ -520,17 +521,17 @@ Section sndF_continuous.
     directed_colimit (dir_sys_app DS (sndF C D)) (cocone_app CC (sndF C D)).
   Proof.
     apply DirectedColimit with sndF_univ.
-    simpl. intros.
-    destruct (colim_commute Hcolim (sndF_cocone YC) i). auto.
-    intros.
-    destruct (colim_uniq Hcolim (sndF_cocone YC)
-      (PROD.Hom C D
-         (cocone_point CC)
-         (PROD.Ob _ _ (obl (cocone_point CC)) (cocone_point YC))
-         id f)); auto.
-    intros. split; simpl; auto.
-    symmetry. apply cat_ident2.
-    apply H.
+    - simpl. intros.
+      destruct (colim_commute Hcolim (sndF_cocone YC) i). auto.
+    - intros.
+      destruct (colim_uniq Hcolim (sndF_cocone YC)
+        (PROD.Hom C D
+           (cocone_point CC)
+           (PROD.Ob _ _ (obl (cocone_point CC)) (cocone_point YC))
+           id f)); auto.
+      intros. split; simpl; auto.
+      symmetry. apply cat_ident2.
+      apply H.
   Qed.
 End sndF_continuous.
 
