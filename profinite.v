@@ -103,23 +103,23 @@ Section PLT.
     repeat intro; simpl in *.
     destruct a as [x z].
     apply compose_elem in H1.
-    apply compose_elem.
-    apply hom_order.
-    destruct H1 as [y [??]].
-    exists y. split.
-    apply H; auto.
-    apply H0; auto.
-    apply hom_order.
+    - apply compose_elem.
+      apply hom_order.
+      destruct H1 as [y [??]].
+      exists y. split.
+      + apply H; auto.
+      + apply H0; auto.
+    - apply hom_order.
   Qed.
 
   Lemma cat_axioms : Category.axioms ob hom hom_eq_mixin comp_mixin.
   Proof.
     constructor.
 
-    intros. apply compose_ident_rel2. apply hom_order.
-    intros. apply compose_ident_rel1. apply hom_order.
-    intros. apply compose_assoc.
-    intros. split; apply compose_mono; auto.
+    - intros. apply compose_ident_rel2. apply hom_order.
+    - intros. apply compose_ident_rel1. apply hom_order.
+    - intros. apply compose_assoc.
+    - intros. split; apply compose_mono; auto.
   Qed.
 
   Canonical Structure PLT : category :=
@@ -260,52 +260,52 @@ Section PLT.
   Qed.    
   Next Obligation.
 (* FIXME, move this proof into approx_rels.v *)
-
     repeat intro.
     destruct (hom_directed _ _ f (fst x) (image π₁ M)).
-    apply inh_image; auto.
-    red; intros. apply image_axiom2 in H0. destruct H0 as [y[??]].
-    apply erel_image_elem.
-    apply H in H0.
-    apply erel_image_elem in H0.
-    destruct x; destruct y.
-    apply (pair_rel_elem' _ _ _ _ f g) in H0.
-    simpl. destruct H0.
-    apply member_eq with (c,c1); auto.
-    simpl in H1.
-    destruct H1; split; split; auto.
-    apply hom_order.
-    apply hom_order.
-    destruct (hom_directed _ _ g (snd x) (image π₂ M)).
-    apply inh_image; auto.
-    red; intros. apply image_axiom2 in H1. destruct H1 as [y[??]].
-    apply erel_image_elem.
-    apply H in H1.
-    apply erel_image_elem in H1.
-    destruct x; destruct y.
-    apply (pair_rel_elem' _ _ _ _ f g) in H1.
-    simpl. destruct H1.
-    apply member_eq with (c0,c2); auto.
-    simpl in H2.
-    destruct H2; split; split; auto.
-    apply hom_order.
-    apply hom_order.
-    exists (x0,x1).
-    destruct H0. destruct H1.
-    split.
-    red; intros.
-    split.
-    apply H0. apply image_axiom1'.
-    exists x2. split; auto.
-    apply H1. apply image_axiom1'.
-    exists x2. split; auto.
-    apply erel_image_elem.
-    apply erel_image_elem in H2.
-    apply erel_image_elem in H3.
-    destruct x.
-    apply (pair_rel_elem' _ _ _ _ f g).
-    apply hom_order. apply hom_order.
-    split; auto.
+    - apply inh_image; auto.
+    - red; intros. apply image_axiom2 in H0. destruct H0 as [y[??]].
+      apply erel_image_elem.
+      apply H in H0.
+      apply erel_image_elem in H0.
+      destruct x; destruct y.
+      apply (pair_rel_elem' _ _ _ _ f g) in H0.
+      + simpl. destruct H0.
+        apply member_eq with (c,c1); auto.
+        simpl in H1.
+        destruct H1; split; split; auto.
+        + apply hom_order.
+        + apply hom_order.
+    - destruct (hom_directed _ _ g (snd x) (image π₂ M)).
+      + apply inh_image; auto.
+      + red; intros. apply image_axiom2 in H1. destruct H1 as [y[??]].
+        apply erel_image_elem.
+        apply H in H1.
+        apply erel_image_elem in H1.
+        destruct x; destruct y.
+        apply (pair_rel_elem' _ _ _ _ f g) in H1.
+        * simpl. destruct H1.
+          apply member_eq with (c0,c2); auto.
+          simpl in H2.
+          destruct H2; split; split; auto.
+        * apply hom_order.
+        * apply hom_order.
+      + exists (x0,x1).
+        destruct H0. destruct H1.
+        split.
+        * red; intros.
+          split.
+          ** apply H0. apply image_axiom1'.
+             exists x2. split; auto.
+          ** apply H1. apply image_axiom1'.
+             exists x2. split; auto.
+        * apply erel_image_elem.
+          apply erel_image_elem in H2.
+          apply erel_image_elem in H3.
+          destruct x.
+          apply (pair_rel_elem' _ _ _ _ f g).
+          ** apply hom_order.
+          ** apply hom_order.
+          ** split; auto.
   Qed.
 
   Lemma pair_map_eq {A B C D} (f:A → C) (g:B → D) :
@@ -321,8 +321,8 @@ Section PLT.
     f ≈ initiate A.
   Proof.
     split; hnf; intros.
-    destruct a. elim c.
-    destruct a. elim c.
+    - destruct a. elim c.
+    - destruct a. elim c.
   Qed.
 
   Theorem terminate_le_univ A (f:A → unit) :
@@ -331,8 +331,9 @@ Section PLT.
     hnf; intros.
     red. simpl.
     destruct a.
-    apply eprod_elem. split. apply eff_complete.
-    apply single_axiom. destruct c0. auto.
+    apply eprod_elem. split.
+    - apply eff_complete.
+    - apply single_axiom. destruct c0. auto.
   Qed.
 
   Theorem iota1_cases_commute C A B (f:A → C) (g:B → C) :
@@ -398,46 +399,46 @@ Section PLT.
     PLT.pair f g ∘ h ≈ PLT.pair (f ∘ h) (g ∘ h).
   Proof.
     split.
-    apply pair_universal_le.
-    rewrite (cat_assoc _ _ _ _ _ pi1).
-    apply compose_mono; auto.
-    apply pair_le_commute1.
-    rewrite (cat_assoc _ _ _ _ _ pi2).
-    apply compose_mono; auto.
-     apply pair_le_commute2.
-    hnf; simpl; intros.
-    destruct a as  [d [a b]].
-    rewrite (pair_rel_elem _ _ _ (effective D) (compose_rel (effective C) f h) (compose_rel (effective C) g h) d a b) in H.
-    destruct H.
-    apply compose_elem.
-    apply hom_order.
-    apply compose_elem in H.
-    2: apply hom_order.
-    apply compose_elem in H0.
-    2: apply hom_order.
-    destruct H as [q1 [??]].
-    destruct H0 as [q2 [??]].
-    destruct (hom_directed _ _ h d (q1::q2::nil)%list).
-    apply elem_inh with q1. apply cons_elem; auto.
-    red; simpl; intros. apply erel_image_elem.
-    apply cons_elem in H3. destruct H3.
-    revert H. apply member_eq.
-    split; split; auto.
-    apply cons_elem in H3. destruct H3.
-    revert H0. apply member_eq.
-    split; split; auto.
-    apply nil_elem in H3. elim H3.
-    destruct H3.
-    apply erel_image_elem in H4.
-    exists x. split; auto.
-    apply pair_rel_elem.
-    split.
-    revert H1. apply hom_order; auto.
-    apply H3. apply cons_elem; auto.
-    revert H2. apply hom_order; auto.
-    apply H3. 
-    apply cons_elem; right.
-    apply cons_elem; auto.
+    - apply pair_universal_le.
+      rewrite (cat_assoc _ _ _ _ _ pi1).
+      apply compose_mono; auto.
+      apply pair_le_commute1.
+      rewrite (cat_assoc _ _ _ _ _ pi2).
+      apply compose_mono; auto.
+      apply pair_le_commute2.
+    - hnf; simpl; intros.
+      destruct a as  [d [a b]].
+      rewrite (pair_rel_elem _ _ _ (effective D) (compose_rel (effective C) f h) (compose_rel (effective C) g h) d a b) in H.
+      destruct H.
+      apply compose_elem.
+      apply hom_order.
+      apply compose_elem in H.
+      2: apply hom_order.
+      apply compose_elem in H0.
+      2: apply hom_order.
+      destruct H as [q1 [??]].
+      destruct H0 as [q2 [??]].
+      destruct (hom_directed _ _ h d (q1::q2::nil)%list).
+      + apply elem_inh with q1. apply cons_elem; auto.
+      + red; simpl; intros. apply erel_image_elem.
+        apply cons_elem in H3. destruct H3.
+        revert H. apply member_eq.
+        split; split; auto.
+        apply cons_elem in H3. destruct H3.
+        * revert H0. apply member_eq.
+          split; split; auto.
+        * apply nil_elem in H3. elim H3.
+      + destruct H3.
+        apply erel_image_elem in H4.
+        exists x. split; auto.
+        apply pair_rel_elem.
+        split.
+        * revert H1. apply hom_order; auto.
+          apply H3. apply cons_elem; auto.
+        * revert H2. apply hom_order; auto.
+          apply H3. 
+          apply cons_elem; right.
+          apply cons_elem; auto.
   Qed.
 
   Theorem curry_apply A B C (f:(prod C A) → B) :
@@ -445,9 +446,9 @@ Section PLT.
   Proof.
     rewrite pair_map_eq.
     apply curry_apply.
-    apply PLT.hom_order.
-    apply hom_directed. 
-    apply plotkin.
+    - apply PLT.hom_order.
+    - apply hom_directed. 
+    - apply plotkin.
   Qed.
 
   Theorem pair_mono (C A B:ob) (f f':C → A) (g g':C → B) :
@@ -505,64 +506,65 @@ Section PLT.
     pair (f2 ∘ f1) (g2 ∘ g1) ≈ pair_map f2 g2 ∘ pair f1 g1.
   Proof.
     split; hnf; simpl; intros.
-    destruct a as [c [y w]].
-    apply (pair_rel_elem (ord Y) (ord W) (ord C) (effective C)
-         (compose_rel (effective X) f2 f1)
-         (compose_rel (effective Z) g2 g1)) in H.
-    destruct H.
-    apply compose_elem.
-    apply pair_rel_ordering; apply hom_order.
-    simpl.
-    apply compose_elem in H. 2: apply hom_order.
-    apply compose_elem in H0. 2: apply hom_order.
-    destruct H as [x [??]].
-    destruct H0 as [z [??]].
-    exists (x,z). split; auto.
-    apply pair_rel_elem; split; auto.
-    apply pair_rel_elem. split; auto.
-    apply compose_elem. apply pi1_rel_ordering.
-    exists x; split; auto.
-    apply pi1_rel_elem. auto.
-    apply compose_elem. apply pi2_rel_ordering.
-    exists z. split; auto.
-    apply pi2_rel_elem. auto.
+    - destruct a as [c [y w]].
+      apply (pair_rel_elem (ord Y) (ord W) (ord C) (effective C)
+                           (compose_rel (effective X) f2 f1)
+                           (compose_rel (effective Z) g2 g1)) in H.
+      destruct H.
+      apply compose_elem.
+      apply pair_rel_ordering; apply hom_order.
+      simpl.
+      apply compose_elem in H. 2: apply hom_order.
+      apply compose_elem in H0. 2: apply hom_order.
+      destruct H as [x [??]].
+      destruct H0 as [z [??]].
+      exists (x,z). split; auto.
+      + apply pair_rel_elem; split; auto.
+      + apply pair_rel_elem. split; auto.
+        * apply compose_elem. apply pi1_rel_ordering.
+          exists x; split; auto.
+          apply pi1_rel_elem. auto.
+        * apply compose_elem. apply pi2_rel_ordering.
+          exists z. split; auto.
+          apply pi2_rel_elem. auto.
 
-    destruct a as [c [y w]].
-    apply compose_elem in H; simpl in *.
-    2: apply pair_rel_ordering; apply hom_order.
-    destruct H as [[x z] [??]].
-    apply pair_rel_elem in H.
-    apply (pair_rel_elem _ _ _ _
+    - destruct a as [c [y w]].
+      apply compose_elem in H; simpl in *.
+      2: apply pair_rel_ordering; apply hom_order.
+      destruct H as [[x z] [??]].
+      apply pair_rel_elem in H.
+      apply (pair_rel_elem _ _ _ _
            (compose_rel (effective X) f2
               (pi1_rel (effective X) (effective Z)))
            (compose_rel (effective Z) g2
               (pi2_rel (effective X) (effective Z)))) in H0.
-    destruct H0.
-    apply compose_elem in H0. 2: apply pi1_rel_ordering.
-    apply compose_elem in H1. 2: apply pi2_rel_ordering.
-    destruct H0 as [x' [??]].
-    destruct H1 as [y' [??]].
-    apply pair_rel_elem.
-    split.
-    apply compose_elem. apply hom_order.
-    destruct H.
-    exists x. split; auto.
-    apply (hom_order _ _ f2) with x' y; auto.
-    apply pi1_rel_elem in H0. auto.
-    apply compose_elem. apply hom_order.
-    destruct H.
-    exists z. split; auto.
-    apply (hom_order _ _ g2) with y' w; auto.
-    apply pi2_rel_elem in H1. auto.
+      destruct H0.
+      apply compose_elem in H0. 2: apply pi1_rel_ordering.
+      apply compose_elem in H1. 2: apply pi2_rel_ordering.
+      destruct H0 as [x' [??]].
+      destruct H1 as [y' [??]].
+      apply pair_rel_elem.
+      split.
+      + apply compose_elem. apply hom_order.
+        destruct H.
+        exists x. split; auto.
+        apply (hom_order _ _ f2) with x' y; auto.
+        apply pi1_rel_elem in H0. auto.
+      + apply compose_elem. apply hom_order.
+        destruct H.
+        exists z. split; auto.
+        apply (hom_order _ _ g2) with y' w; auto.
+        apply pi2_rel_elem in H1. auto.
   Qed.
 
   Theorem curry_apply2 A B C (f:(prod C A) → B) (g:C → A) :
     app ∘ pair (curry f) g ≈ f ∘ pair id g.
   Proof.
     cut (pair (curry f) g ≈ pair_map (curry f) id ∘ pair id g).
-    intros. rewrite H.
-    rewrite (@cat_assoc PLT).
-    rewrite curry_apply. auto.
+    { intros. rewrite H.
+      rewrite (@cat_assoc PLT).
+      rewrite curry_apply. auto.
+    }
     rewrite <- pair_map_pair.
     apply pair_eq.
     symmetry. apply cat_ident1.
@@ -573,9 +575,10 @@ Section PLT.
     app ∘ pair (curry f ∘ h) g ≈ f ∘ pair h g.
   Proof.
     cut (pair (curry f ∘ h) g ≈ pair_map (curry f) id ∘ pair h g).
-    intros. rewrite H.
-    rewrite (@cat_assoc PLT).
-    rewrite curry_apply. auto.
+    { intros. rewrite H.
+      rewrite (@cat_assoc PLT).
+      rewrite curry_apply. auto.
+    }
     rewrite <- pair_map_pair.
     apply pair_eq. auto.
     symmetry. apply cat_ident2.
@@ -585,12 +588,12 @@ Section PLT.
     app ∘ pair_map CURRY id ≈ f -> CURRY ≈ curry f.
   Proof.
     intro. apply (curry_universal hf); auto.
-    apply PLT.hom_order.
-    apply (hom_directed _ _ f).
-    apply plotkin.
-    apply (hom_order _ _ CURRY).
-    apply (hom_directed _ _ CURRY).
-    rewrite pair_map_eq in H. apply H.
+    - apply PLT.hom_order.
+    - apply (hom_directed _ _ f).
+    - apply plotkin.
+    - apply (hom_order _ _ CURRY).
+    - apply (hom_directed _ _ CURRY).
+    - rewrite pair_map_eq in H. apply H.
   Qed.
 
   Theorem curry_compose_commute A B C D (f:(prod C A) → B) (h:D → C) :
@@ -600,7 +603,7 @@ Section PLT.
     unfold pair_map.
     symmetry.
     rewrite <- (curry_apply3).
-    apply cat_respects. auto.
+    apply cat_respects; auto.
     apply pair_eq; auto.
     apply cat_assoc.
   Qed.
@@ -695,67 +698,68 @@ Section PLT.
     Next Obligation.
       intros. red. intro x.
       apply prove_directed.
-      generalize (refl_equal hf).
-      pattern hf at 2. case hf; intros.
-      pattern hf at 1. rewrite H; auto.
-      pattern hf at 1. rewrite H; auto.
-      destruct M as [M HM]; simpl in *.
-      destruct (HM nil) as [q [??]].
-      rewrite H. hnf; auto.
-      hnf; intros. apply nil_elem in H0. elim H0.
-      destruct (hom_directed A B q x nil) as [z [??]].
-      rewrite H. hnf. auto.
-      hnf; intros. apply nil_elem in H2. elim H2.
-      apply erel_image_elem in H3.
-      exists z. apply erel_image_elem.
-      apply union_axiom.
-      exists (hom_rel q). split; auto.
-      apply image_axiom1'; eauto.
-      exists q. split; auto.
+      - generalize (refl_equal hf).
+        pattern hf at 2. case hf; intros.
+        pattern hf at 1. rewrite H; auto.
+        pattern hf at 1. rewrite H; auto.
+        destruct M as [M HM]; simpl in *.
+        destruct (HM nil) as [q [??]].
+        rewrite H. hnf; auto.
+        hnf; intros. apply nil_elem in H0. elim H0.
+        destruct (hom_directed A B q x nil) as [z [??]].
+        + rewrite H. hnf. auto.
+        + hnf; intros. apply nil_elem in H2. elim H2.
+        + apply erel_image_elem in H3.
+          exists z. apply erel_image_elem.
+          apply union_axiom.
+          exists (hom_rel q). split; auto.
+          apply image_axiom1'; eauto.
+          exists q. split; auto.
       
-      intros y1 y2. intros.
-      apply erel_image_elem in H.
-      apply erel_image_elem in H0.
-      apply union_axiom in H.      
-      apply union_axiom in H0.
-      destruct H as [X1 [??]].
-      destruct H0 as [X2 [??]].
-      apply image_axiom2 in H.
-      destruct H as [Y1 [??]].
-      apply image_axiom2 in H0.
-      destruct H0 as [Y2 [??]].
-      destruct M as [M HM]; simpl in *.
-      destruct (HM (Y1::Y2::nil)%list) as [Y [??]].
-      apply elem_inh with Y1. apply cons_elem; auto.
-      hnf; intros.
-      apply cons_elem in H5.
-      destruct H5. rewrite H5; auto.
-      apply cons_elem in H5.
-      destruct H5. rewrite H5; auto.
-      apply nil_elem in H5. elim H5.
-      destruct (hom_directed A B Y x (y1::y2::nil)%list) as [z [??]].
-      apply elem_inh with y1; auto. apply cons_elem; auto.
-      hnf; intros.
-      apply cons_elem in H7. destruct H7.
-      rewrite H7. apply erel_image_elem.
-      assert (Y1 ≤ Y). apply H5. apply cons_elem. auto.
-      apply H8. rewrite <- H3. auto.
-      assert (Y2 ≤ Y). apply H5. apply cons_elem. right.
-      apply cons_elem. auto.
-      apply cons_elem in H7. destruct H7.
-      rewrite H7. apply erel_image_elem.
-      apply H8. rewrite <- H4. auto.
-      apply nil_elem in H7. elim H7.
-      apply erel_image_elem in H8.
-      exists z.
-      split.
-      apply H7. apply cons_elem; auto.
-      split.
-      apply H7. apply cons_elem; right. apply cons_elem; auto.
-      apply erel_image_elem.
-      apply union_axiom.
-      exists (hom_rel Y). split; auto.
-      apply image_axiom1'. exists Y; split; auto.
+      - intros y1 y2. intros.
+        apply erel_image_elem in H.
+        apply erel_image_elem in H0.
+        apply union_axiom in H.      
+        apply union_axiom in H0.
+        destruct H as [X1 [??]].
+        destruct H0 as [X2 [??]].
+        apply image_axiom2 in H.
+        destruct H as [Y1 [??]].
+        apply image_axiom2 in H0.
+        destruct H0 as [Y2 [??]].
+        destruct M as [M HM]; simpl in *.
+        destruct (HM (Y1::Y2::nil)%list) as [Y [??]].
+        + apply elem_inh with Y1. apply cons_elem; auto.
+        + hnf; intros.
+          apply cons_elem in H5.
+          destruct H5.
+          * rewrite H5; auto.
+          * apply cons_elem in H5.
+            destruct H5.
+            ** rewrite H5; auto.
+            ** apply nil_elem in H5. elim H5.
+        + destruct (hom_directed A B Y x (y1::y2::nil)%list) as [z [??]].
+          * apply elem_inh with y1; auto. apply cons_elem; auto.
+          * hnf; intros.
+            apply cons_elem in H7. destruct H7.
+            ** rewrite H7. apply erel_image_elem.
+               assert (Y1 ≤ Y). { apply H5. apply cons_elem. auto. }
+               apply H8. rewrite <- H3. auto.
+            ** assert (Y2 ≤ Y). { apply H5. apply cons_elem. right. 
+                                  apply cons_elem. auto. }
+               apply cons_elem in H7. destruct H7.
+               *** rewrite H7. apply erel_image_elem.
+                   apply H8. rewrite <- H4. auto.
+               *** apply nil_elem in H7. elim H7.
+          * apply erel_image_elem in H8.
+            exists z. repeat split.
+            ** apply H7. apply cons_elem; auto.
+            ** apply H7. apply cons_elem; right. apply cons_elem; auto.
+            ** apply erel_image_elem.
+               apply union_axiom.
+               exists (hom_rel Y). split; auto.
+               apply image_axiom1'.
+               exists Y; split; auto.
     Qed.
 
     Program Definition homset_cpo_mixin : 
@@ -788,31 +792,31 @@ Theorem pair_commute1 (C A B:PLT false) (f:C → A) (g:C → B) :
   pi1 false ∘ pair false f g ≈ f.
 Proof.
   apply pair_proj_commute1.
-  apply PLT.hom_order.
-  apply PLT.hom_order.
-  apply PLT.hom_directed.
+  - apply PLT.hom_order.
+  - apply PLT.hom_order.
+  - apply PLT.hom_directed.
 Qed.
 
 Theorem pair_commute2 (C A B:PLT false) (f:C → A) (g:C → B) :
   pi2 false ∘ pair false f g ≈ g.
 Proof.
   apply pair_proj_commute2.
-  apply PLT.hom_order.
-  apply PLT.hom_order.
-  apply PLT.hom_directed.
+  - apply PLT.hom_order.
+  - apply PLT.hom_order.
+  - apply PLT.hom_directed.
 Qed.
 
 Lemma terminate_univ : forall (A:PLT false) (f:A → unit false),
   f ≈ PLT.terminate false A.
 Proof.
   intros. split.
-  apply PLT.terminate_le_univ.
-  hnf; simpl; intros.
-  destruct a.
-  destruct u.
-  destruct (PLT.hom_directed false _ _ f c nil); auto.
-  hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
-  destruct H0. apply erel_image_elem in H1. destruct x. auto.
+  - apply PLT.terminate_le_univ.
+  - hnf; simpl; intros.
+    destruct a.
+    destruct u.
+    destruct (PLT.hom_directed false _ _ f c nil); auto.
+    hnf; auto. hnf; intros. apply nil_elem in H0. elim H0.
+    destruct H0. apply erel_image_elem in H1. destruct x. auto.
 Qed.
 
 Definition terminated_mixin
@@ -827,9 +831,9 @@ Program Definition cartesian_mixin
        (@pair false) _.
 Next Obligation.
   constructor.
-  apply pair_commute1.
-  apply pair_commute2.
-  apply pair_universal.
+  - apply pair_commute1.
+  - apply pair_commute2.
+  - apply pair_universal.
 Qed.
 
 Program Definition cartesian_closed_mixin
@@ -842,21 +846,21 @@ Program Definition cartesian_closed_mixin
        _.
 Next Obligation.
   constructor.
-  intros. 
-  generalize (curry_apply false A B C f).
-  intros. 
-  etransitivity. 2: apply H.
-  apply cat_respects; auto.
-  unfold pair_map.
-  apply pair_eq; auto.
-  symmetry. apply cat_ident2.
-  intros.
-  apply curry_universal.
-  etransitivity. 2: apply H.
-  apply cat_respects; auto.
-  unfold pair_map.
-  apply pair_eq; auto.
-  apply cat_ident2.
+  - intros. 
+    generalize (curry_apply false A B C f).
+    intros. 
+    etransitivity. 2: apply H.
+    apply cat_respects; auto.
+    unfold pair_map.
+    apply pair_eq; auto.
+    symmetry. apply cat_ident2.
+  - intros.
+    apply curry_universal.
+    etransitivity. 2: apply H.
+    apply cat_respects; auto.
+    unfold pair_map.
+    apply pair_eq; auto.
+    apply cat_ident2.
 Qed.
 
 Definition terminated :=
@@ -1009,20 +1013,20 @@ Lemma plt_hom_directed2 hf (A B:PLT.PLT hf) (f:A → B) a x y :
 Proof.
   intros.
   destruct (PLT.hom_directed hf A B f a (x::y::nil)%list) as [z [??]].
-  destruct hf; simpl; auto.
-  exists x. apply cons_elem; auto.
-  red; intros.
-  apply erel_image_elem.
-  apply cons_elem in H1. destruct H1.
-  apply PLT.hom_order with a x; auto.
-  apply cons_elem in H1. destruct H1.
-  apply PLT.hom_order with a y; auto.
-  apply nil_elem in H1. elim H1.
-  apply erel_image_elem in H2.
-  exists z. split; auto.
-  split. 
-  apply H1. apply cons_elem; auto.
-  apply H1. apply cons_elem. right. apply cons_elem; auto.
+  - destruct hf; simpl; auto.
+    exists x. apply cons_elem; auto.
+  - red; intros.
+    apply erel_image_elem.
+    apply cons_elem in H1. destruct H1.
+    + apply PLT.hom_order with a x; auto.
+    + apply cons_elem in H1. destruct H1.
+      apply PLT.hom_order with a y; auto.
+      apply nil_elem in H1. elim H1.
+  - apply erel_image_elem in H2.
+    exists z. split; auto.
+    split. 
+    + apply H1. apply cons_elem; auto.
+    + apply H1. apply cons_elem. right. apply cons_elem; auto.
 Qed.
 
 
@@ -1032,26 +1036,26 @@ Lemma hom_rel_pair_map hf (A B C D:PLT.PLT hf) (f:A → C) (g:B → D) x y x' y'
 Proof.
   unfold PLT.pair_map.
   split; intros.
-  rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂) (x,y) x' y') in H.
-  destruct H.
-  apply PLT.compose_hom_rel in H.
-  destruct H as [?[??]].
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [?[??]].
-  simpl in H. 
-  rewrite (pi1_rel_elem _ _ _ _ x y x0)  in H.
-  simpl in H0.
-  rewrite (pi2_rel_elem _ _ _ _ x y x1) in H0.
-  split.
-  revert H1. apply PLT.hom_order; auto.
-  revert H2. apply PLT.hom_order; auto.
-  rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂)).
-  destruct H.
-  split.
-  apply PLT.compose_hom_rel.
-  exists x. split; auto. simpl. apply pi1_rel_elem; auto.
-  apply PLT.compose_hom_rel.
-  exists y. split; auto. simpl. apply pi2_rel_elem; auto.
+  - rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂) (x,y) x' y') in H.
+    destruct H.
+    apply PLT.compose_hom_rel in H.
+    destruct H as [?[??]].
+    apply PLT.compose_hom_rel in H0.
+    destruct H0 as [?[??]].
+    simpl in H. 
+    rewrite (pi1_rel_elem _ _ _ _ x y x0)  in H.
+    simpl in H0.
+    rewrite (pi2_rel_elem _ _ _ _ x y x1) in H0.
+    split.
+    + revert H1. apply PLT.hom_order; auto.
+    + revert H2. apply PLT.hom_order; auto.
+  - rewrite (PLT.pair_hom_rel _ _ _ _ (f∘π₁) (g∘π₂)).
+    destruct H.
+    split.
+    + apply PLT.compose_hom_rel.
+      exists x. split; auto. simpl. apply pi1_rel_elem; auto.
+    + apply PLT.compose_hom_rel.
+      exists y. split; auto. simpl. apply pi2_rel_elem; auto.
 Qed.
 
 Lemma terminate_le_cancel (hf:bool) (A B:PLT.PLT hf) (f g:1 → B) (a:A) :
@@ -1061,8 +1065,9 @@ Proof.
   repeat intro.
   destruct a0. destruct c.
   assert ((a,c0) ∈ PLT.hom_rel (f ∘ PLT.terminate hf A)).
-  apply PLT.compose_hom_rel. exists tt. split; auto.
-  apply eprod_elem. split; apply eff_complete.
+  { apply PLT.compose_hom_rel. exists tt. split; auto.
+    apply eprod_elem. split; apply eff_complete.
+  } 
   apply H in H1.
   apply PLT.compose_hom_rel in H1.
   destruct H1 as [[] [??]]. auto.
@@ -1091,15 +1096,15 @@ Section plt_const.
     (a,b') ∈ plt_const_rel <-> b' ≤ b.
   Proof.
     repeat intro. unfold plt_const_rel. split; intro.
-    apply eprod_elem in H. destruct H.
-    apply esubset_dec_elem in H0. destruct H0; auto.
-    intros. rewrite <- H2; auto.
-    apply eprod_elem. split.
-    apply eff_complete.
-    apply esubset_dec_elem.
-    intros. rewrite <- H0. auto.
-    split; auto.
-    apply eff_complete.
+    - apply eprod_elem in H. destruct H.
+      apply esubset_dec_elem in H0. destruct H0; auto.
+      intros. rewrite <- H2; auto.
+    - apply eprod_elem. split.
+      + apply eff_complete.
+      + apply esubset_dec_elem.
+        * intros. rewrite <- H0. auto.
+        * split; auto.
+          apply eff_complete.
   Qed.
 
   Program Definition plt_const :=
@@ -1113,43 +1118,45 @@ Section plt_const.
   Next Obligation.
     repeat intro.
     exists b; split; repeat intro.
-    apply H in H0.
-    apply erel_image_elem in H0.
-    apply plt_const_rel_elem in H0. auto.
-    apply erel_image_elem.
-    apply plt_const_rel_elem. auto.
+    - apply H in H0.
+      apply erel_image_elem in H0.
+      apply plt_const_rel_elem in H0. auto.
+    - apply erel_image_elem.
+      apply plt_const_rel_elem. auto.
   Qed.
 End plt_const.  
 
 Theorem pair_bottom1 (C A B:ob ∂PLT) (f:C → A) :
   《 f, ⊥ : C → B 》 ≈ ⊥.
 Proof.
-  split. hnf; simpl; intros.
-  destruct a as [c [a b]].
-  apply (PLT.pair_hom_rel _ A B C) in H.
-  destruct H.
-  simpl in H0.
-  apply union_axiom in H0.
-  destruct H0 as [q [??]].
-  apply image_axiom2 in H0.
-  destruct H0 as [?[??]].
-  apply empty_elem in H0. elim H0.
-  apply bottom_least.
+  split.
+  - hnf; simpl; intros.
+    destruct a as [c [a b]].
+    apply (PLT.pair_hom_rel _ A B C) in H.
+    destruct H.
+    simpl in H0.
+    apply union_axiom in H0.
+    destruct H0 as [q [??]].
+    apply image_axiom2 in H0.
+    destruct H0 as [?[??]].
+    apply empty_elem in H0. elim H0.
+  - apply bottom_least.
 Qed.
 
 Theorem pair_bottom2 (C A B:ob ∂PLT) (g:C → B) :
   《 ⊥ : C → A,  g 》 ≈ ⊥.
 Proof.
-  split. hnf; simpl; intros.
-  destruct a as [c [a b]].
-  apply (PLT.pair_hom_rel _ A B C) in H.
-  destruct H. simpl in H.
-  apply union_axiom in H.
-  destruct H as [q [??]].
-  apply image_axiom2 in H.
-  destruct H as [?[??]].
-  apply empty_elem in H. elim H.
-  apply bottom_least.
+  split.
+  - hnf; simpl; intros.
+    destruct a as [c [a b]].
+    apply (PLT.pair_hom_rel _ A B C) in H.
+    destruct H. simpl in H.
+    apply union_axiom in H.
+    destruct H as [q [??]].
+    apply image_axiom2 in H.
+    destruct H as [?[??]].
+    apply empty_elem in H. elim H.
+  - apply bottom_least.
 Qed.
 
 Theorem pi1_greatest (A B:ob ∂PLT) (proj:A⊗B → A) :
@@ -1202,17 +1209,17 @@ Lemma antistrict_nonbottom (A B:∂PLT) (f:A → B) :
   antistrict f <-> (forall C (g:C → A), nonbottom g -> nonbottom (f ∘ g)).
 Proof.
   split; intros.
-  destruct H0 as [[??] ?].
-  destruct (H c0) as [q ?].
-  exists (c,q). apply PLT.compose_hom_rel. eauto.
-  red; intros.
-  destruct (H (PLT.unit true) (plt_const true _ _ a)).
-  exists (tt,a). simpl. apply plt_const_rel_elem. auto.
-  destruct x as [??].
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [q [??]].
-  simpl in *. apply plt_const_rel_elem in H0.
-  exists c0. eapply PLT.hom_order; eauto.
+  - destruct H0 as [[??] ?].
+    destruct (H c0) as [q ?].
+    exists (c,q). apply PLT.compose_hom_rel. eauto.
+  - red; intros.
+    destruct (H (PLT.unit true) (plt_const true _ _ a)).
+    + exists (tt,a). simpl. apply plt_const_rel_elem. auto.
+    + destruct x as [??].
+      apply PLT.compose_hom_rel in H0.
+      destruct H0 as [q [??]].
+      simpl in *. apply plt_const_rel_elem in H0.
+      exists c0. eapply PLT.hom_order; eauto.
 Qed.
 
 Theorem antistrict_pair_commute1 (C B:∂PLT) (g:C → B) :
@@ -1220,52 +1227,52 @@ Theorem antistrict_pair_commute1 (C B:∂PLT) (g:C → B) :
 Proof.
   intros.
   split; repeat intro.
-  split. apply PLT.pair_le_commute1.
-  hnf; intros.
-  apply PLT.compose_hom_rel. simpl.
-  destruct a as [c a].
-  destruct (H c) as [b ?].
-  exists (a,b).    
-  split.
-  apply PLT.pair_hom_rel. split; auto.
-  apply pi1_rel_elem. auto.
+  - split. apply PLT.pair_le_commute1.
+    hnf; intros.
+    apply PLT.compose_hom_rel. simpl.
+    destruct a as [c a].
+    destruct (H c) as [b ?].
+    exists (a,b).    
+    split.
+    + apply PLT.pair_hom_rel. split; auto.
+    + apply pi1_rel_elem. auto.
 
-  rename a into c.
-  destruct (H C id).
-  assert ((c,c) ∈ PLT.hom_rel (PLT.pi1 ∘ PLT.pair id g)).
-  apply H1. simpl. apply ident_elem. auto.
-  apply PLT.compose_hom_rel in H2.
-  destruct H2 as [q [??]].
-  destruct q.
-  simpl in H2.
-  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
-  simpl in H2.
-  apply ident_elem in H2.
-  exists c1; auto.
+  - rename a into c.
+    destruct (H C id).
+    assert ((c,c) ∈ PLT.hom_rel (PLT.pi1 ∘ PLT.pair id g)).
+    { apply H1. simpl. apply ident_elem. auto. }
+    apply PLT.compose_hom_rel in H2.
+    destruct H2 as [q [??]].
+    destruct q.
+    simpl in H2.
+    rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
+    simpl in H2.
+    apply ident_elem in H2.
+    exists c1; auto.
 Qed.
 
 Theorem antistrict_pair_commute2 (C A:∂PLT) (f:C → A) :
   antistrict f <-> forall B (g:C → B), π₂ ∘ 《f, g》 ≈ g.
 Proof.
   split; intros.
-  split. apply PLT.pair_le_commute2.
-  hnf; intros.
-  apply PLT.compose_hom_rel. simpl.
-  destruct a as [c b].
-  destruct (H c) as [a ?].
-  exists (a,b).    
-  split.
-  apply pair_rel_elem. split; auto.
-  apply pi2_rel_elem. auto.
+  - split. apply PLT.pair_le_commute2.
+    hnf; intros.
+    apply PLT.compose_hom_rel. simpl.
+    destruct a as [c b].
+    destruct (H c) as [a ?].
+    exists (a,b).    
+    split.
+    + apply pair_rel_elem. split; auto.
+    + apply pi2_rel_elem. auto.
   
-  intro c. destruct (H C id).
-  assert ((c,c) ∈ PLT.hom_rel (π₂ ∘ PLT.pair f id)).
-  apply H1. simpl. apply ident_elem. auto.
-  apply PLT.compose_hom_rel in H2.
-  destruct H2 as [q [??]].
-  destruct q.
-  simpl in H2.
-  rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
-  simpl in H4. apply ident_elem in H4.
-  exists c0; auto.
+  - intro c. destruct (H C id).
+    assert ((c,c) ∈ PLT.hom_rel (π₂ ∘ PLT.pair f id)).
+    { apply H1. simpl. apply ident_elem. auto. }
+    apply PLT.compose_hom_rel in H2.
+    destruct H2 as [q [??]].
+    destruct q.
+    simpl in H2.
+    rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c0 c1) in H2. destruct H2.
+    simpl in H4. apply ident_elem in H4.
+    exists c0; auto.
 Qed.
