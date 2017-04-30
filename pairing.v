@@ -60,67 +60,67 @@ Lemma deflate_inflate0 : forall x,
   deflate (inflate x) = Npos x.
 Proof.
   induction x; simpl; intros; auto.
-  rewrite IHx; auto.
-  rewrite IHx; auto.
+  - rewrite IHx; auto.
+  - rewrite IHx; auto.
 Qed.
 
 Lemma deflate_inflate0' : forall y,
   deflate' (inflate' y) = Npos y.
 Proof.
   induction y; simpl; intros; auto.
-  rewrite IHy; auto.
-  rewrite IHy; auto.
+  - rewrite IHy; auto.
+  - rewrite IHy; auto.
 Qed.
 
 Lemma deflate_inflate1 : forall y,
   deflate (inflate' y) = 0.
 Proof.
   induction y; simpl; auto.
-  rewrite IHy; auto.
-  rewrite IHy; auto.
+  - rewrite IHy; auto.
+  - rewrite IHy; auto.
 Qed.
 
 Lemma deflate_inflate1' : forall x,
   deflate' (inflate x) = 0.
 Proof.
   induction x; simpl; auto.
-  rewrite IHx; auto.
-  rewrite IHx; auto.
+  - rewrite IHx; auto.
+  - rewrite IHx; auto.
 Qed.
 
 Lemma deflate_inflate : forall x y,
   deflate (inflate x + inflate' y) = Npos x.
 Proof.
   induction x; simpl; intros.
-  destruct y; simpl; f_equal; auto.
-  rewrite IHx. auto.
-  rewrite IHx. auto.
-  rewrite deflate_inflate0. auto.
-  destruct y; simpl; f_equal; auto.
-  rewrite IHx. auto.
-  rewrite IHx. auto.
-  rewrite deflate_inflate0. auto.
-  destruct y; simpl; f_equal; auto.
-  rewrite deflate_inflate1. auto.
-  rewrite deflate_inflate1. auto.
+  - destruct y; simpl; f_equal; auto.
+    + rewrite IHx. auto.
+    + rewrite IHx. auto.
+    + rewrite deflate_inflate0. auto.
+  - destruct y; simpl; f_equal; auto.
+    + rewrite IHx. auto.
+    + rewrite IHx. auto.
+    + rewrite deflate_inflate0. auto.
+
+  - destruct y; simpl; f_equal; auto.
+    + rewrite deflate_inflate1. auto.
+    + rewrite deflate_inflate1. auto.
 Qed.  
 
 Lemma deflate_inflate' : forall y x,
   deflate' (inflate x + inflate' y) = Npos y.
 Proof.
   induction y; simpl; intros; auto.
-  destruct x; simpl.
-  rewrite IHy. auto.
-  rewrite IHy. auto.
-  rewrite deflate_inflate0'. auto.
-  destruct x; simpl.
-  rewrite IHy. auto.
-  rewrite IHy. auto.
-  rewrite deflate_inflate0'. auto.
-  destruct x; simpl.
-  rewrite deflate_inflate1'. auto.
-  rewrite deflate_inflate1'. auto.
-  auto.
+  - destruct x; simpl.
+    + rewrite IHy. auto.
+    + rewrite IHy. auto.
+    + rewrite deflate_inflate0'. auto.
+  - destruct x; simpl.
+    + rewrite IHy. auto.
+    + rewrite IHy. auto.
+    + rewrite deflate_inflate0'. auto.
+  - destruct x; simpl; auto.
+    + rewrite deflate_inflate1'. auto.
+    + rewrite deflate_inflate1'. auto.
 Qed.
 
 Lemma deflate00 : forall p, deflate (p~0~0) = 2*(deflate p).
@@ -218,11 +218,11 @@ Lemma unpairing_pairing : forall p, unpairing (pairing p) = p.
 Proof.
   intros [x y].
   destruct x; destruct y; simpl; auto.
-  rewrite deflate_inflate1. rewrite deflate_inflate0'. auto.
-  rewrite deflate_inflate1'. rewrite deflate_inflate0. auto.
-  rewrite deflate_inflate.
-  rewrite deflate_inflate'.
-  auto.
+  - rewrite deflate_inflate1. rewrite deflate_inflate0'. auto.
+  - rewrite deflate_inflate1'. rewrite deflate_inflate0. auto.
+  - rewrite deflate_inflate.
+    rewrite deflate_inflate'.
+    auto.
 Qed.
 
 Lemma pairing_unpairing : forall z, pairing (unpairing z) = z.
@@ -230,25 +230,25 @@ Proof.
   intro z. destruct z. simpl; auto.
   unfold unpairing.
   revert p. fix 1. intro p.
-  destruct p. destruct p.
-  rewrite deflate11. rewrite deflate11'.
-  rewrite pairing11. rewrite pairing_unpairing.
-  auto.
-
-  rewrite deflate01. rewrite deflate01'.
-  rewrite pairing01. rewrite pairing_unpairing.
-  auto.
-  simpl. auto.
-
   destruct p.
-  rewrite deflate10. rewrite deflate10'.
-  rewrite pairing10. rewrite pairing_unpairing.
-  auto.
-  rewrite deflate00. rewrite deflate00'.
-  rewrite pairing00. rewrite pairing_unpairing.
-  auto.
-  simpl. auto.
-  simpl. auto.
+  - destruct p.
+    + rewrite deflate11. rewrite deflate11'.
+      rewrite pairing11. rewrite pairing_unpairing.
+      auto.
+    + rewrite deflate01. rewrite deflate01'.
+      rewrite pairing01. rewrite pairing_unpairing.
+      auto.
+    + simpl. auto.
+
+  - destruct p.
+    + rewrite deflate10. rewrite deflate10'.
+      rewrite pairing10. rewrite pairing_unpairing.
+      auto.
+    + rewrite deflate00. rewrite deflate00'.
+      rewrite pairing00. rewrite pairing_unpairing.
+      auto.
+    + simpl. auto.
+  - simpl. auto.
 Qed.
 
 Global Opaque unpairing pairing.

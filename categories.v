@@ -208,9 +208,9 @@ Proof.
   generalize (inv_id2 f⁻¹). intro.
   generalize (inv_id2 f). intro.
   transitivity ((f⁻¹)⁻¹ ∘ f⁻¹ ∘ f).
-  rewrite <- (cat_assoc X).
-  rewrite H0. symmetry. apply cat_ident1.
-  rewrite H. apply cat_ident2.
+  - rewrite <- (cat_assoc X).
+    rewrite H0. symmetry. apply cat_ident1.
+  - rewrite H. apply cat_ident2.
 Qed.
 
 Lemma inv_compose (X:groupoid) :
@@ -221,11 +221,12 @@ Proof.
   generalize (inv_id1 f). intro.
   generalize (inv_id1 g). intro.
   assert ((g ∘ f)⁻¹ ∘ (g ∘ f) ∘ f⁻¹ ≈ (g ∘ f)⁻¹ ∘ g).
-  rewrite <- (cat_assoc X).
-  rewrite <- (cat_assoc X).
-  rewrite H0.
-  rewrite (cat_assoc X).
-  apply cat_ident1.
+  { rewrite <- (cat_assoc X).
+    rewrite <- (cat_assoc X).
+    rewrite H0.
+    rewrite (cat_assoc X).
+    apply cat_ident1.
+  }
   rewrite H in H2.
   rewrite (cat_ident2 X) in H2.
   rewrite H2.
@@ -241,13 +242,13 @@ Proof.
   intro.
   generalize (inv_id1 f). intros.
   transitivity (g⁻¹ ∘ (f ∘ f⁻¹)).
-  rewrite H at 2.  
-  rewrite (cat_assoc X).
-  generalize (inv_id2 g). intros.
-  rewrite H1.
-  rewrite (cat_ident2 X). auto.
-  rewrite H0.
-  rewrite (cat_ident1 X). auto.
+  - rewrite H at 2.  
+    rewrite (cat_assoc X).
+    generalize (inv_id2 g). intros.
+    rewrite H1.
+    rewrite (cat_ident2 X). auto.
+  - rewrite H0.
+    rewrite (cat_ident1 X). auto.
 Qed.
 
 Lemma inv_inj (X:groupoid) (A B:X) (f g:A → B) : 
@@ -322,10 +323,10 @@ Program Definition mono_cat_axioms (C:category) :
 Proof.
   constructor.
 
-  intros. apply cat_ident1.
-  intros. apply cat_ident2.
-  intros. apply cat_assoc.
-  intros. apply cat_respects; auto.
+  - intros. apply cat_ident1.
+  - intros. apply cat_ident2.
+  - intros. apply cat_assoc.
+  - intros. apply cat_respects; auto.
 Qed.
 
 Canonical Structure MONO_EQ (C:category) A B
@@ -510,10 +511,10 @@ Program Definition iso_cat_axioms (C:category) :
 Proof.
   constructor.
 
-  intros; simpl. apply cat_ident1.
-  intros; simpl. apply cat_ident2.
-  intros; simpl. apply cat_assoc.
-  simpl; intros. apply cat_respects; auto.
+  - intros; simpl. apply cat_ident1.
+  - intros; simpl. apply cat_ident2.
+  - intros; simpl. apply cat_assoc.
+  - simpl; intros. apply cat_respects; auto.
 Qed.
 
 Definition iso_inverse (C:category) (A B:C) (f:A ↔ B) : B ↔ A :=
@@ -1142,22 +1143,22 @@ Lemma curry_commute3 (X:cartesian_closed) :
 Proof.
   intros.
   transitivity (apply ∘ 〈Λ f ∘ π₁, π₂〉 ∘ 〈g, h〉).
-  rewrite <- (cat_assoc X). apply (cat_respects X); auto.
-  symmetry. apply pairing_univ.
-  rewrite (cat_assoc X).
-  transitivity (Λ(f) ∘ π₁ ∘ 〈g,h〉).
-  apply cat_respects; auto.
-  apply (proj1_commute X).
-  rewrite <- (cat_assoc X).
-  apply cat_respects; auto.
-  apply proj1_commute.
-  rewrite (cat_assoc X).
-  transitivity (π₂ ∘ 〈g,h〉).
-  apply cat_respects; auto.
-  apply (proj2_commute X).
-  apply (proj2_commute X).
-  apply cat_respects; auto.
-  apply curry_commute.
+  - rewrite <- (cat_assoc X). apply (cat_respects X); auto.
+    symmetry. apply pairing_univ.
+    + rewrite (cat_assoc X).
+      transitivity (Λ(f) ∘ π₁ ∘ 〈g,h〉).
+      * apply cat_respects; auto.
+        apply (proj1_commute X).
+      * rewrite <- (cat_assoc X).
+        apply cat_respects; auto.
+        apply proj1_commute.
+    + rewrite (cat_assoc X).
+      transitivity (π₂ ∘ 〈g,h〉).
+      * apply cat_respects; auto.
+        apply (proj2_commute X).
+      * apply (proj2_commute X).
+  - apply cat_respects; auto.
+    apply curry_commute.
 Qed.
 
 Lemma curry_commute2 (X:cartesian_closed) : 
@@ -1165,7 +1166,7 @@ Lemma curry_commute2 (X:cartesian_closed) :
     apply ∘ 〈 Λ f, h 〉 ≈ f ∘ 〈 id, h 〉.
 Proof.
   intros. rewrite <- (curry_commute3 X C C A B f id h).
-  apply cat_respects. auto.
+  apply cat_respects; auto.
   apply pairing_morphism; auto.
   symmetry. apply cat_ident1.
 Qed.
@@ -1670,32 +1671,32 @@ Section pullback_lemma.
       simpl; intros.
       red in H; red in H0.
       etransitivity.
-      symmetry. apply cat_assoc.
-      rewrite H0.
-      etransitivity. apply cat_assoc.
-      rewrite H.
-      symmetry. apply cat_assoc.
+      - symmetry. apply cat_assoc.
+      - rewrite H0.
+        etransitivity. apply cat_assoc.
+        rewrite H.
+        symmetry. apply cat_assoc.
     Qed.      
     Next Obligation.
       unfold pullback_lemma_map2.
       etransitivity.
-      symmetry. apply cat_assoc.
-      generalize (axiom1 PB1 _ p _ (pullback_lemma_map2_obligation_1 Q p q H)).
-      intros. rewrite H0.
-      apply (axiom1 PB2).
+      - symmetry. apply cat_assoc.
+      - generalize (axiom1 PB1 _ p _ (pullback_lemma_map2_obligation_1 Q p q H)).
+        intros. rewrite H0.
+        apply (axiom1 PB2).
     Qed.
     Next Obligation.
       apply (axiom2 PB1 _ p _ (pullback_lemma_map2_obligation_1 Q p q H)).
     Qed.
     Next Obligation.
       assert (g1 ∘ k ≈ pullback_lemma1_map1 Q p q H).
-      apply (uniq PB2).
-      rewrite <- H0.
-      rewrite <- (cat_assoc _ _ _ _ _ f3 g2 _).
-      rewrite <- (cat_assoc _ _ _ _ _ f3 (g2 ∘ g1) _).
-      apply cat_respects.
-      auto.
-      apply cat_assoc.
+      { apply (uniq PB2).
+        rewrite <- H0.
+        rewrite <- (cat_assoc _ _ _ _ _ f3 g2 _).
+        rewrite <- (cat_assoc _ _ _ _ _ f3 (g2 ∘ g1) _).
+        apply cat_respects; auto.
+        apply cat_assoc.
+      }
       apply (uniq PB1).
       rewrite <- (cat_assoc _ _ _ _ _ f2 g1 _).
       rewrite H1. auto.
@@ -1872,18 +1873,18 @@ Section alg.
   Proof.
     intros.
     transitivity (hom_map _ _ (cata I I)).
-    apply cata_axiom'.
-    rewrite <- (cat_assoc _ _ _ _ _ (iota I)).
-    apply cat_respects; auto.
-    rewrite (hom_axiom _ _ (cata I (lift_alg I))).
-    simpl.
-    symmetry. apply Functor.compose. auto.
+    - apply cata_axiom'.
+      rewrite <- (cat_assoc _ _ _ _ _ (iota I)).
+      apply cat_respects; auto.
+      rewrite (hom_axiom _ _ (cata I (lift_alg I))).
+      simpl.
+      symmetry. apply Functor.compose. auto.
 
-    symmetry. apply cata_axiom'.
-    rewrite (cat_ident2 _ _ _ (iota I)).
-    rewrite (Functor.ident F); auto.
-    rewrite (cat_ident1 _ _ _ (iota I)).
-    auto.
+    - symmetry. apply cata_axiom'.
+      rewrite (cat_ident2 _ _ _ (iota I)).
+      rewrite (Functor.ident F); auto.
+      rewrite (cat_ident1 _ _ _ (iota I)).
+      auto.
   Qed.
 
   Lemma out_in : forall (I:initial_alg),
@@ -1891,25 +1892,25 @@ Section alg.
   Proof.
     intros.
     transitivity (F·(hom_map _ _ (cata I I))).
-    unfold out.
-    rewrite (hom_axiom).
-    simpl.
-    symmetry.
-    apply Functor.compose.
-    rewrite in_out.
-    symmetry.
-    apply cata_axiom'.
-    rewrite (cat_ident2 _ _ _ (iota I)).
-    rewrite Functor.ident.
-    rewrite (cat_ident1 _ _ _ (iota I)).
-    reflexivity. reflexivity.
-    apply Functor.ident.
-    symmetry.
-    apply cata_axiom'.
-    rewrite (cat_ident2 _ _ _ (iota I)).
-    rewrite Functor.ident.
-    rewrite (cat_ident1 _ _ _ (iota I)).
-    reflexivity. reflexivity.
+    - unfold out.
+      rewrite (hom_axiom).
+      simpl.
+      symmetry.
+      apply Functor.compose.
+      rewrite in_out.
+      symmetry.
+      apply cata_axiom'.
+      rewrite (cat_ident2 _ _ _ (iota I)).
+      rewrite Functor.ident.
+      rewrite (cat_ident1 _ _ _ (iota I)).
+      reflexivity. reflexivity.
+    - apply Functor.ident.
+      symmetry.
+      apply cata_axiom'.
+      rewrite (cat_ident2 _ _ _ (iota I)).
+      rewrite Functor.ident.
+      rewrite (cat_ident1 _ _ _ (iota I)).
+      reflexivity. reflexivity.
   Qed.    
 
   Lemma initial_inj_epic : forall (I:initial_alg) B (g h: I → B),
@@ -1918,9 +1919,10 @@ Section alg.
   Proof.
     intros.
     cut (g ∘ id ≈ h ∘ id ).
-    rewrite (cat_ident1 _ _ _ g).
-    rewrite (cat_ident1 _ _ _ h).
-    auto.
+    { rewrite (cat_ident1 _ _ _ g).
+      rewrite (cat_ident1 _ _ _ h).
+      auto.
+    }
     rewrite <- (in_out I).
     rewrite (cat_assoc _ _ _ _ _ g).
     rewrite H.
@@ -1954,10 +1956,10 @@ Next Obligation.
 Qed.
 Next Obligation.
   constructor.
-  intros. apply cat_ident1.
-  intros. apply cat_ident2.
-  intros. apply cat_assoc.
-  intros. apply cat_respects; auto.
+  - intros. apply cat_ident1.
+  - intros. apply cat_ident2.
+  - intros. apply cat_assoc.
+  - intros. apply cat_respects; auto.
 Qed.
 Arguments ALG [C] F.
 
@@ -2044,11 +2046,11 @@ Section product_category.
   Proof.
     constructor.
 
-    simpl; intros. split; simpl; apply cat_ident1.
-    simpl; intros. split; simpl; apply cat_ident2.
-    simpl; intros. split; simpl; apply cat_assoc.
-    simpl; intros. destruct H; destruct H0.
-    split; simpl; apply cat_respects; auto.
+    - simpl; intros. split; simpl; apply cat_ident1.
+    - simpl; intros. split; simpl; apply cat_ident2.
+    - simpl; intros. split; simpl; apply cat_assoc.
+    - simpl; intros. destruct H; destruct H0.
+      split; simpl; apply cat_respects; auto.
   Qed.    
 
   Canonical Structure PROD := 
@@ -2238,14 +2240,14 @@ Program Definition SET : category :=
   Category SET.ob SET.hom SET.set_hom_eq SET.set_hom_comp _.
 Next Obligation.
   constructor.
-  intros. hnf. simpl. intros. apply eq_refl.
-  intros. hnf. simpl. intros. apply eq_refl.
-  intros. hnf. simpl. intros. apply eq_refl.
-  intros. hnf. simpl; intros.
-  apply eq_trans with (SET.hom_map _ _ f' (SET.hom_map _ _ g x)).
-  apply H.
-  apply SET.hom_axiom.
-  apply H0.
+  - intros. hnf. simpl. intros. apply eq_refl.
+  - intros. hnf. simpl. intros. apply eq_refl.
+  - intros. hnf. simpl. intros. apply eq_refl.
+  - intros. hnf. simpl; intros.
+    apply eq_trans with (SET.hom_map _ _ f' (SET.hom_map _ _ g x)).
+    + apply H.
+    + apply SET.hom_axiom.
+      apply H0.
 Qed.
 
 Coercion SET.carrier : SET.ob >-> Sortclass.

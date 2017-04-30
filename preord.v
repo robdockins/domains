@@ -72,8 +72,8 @@ Module Preord.
   Qed.
   Next Obligation.
     red; intros. red. split.
-    destruct (H x0); auto.
-    destruct (H x0); auto.
+    - destruct (H x0); auto.
+    - destruct (H x0); auto.
   Qed.
   Next Obligation.
     intro.
@@ -84,22 +84,16 @@ Module Preord.
   Lemma cat_axioms : Category.axioms type hom eq_mixin comp_mixin.
     constructor.
     
-    repeat intro. split. simpl. red. apply refl.
-    repeat intro. simpl. red. apply refl.
-
-    repeat intro. split. simpl. red. apply refl.
-    simpl. red. apply refl.
-    
-    repeat intro. split; simpl; red; apply refl.
-    repeat intro. split; simpl; red.
-    apply trans with (f (g' x)).
-    apply axiom.
-    destruct (H0 x); auto.
-    destruct (H (g' x)); auto.
-    apply trans with (f (g' x)).
-    destruct (H (g' x)); auto.
-    apply axiom.
-    destruct (H0 x); auto.
+    - repeat intro. split; apply refl.
+    - repeat intro. split; apply refl.
+    - repeat intro. split; apply refl.
+    - repeat intro. split; simpl; red.
+      + apply trans with (f (g' x)).
+        * apply axiom; destruct (H0 x); auto.
+        * destruct (H (g' x)); auto.
+      + apply trans with (f (g' x)).
+        * destruct (H (g' x)); auto.
+        * apply axiom; destruct (H0 x); auto.
   Qed.
 
   Program Definition ord_eq (T:type) : Eq.mixin_of T :=
@@ -197,10 +191,10 @@ Proof.
   intros. 
   destruct H; destruct H0.
   split; intros.
-  transitivity x; auto.
-  transitivity x0; auto.
-  transitivity y; auto.
-  transitivity y0; auto.
+  - transitivity x; auto.
+    transitivity x0; auto.
+  - transitivity y; auto.
+    transitivity y0; auto.
 Qed.
 
 Add Parametric Morphism (A B:preord) :
@@ -225,8 +219,8 @@ Add Parametric Morphism (A B:preord) :
 Proof.
   intros.
   transitivity (x y0).
-  destruct H0; split; apply Preord.axiom; auto.
-  destruct H; split; auto.
+  - destruct H0; split; apply Preord.axiom; auto.
+  - destruct H; split; auto.
 Qed.
 
 (**  This lemma is handy for using an equality in the context to prove a goal
@@ -251,12 +245,12 @@ Program Definition PREORD_concrete : concrete PREORD :=
   Preord.map _ _.
 Next Obligation.
   split. 
-  apply ord_trans with (Preord.map A B f y).
-  apply Preord.axiom. destruct H0; auto. 
-  destruct (H y); auto.
-  apply ord_trans with (Preord.map A B f y).
-  destruct (H y); auto.
-  apply Preord.axiom. destruct H0; auto. 
+  - apply ord_trans with (Preord.map A B f y).
+    + apply Preord.axiom. destruct H0; auto. 
+    + destruct (H y); auto.
+  - apply ord_trans with (Preord.map A B f y).
+    + destruct (H y); auto.
+    + apply Preord.axiom. destruct H0; auto. 
 Qed.
 Next Obligation.
   split; apply Preord.refl.
@@ -288,8 +282,8 @@ Add Parametric Morphism (X Y:preord) :
 Proof.
   intros.
   transitivity (x#y0).
-  apply preord_eq; auto.
-  apply H.
+  - apply preord_eq; auto.
+  - apply H.
 Qed.
 
 Add Parametric Morphism (X Y:preord) :
@@ -301,8 +295,8 @@ Add Parametric Morphism (X Y:preord) :
 Proof.
   intros.
   transitivity (x#y0).
-  apply preord_eq; auto.
-  apply H.
+  - apply preord_eq; auto.
+  - apply H.
 Qed.
 
 Add Parametric Morphism (X Y:preord) :
@@ -314,8 +308,8 @@ Add Parametric Morphism (X Y:preord) :
 Proof.
   intros. 
   transitivity (x#y0).
-  apply preord_ord. auto.
-  apply H.
+  - apply preord_ord. auto.
+  - apply H.
 Qed.
 
 (** PREORD is termianted. *)
@@ -417,16 +411,15 @@ Program Definition preord_cartesian_mixin
 Next Obligation.      
   constructor.
 
-  intros. split; simpl; auto.
-  intros. split; simpl; auto.
-
-  intros. intro. split. simpl.
-  split; simpl.
-  destruct (H x); auto.
-  destruct (H0 x); auto.
-  split; simpl.
-  destruct (H x); auto.
-  destruct (H0 x); auto.
+  - intros. split; simpl; auto.
+  - intros. split; simpl; auto.
+  - intros. intro. split; simpl.
+    + split; simpl.
+      * destruct (H x); auto.
+      * destruct (H0 x); auto.
+    + split; simpl.
+      * destruct (H x); auto.
+      * destruct (H0 x); auto.
 Qed.
     
 Canonical Structure preord_cartesian : cartesian :=
@@ -468,13 +461,13 @@ Program Definition preord_ccc_mixin
 Next Obligation.
   constructor.
 
-  simpl. intros.
-  split; simpl; destruct x; simpl; auto.
+  - simpl. intros.
+    split; simpl; destruct x; simpl; auto.
   
-  simpl. intros.
-  split; intro z; simpl.
-  rewrite <- H. simpl; auto.
-  rewrite <- H. simpl; auto.
+  - simpl. intros.
+    split; intro z; simpl.
+    + rewrite <- H. simpl; auto.
+    + rewrite <- H. simpl; auto.
 Qed.
 
 Canonical Structure preord_ccc : cartesian_closed :=
@@ -504,8 +497,8 @@ Next Obligation.
 Qed.
 Next Obligation.
   hnf. destruct x; destruct y; destruct z; simpl in *; intuition.
-  eapply ord_trans; eauto.
-  eapply ord_trans; eauto.
+  - eapply ord_trans; eauto.
+  - eapply ord_trans; eauto.
 Qed.
 
 Canonical Structure sum_preord.
@@ -573,21 +566,20 @@ Qed.
 Lemma lift_map_eq (A B:preord) (f f':A → B) : f ≈ f' -> lift_map f ≈ lift_map f'.
 Proof.
   intros.
-  split; hnf; destruct x; simpl; auto.
-  apply H. apply H.
+  split; hnf; destruct x; simpl; auto; apply H.
 Qed.
 
 Program Definition liftF : functor PREORD PREORD :=
   (Functor PREORD PREORD lift (@lift_map) _ _ _).
 Next Obligation.
   transitivity (lift_map id(A)).
-  apply lift_map_eq; auto.
-  apply lift_map_id.
+  - apply lift_map_eq; auto.
+  - apply lift_map_id.
 Qed.
 Next Obligation.
   transitivity (lift_map (f ∘ g)).
-  apply lift_map_eq; auto.
-  apply lift_map_compose.
+  - apply lift_map_eq; auto.
+  - apply lift_map_compose.
 Qed.
 Next Obligation.
   apply lift_map_eq. auto.
