@@ -55,27 +55,27 @@ Section bilimit.
       ≤ ds_hom DS (idx y) k Hyk (elem y).
   Proof.
     split; intros.
-    destruct H as [k' [Hxk' [Hyk' ?]]].
-    destruct (choose_ub I k k') as [q [??]].
-    assert (Hxq : idx x ≤ q).
-    transitivity k; auto.
-    assert (Hyq : idx y ≤ q).
-    transitivity k; auto.
+    - destruct H as [k' [Hxk' [Hyk' ?]]].
+      destruct (choose_ub I k k') as [q [??]].
+      assert (Hxq : idx x ≤ q)
+         by (transitivity k; auto).
+      assert (Hyq : idx y ≤ q)
+         by (transitivity k; auto).
     assert (ds_hom DS (idx x) q Hxq (elem x) ≤
             ds_hom DS (idx y) q Hyq (elem y)).
-    rewrite <- (ds_compose DS (idx x) k' q Hxk' H1 Hxq).
-    rewrite <- (ds_compose DS (idx y) k' q Hyk' H1 Hyq).
-    simpl. apply embed_mono. auto.
-
+    { rewrite <- (ds_compose DS (idx x) k' q Hxk' H1 Hxq).
+      rewrite <- (ds_compose DS (idx y) k' q Hyk' H1 Hyq).
+      simpl. apply embed_mono. auto.
+    } 
     rewrite <- (ds_compose DS (idx x) k q Hxk H0 Hxq) in H2.
     rewrite <- (ds_compose DS (idx y) k q Hyk H0 Hyq) in H2.
     simpl in H2.
 
     apply embed_reflects in H2. auto.
 
-    destruct (choose_ub I (idx x) (idx y)) as [k [??]].
-    exists k, H0, H1.
-    apply H.    
+    - destruct (choose_ub I (idx x) (idx y)) as [k [??]].
+      exists k, H0, H1.
+      apply H.    
   Qed.
 
   Lemma limset_order_refl (x:limset) : limset_order x x.
@@ -89,17 +89,17 @@ Section bilimit.
     intros [k1 [Hxk1 [Hyk1 ?]]].
     intros [k2 [Hyk2 [Hzk2 ?]]].
     destruct (choose_ub I k1 k2) as [k [??]].
-    assert (Hxk : idx x ≤ k). transitivity k1; auto.
-    assert (Hyk : idx y ≤ k). transitivity k1; auto.
-    assert (Hzk : idx z ≤ k). transitivity k2; auto.
+    assert (Hxk : idx x ≤ k) by (transitivity k1; auto).
+    assert (Hyk : idx y ≤ k) by (transitivity k1; auto).
+    assert (Hzk : idx z ≤ k) by (transitivity k2; auto).
     exists k. exists Hxk. exists Hzk.
     transitivity (ds_hom DS (idx y) k Hyk (elem y)).
-    rewrite <- (ds_compose DS (idx x) k1 k Hxk1 H1 Hxk).
-    rewrite <- (ds_compose DS (idx y) k1 k Hyk1 H1 Hyk).
-    simpl. apply embed_mono. auto.
-    rewrite <- (ds_compose DS (idx y) k2 k Hyk2 H2 Hyk).
-    rewrite <- (ds_compose DS (idx z) k2 k Hzk2 H2 Hzk).
-    simpl. apply embed_mono. auto.
+    - rewrite <- (ds_compose DS (idx x) k1 k Hxk1 H1 Hxk).
+      rewrite <- (ds_compose DS (idx y) k1 k Hyk1 H1 Hyk).
+      simpl. apply embed_mono. auto.
+    - rewrite <- (ds_compose DS (idx y) k2 k Hyk2 H2 Hyk).
+      rewrite <- (ds_compose DS (idx z) k2 k Hzk2 H2 Hzk).
+      simpl. apply embed_mono. auto.
   Qed.
 
   Definition limord_mixin :=
@@ -116,11 +116,11 @@ Section bilimit.
     destruct (eff_ord_dec _ (PLT.effective (ds_F DS k))
                 (ds_hom DS (idx x) k H (elem x))
                 (ds_hom DS (idx y) k H0 (elem y))).
-    left.
-    exists k. exists H. exists H0. auto.
-    right. intro.
-    rewrite limset_order_exists_forall in H1.
-    apply n. apply H1.
+    - left.
+      exists k. exists H. exists H0. auto.
+    - right. intro.
+      rewrite limset_order_exists_forall in H1.
+      apply n. apply H1.
   Qed.
 
   (**  Furthermore, all the elements can be enumerated.
@@ -148,8 +148,8 @@ Section bilimit.
     rewrite H0 in H.
     destruct H.
     set (x' := ds_hom DS i c H x).
-    assert (x' ∈ eff_enum _ (PLT.effective (ds_F DS c))).
-    apply eff_complete.
+    assert (x' ∈ eff_enum _ (PLT.effective (ds_F DS c)))
+      by apply eff_complete.
     destruct H2 as [q ?].
     case_eq (eff_enum _ (PLT.effective (ds_F DS c)) q); intros.
     2: rewrite H3 in H2; elim H2.
@@ -159,10 +159,10 @@ Section bilimit.
     rewrite pairing.unpairing_pairing.
     rewrite H0. rewrite H3.
     split.
-    exists c. simpl. exists H. exists (ord_refl _ _).
-    rewrite (ds_ident DS c (ord_refl _ _)). simpl. auto.
-    exists c. simpl. exists (ord_refl _ _). exists H.
-    rewrite (ds_ident DS c (ord_refl _ _)). simpl. auto.
+    - exists c. simpl. exists H. exists (ord_refl _ _).
+      rewrite (ds_ident DS c (ord_refl _ _)). simpl. auto.
+    - exists c. simpl. exists (ord_refl _ _). exists H.
+      rewrite (ds_ident DS c (ord_refl _ _)). simpl. auto.
   Qed.
 
   (**  Moreover, the bilimit has normal sets.
@@ -173,202 +173,203 @@ Section bilimit.
     destruct (choose_ub_set I (map idx X)) as [k ?].
     
     assert { M | X ≈ map (LimSet k) M }.
-    clear Hinh.
-    induction X.
-    exists nil. simpl; auto.
-    destruct IHX as [M ?].
-    hnf; intros. apply u.
-    simpl. apply cons_elem; auto.
-    assert (Hak : idx a ≤ k).
-    apply u. simpl. apply cons_elem; auto.
-    exists (ds_hom DS (idx a) k Hak (elem a) :: M).
-    split. hnf; simpl; intros.
-    apply cons_elem in H.
-    destruct H. rewrite H.
-    apply cons_elem. left.
-    split.
-    exists k; simpl. exists Hak. exists (ord_refl _ _).
-    rewrite (ds_ident DS k (ord_refl _ _)).
-    simpl. auto.
-    exists k; simpl. exists (ord_refl _ _). exists Hak.
-    rewrite (ds_ident DS k (ord_refl _ _)).
-    simpl. auto.
-    apply cons_elem. right.
-    rewrite <- e; auto.
-    hnf; intros.
-    simpl in H.
-    apply cons_elem in H.
-    destruct H.
-    rewrite H.
-    apply cons_elem. left.
-    split.
-    exists k; simpl. exists (ord_refl _ _). exists Hak.
-    rewrite (ds_ident DS k (ord_refl _ _)).
-    simpl. auto.
-    exists k; simpl. exists Hak. exists (ord_refl _ _).
-    rewrite (ds_ident DS k (ord_refl _ _)).
-    simpl. auto.
-    apply cons_elem. right.
-    rewrite e; auto.
+    { clear Hinh.
+      induction X.
+      - exists nil. simpl; auto.
+      - destruct IHX as [M ?].
+        + hnf; intros. apply u.
+          simpl. apply cons_elem; auto.
+        + assert (Hak : idx a ≤ k).
+          { apply u. simpl. apply cons_elem; auto. }
+          exists (ds_hom DS (idx a) k Hak (elem a) :: M).
+          split.
+          * hnf; simpl; intros.
+            apply cons_elem in H.
+            destruct H.
+            ** rewrite H.
+               apply cons_elem. left.
+               split.
+               *** exists k; simpl. exists Hak. exists (ord_refl _ _).
+                   rewrite (ds_ident DS k (ord_refl _ _)).
+                   simpl. auto.
+               *** exists k; simpl. exists (ord_refl _ _). exists Hak.
+                   rewrite (ds_ident DS k (ord_refl _ _)).
+                   simpl. auto.
+            ** apply cons_elem. right.
+               rewrite <- e; auto.
+          * hnf; intros.
+            simpl in H.
+            apply cons_elem in H.
+            destruct H.
+            ** rewrite H.
+               apply cons_elem. left.
+               split.
+               *** exists k; simpl. exists (ord_refl _ _). exists Hak.
+                   rewrite (ds_ident DS k (ord_refl _ _)).
+                   simpl. auto.
+               *** exists k; simpl. exists Hak. exists (ord_refl _ _).
+                   rewrite (ds_ident DS k (ord_refl _ _)).
+                   simpl. auto.
+            ** apply cons_elem. right.
+               rewrite e; auto.
+    } 
     
     destruct X0 as [M HM].
     exists (map (LimSet k) (mub_closure (PLT.plotkin (ds_F DS k)) M)).
     split.
-    hnf; intros.
-    rewrite HM in H.
-    destruct H as [q [??]].
-    apply in_map_iff in H.
-    destruct H as [q' [??]].
-    subst q.
-    assert (q' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
-    apply mub_clos_incl. exists q'; auto.
-    destruct H as [x [??]].
-    rewrite H0.
-    exists (LimSet k x).
-    split.
-    apply in_map. auto.
-    split.
-    exists k; simpl.
-    exists (ord_refl _ _ ).
-    exists (ord_refl _ _ ).
-    apply embed_mono; auto.
-    exists k; simpl.
-    exists (ord_refl _ _ ).
-    exists (ord_refl _ _ ).
-    apply embed_mono; auto.
-    split.
-    revert Hinh. 
-    unfold inh.
-    pattern hf at 1 2. case hf; auto.
-    intros [x ?].
-    rewrite HM in H.
-    destruct H as [x' [??]].
-    apply in_map_iff in H.
-    destruct H as [q [??]].
-    subst x'.
-    assert (q ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
-    apply mub_clos_incl. exists q; split; auto.
-    destruct H as [q' [??]].
-    exists (LimSet k q').
-    exists (LimSet k q').
-    split; auto.
-    apply in_map. auto.
+    - hnf; intros.
+      rewrite HM in H.
+      destruct H as [q [??]].
+      apply in_map_iff in H.
+      destruct H as [q' [??]].
+      subst q.
+      assert (q' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
+      { apply mub_clos_incl. exists q'; auto. }
+      destruct H as [x [??]].
+      rewrite H0.
+      exists (LimSet k x).
+      split.
+      + apply in_map. auto.
+      + split.
+        * exists k; simpl.
+          exists (ord_refl _ _ ).
+          exists (ord_refl _ _ ).
+          apply embed_mono; auto.
+        * exists k; simpl.
+          exists (ord_refl _ _ ).
+          exists (ord_refl _ _ ).
+          apply embed_mono; auto.
+    - split.
+      + revert Hinh. 
+        unfold inh.
+        pattern hf at 1 2. case hf; auto.
+        intros [x ?].
+        rewrite HM in H.
+        destruct H as [x' [??]].
+        apply in_map_iff in H.
+        destruct H as [q [??]].
+        subst x'.
+        assert (q ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
+        { apply mub_clos_incl. exists q; split; auto. }
+        destruct H as [q' [??]].
+        exists (LimSet k q').
+        exists (LimSet k q').
+        split; auto.
+        apply in_map. auto.
 
-    intros.
-    apply prove_directed.
-    generalize (refl_equal hf).
-    pattern hf at 2. case hf; intros. 
-    pattern hf at 1. rewrite H; auto.
-    pattern hf at 1. rewrite H.
-    destruct (choose_ub I (idx z) k) as [k' [Hzk' Hkk']].
-    generalize (embed_directed0 (ds_hom DS k k' Hkk')
-        (ds_hom DS (idx z) k' Hzk' (elem z))).
-    rewrite H at 1.
-    intros [q ?].
-    destruct (mub_complete (PLT.plotkin (ds_F DS k)) nil q) as [q' [??]].
-    hnf. pattern hf at 1. rewrite H. auto.
-    hnf; simpl; intros. apply nil_elem in H1. elim H1.
-    assert (q' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
-    apply mub_clos_mub with nil; auto.
-    hnf. pattern hf at 1. rewrite H. auto.
+      + intros.
+        apply prove_directed.
+        * generalize (refl_equal hf).
+          pattern hf at 2. case hf; intros. 
+          ** pattern hf at 1. rewrite H; auto.
+          ** pattern hf at 1. rewrite H.
+             destruct (choose_ub I (idx z) k) as [k' [Hzk' Hkk']].
+             generalize (embed_directed0 (ds_hom DS k k' Hkk')
+                                         (ds_hom DS (idx z) k' Hzk' (elem z))).
+             rewrite H at 1.
+             intros [q ?].
+             destruct (mub_complete (PLT.plotkin (ds_F DS k)) nil q) as [q' [??]].
+             *** hnf. pattern hf at 1. rewrite H. auto.
+             *** hnf; simpl; intros. apply nil_elem in H1. elim H1.
+             *** assert (q' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
+                 { apply mub_clos_mub with nil; auto.
+                   - hnf. pattern hf at 1. rewrite H. auto.
+                   - hnf; intros. apply nil_elem in H3; elim H3.
+                 } 
+                 destruct H3 as [q'' [??]].
+                 exists (LimSet k q'').
+                 apply finsubset_elem.
+                 **** intros. rewrite <- H5; auto.
+                 **** split.
+                      ***** exists (LimSet k q'').
+                            split; auto.
+                            apply in_map. auto.
+                      ***** exists k'. simpl. exists Hkk'. exists Hzk'.
+                            transitivity (ds_hom DS k k' Hkk' q); auto.
+                            apply embed_mono.
+                            rewrite <- H4; auto.
 
-    hnf; intros. apply nil_elem in H3; elim H3.
-    destruct H3 as [q'' [??]].
-    exists (LimSet k q'').
-    apply finsubset_elem.
-    intros. rewrite <- H5; auto.
-    split.
-    exists (LimSet k q'').
-    split; auto.
-    apply in_map. auto.
-    exists k'. simpl. exists Hkk'. exists Hzk'.
-    transitivity (ds_hom DS k k' Hkk' q); auto.
-    apply embed_mono.
-    rewrite <- H4; auto.
+        * intros.
+          apply finsubset_elem in H.
+          apply finsubset_elem in H0.
+          ** destruct H. destruct H0.
+             destruct H as [x' [??]].
+             destruct H0 as [y' [??]].
+             apply in_map_iff in H.
+             destruct H as [x'' [??]].
+             apply in_map_iff in H0.
+             destruct H0 as [y'' [??]].
+             subst x' y'.
+             rewrite H3 in H1. rewrite H4 in H2.
+             destruct H1 as [k' [Hkk' [Hzk' ?]]]. simpl in *.
 
-    intros.
-    apply finsubset_elem in H.
-    apply finsubset_elem in H0.
-    destruct H. destruct H0.
-    destruct H as [x' [??]].
-    destruct H0 as [y' [??]].
-    apply in_map_iff in H.
-    destruct H as [x'' [??]].
-    apply in_map_iff in H0.
-    destruct H0 as [y'' [??]].
-    subst x' y'.
-    rewrite H3 in H1. rewrite H4 in H2.
-    destruct H1 as [k' [Hkk' [Hzk' ?]]]. simpl in *.
+             destruct H2 as [l [Hl1 [Hl2 ?]]]. simpl in *.
+             destruct (choose_ub I k' l) as [m [Hm1 Hm2]].
+             assert (Hkm : k ≤ m) by (transitivity k'; auto).
+             assert (Hzm : idx z ≤ m) by (transitivity k'; auto).
 
-    destruct H2 as [l [Hl1 [Hl2 ?]]]. simpl in *.
-    destruct (choose_ub I k' l) as [m [Hm1 Hm2]].
-    assert (Hkm : k ≤ m). 
-    transitivity k'; auto.
-    assert (Hzm : idx z ≤ m).
-    transitivity k'; auto.
+             destruct (embed_directed2 (ds_hom DS k m Hkm)
+                                       (ds_hom DS (idx z) m Hzm (elem z)))
+               with x'' y'' as [c [?[??]]]; auto.
+             *** rewrite <- (ds_compose DS k k' m Hkk' Hm1 Hkm).
+                 rewrite <- (ds_compose DS (idx z) k' m Hzk' Hm1 Hzm).
+                 simpl. apply embed_mono. auto.
+             *** rewrite <- (ds_compose DS k l m Hl1 Hm2 Hkm).
+                 rewrite <- (ds_compose DS (idx z) l m Hl2 Hm2 Hzm).
+                 simpl. apply embed_mono. auto.
 
-    destruct (embed_directed2 (ds_hom DS k m Hkm)
-      (ds_hom DS (idx z) m Hzm (elem z)))
-      with x'' y'' as [c [?[??]]]; auto.
-    rewrite <- (ds_compose DS k k' m Hkk' Hm1 Hkm).
-    rewrite <- (ds_compose DS (idx z) k' m Hzk' Hm1 Hzm).
-    simpl. apply embed_mono. auto.
-    rewrite <- (ds_compose DS k l m Hl1 Hm2 Hkm).
-    rewrite <- (ds_compose DS (idx z) l m Hl2 Hm2 Hzm).
-    simpl. apply embed_mono. auto.
-
-    destruct (mub_complete (PLT.plotkin (ds_F DS k))
-      (x''::y''::nil) c) as [c' [??]].
-    apply elem_inh with x''. apply cons_elem; auto.
-    hnf; simpl; intros.
-    apply cons_elem in H8. destruct H8.
-    rewrite H8; auto.
-    apply cons_elem in H8. destruct H8.
-    rewrite H8; auto.
-    apply nil_elem in H8. elim H8.
-    assert (c' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
-    apply mub_clos_mub with (x''::y''::nil); auto.
-
-    apply elem_inh with x''. apply cons_elem; auto.
-    hnf; simpl; intros.
-    apply cons_elem in H10. destruct H10.
-    rewrite H10; auto.
-    exists x''; split; auto.
-    apply cons_elem in H10. destruct H10.
-    rewrite H10; auto.
-    exists y''; split; auto.
-    apply nil_elem in H10. elim H10.
-    destruct H10 as [c'' [??]].
-    exists (LimSet k c'').
-    split.
-    rewrite H3.
-    exists k'. simpl. exists Hkk'. exists Hkk'.
-    apply embed_mono; auto.
-    rewrite <- H11.
-    destruct H8.
-    apply H8. apply cons_elem; auto.
-    split.
-    rewrite H4.
-    exists k'. simpl. exists Hkk'. exists Hkk'.
-    apply embed_mono; auto.
-    rewrite <- H11.
-    destruct H8.
-    apply H8.
-    apply cons_elem. right.
-    apply cons_elem. auto.
-    apply finsubset_elem.
-    intros. rewrite <- H12; auto.
-    split; auto.
-    exists (LimSet k c'').
-    split; auto.
-    apply in_map. auto.
-    exists m. simpl.
-    exists Hkm. exists Hzm.
-    transitivity (ds_hom DS k m Hkm c); auto.
-    apply embed_mono.
-    rewrite <- H11; auto.
-    intros. rewrite <- H2. auto.
-    intros. rewrite <- H2. auto.
+             *** destruct (mub_complete (PLT.plotkin (ds_F DS k))
+                                        (x''::y''::nil) c) as [c' [??]].
+                 **** apply elem_inh with x''. apply cons_elem; auto.
+                 **** hnf; simpl; intros.
+                      apply cons_elem in H8. destruct H8.
+                      ***** rewrite H8; auto.
+                      ***** apply cons_elem in H8. destruct H8.
+                            rewrite H8; auto.
+                            apply nil_elem in H8. elim H8.
+                 **** assert (c' ∈ mub_closure (PLT.plotkin (ds_F DS k)) M).
+                      { apply mub_clos_mub with (x''::y''::nil); auto.
+                        apply elem_inh with x''. apply cons_elem; auto.
+                        hnf; simpl; intros.
+                        apply cons_elem in H10. destruct H10.
+                        - rewrite H10; auto.
+                          exists x''; split; auto.
+                        - apply cons_elem in H10. destruct H10.
+                          + rewrite H10; auto.
+                            exists y''; split; auto.
+                          + apply nil_elem in H10. elim H10.
+                      }
+                      destruct H10 as [c'' [??]].
+                      exists (LimSet k c'').
+                      split.
+                      ***** rewrite H3.
+                            exists k'. simpl. exists Hkk'. exists Hkk'.
+                            apply embed_mono; auto.
+                            rewrite <- H11.
+                            destruct H8.
+                            apply H8. apply cons_elem; auto.
+                      ***** split.
+                            ****** rewrite H4.
+                                   exists k'. simpl. exists Hkk'. exists Hkk'.
+                                   apply embed_mono; auto.
+                                   rewrite <- H11.
+                                   destruct H8.
+                                   apply H8.
+                                   apply cons_elem. right.
+                                   apply cons_elem. auto.
+                            ****** apply finsubset_elem.
+                                   intros. rewrite <- H12; auto.
+                                   split; auto.
+                                   ******* exists (LimSet k c'').
+                                           split; auto.
+                                           apply in_map. auto.
+                                   ******* exists m. simpl.
+                                           exists Hkm. exists Hzm.
+                                           transitivity (ds_hom DS k m Hkm c); auto.
+                                           apply embed_mono.
+                                           rewrite <- H11; auto.
+          ** intros. rewrite <- H2. auto.
+          ** intros. rewrite <- H2. auto.
   Qed.
 
   (**  Altogether, this makes the bilimit a plotkin order.
@@ -401,45 +402,45 @@ Section bilimit.
     intros.
     destruct (choose_ub I i (idx y)) as [k [??]].
     generalize (refl_equal hf). pattern hf at 2. case hf.
-    intros. pattern hf at 1. rewrite H1. auto.
-    intros. pattern hf at 1. rewrite H1.
-    generalize (embed_directed0 (ds_hom DS i k H) 
-      (ds_hom DS (idx y) k H0 (elem y))).
-    pattern hf at 1. rewrite H1.
-    intros [q ?].
-    exists q.
-    hnf; simpl.
-    exists k. exists H. exists H0.
-    auto.
+    - intros. pattern hf at 1. rewrite H1. auto.
+    - intros. pattern hf at 1. rewrite H1.
+      generalize (embed_directed0 (ds_hom DS i k H) 
+        (ds_hom DS (idx y) k H0 (elem y))).
+      pattern hf at 1. rewrite H1.
+      intros [q ?].
+      exists q.
+      hnf; simpl.
+      exists k. exists H. exists H0.
+      auto.
   Qed.
   Next Obligation.
     simpl; intros.
     destruct H as [k1 [Hik1 [Hyk1 ?]]]. simpl in *.
     destruct H0 as [k2 [Hik2 [Hyk2 ?]]]. simpl in *.
     destruct (choose_ub I k1 k2) as [k [??]].
-    assert (i ≤ k). transitivity k1; auto.
-    assert (idx y ≤ k). transitivity k1; auto.
+    assert (i ≤ k) by (transitivity k1; auto).
+    assert (idx y ≤ k) by (transitivity k1; auto).
     destruct (embed_directed2 (ds_hom DS i k H3)
       (ds_hom DS (idx y) k H4 (elem y)) a b) as [q [?[??]]].
-    rewrite <- (ds_compose DS i k1 k Hik1 H1 H3).
-    rewrite <- (ds_compose DS (idx y) k1 k Hyk1 H1 H4).
-    simpl. apply embed_mono. auto.
-    rewrite <- (ds_compose DS i k2 k Hik2 H2 H3).
-    rewrite <- (ds_compose DS (idx y) k2 k Hyk2 H2 H4).
-    simpl. apply embed_mono. auto.
-    exists q. split; auto.
-    exists k. simpl.
-    exists H3. exists H4. auto.
+    - rewrite <- (ds_compose DS i k1 k Hik1 H1 H3).
+      rewrite <- (ds_compose DS (idx y) k1 k Hyk1 H1 H4).
+      simpl. apply embed_mono. auto.
+    - rewrite <- (ds_compose DS i k2 k Hik2 H2 H3).
+      rewrite <- (ds_compose DS (idx y) k2 k Hyk2 H2 H4).
+      simpl. apply embed_mono. auto.
+    - exists q. split; auto.
+      exists k. simpl.
+      exists H3. exists H4. auto.
   Qed.
 
   Lemma limset_spoke_commute : forall i j (Hij:i≤j),
      limset_spoke i ≈ limset_spoke j ∘ ds_hom DS i j Hij.
   Proof.
     intros; split; hnf; simpl; intros.
-    exists j. simpl. exists Hij. exists (ord_refl _ _).
-    rewrite (ds_ident DS j (ord_refl _ _)). simpl; auto.
-    exists j. simpl. exists (ord_refl _ _). exists Hij.
-    rewrite (ds_ident DS j (ord_refl _ _)). simpl; auto.
+    - exists j. simpl. exists Hij. exists (ord_refl _ _).
+      rewrite (ds_ident DS j (ord_refl _ _)). simpl; auto.
+    - exists j. simpl. exists (ord_refl _ _). exists Hij.
+      rewrite (ds_ident DS j (ord_refl _ _)). simpl; auto.
   Qed.
 
   Definition bilimit_cocone : cocone DS :=
@@ -472,22 +473,22 @@ Section bilimit.
       exists k. simpl. exists Hk1. exists Hk2.
       apply (embed_reflects (cocone_spoke YC k)).
       apply (use_ord H).
-      destruct (cocone_commute YC i k Hk1); intros.
-      apply H1; auto.
-      destruct (cocone_commute YC i' k Hk2); intros.
-      apply H0; auto.
+      - destruct (cocone_commute YC i k Hk1); intros.
+        apply H1; auto.
+      - destruct (cocone_commute YC i' k Hk2); intros.
+        apply H0; auto.
     Qed.
     Next Obligation.      
       intro.
       generalize (refl_equal hf).
-      pattern hf at 2.  case hf; intros.
-      pattern hf at 1. rewrite H. auto.
-      pattern hf at 1. rewrite H.
-      destruct (choose_ub_set I nil) as [i _].
-      generalize (embed_directed0 (cocone_spoke YC i) y).
-      pattern hf at 1. rewrite H.
-      intros [x ?].
-      exists (LimSet i x). auto.
+      pattern hf at 2. case hf; intros.
+      - pattern hf at 1. rewrite H. auto.
+      - pattern hf at 1. rewrite H.
+        destruct (choose_ub_set I nil) as [i _].
+        generalize (embed_directed0 (cocone_spoke YC i) y).
+        pattern hf at 1. rewrite H.
+        intros [x ?].
+        exists (LimSet i x). auto.
     Qed.
     Next Obligation.
       intros.
@@ -502,14 +503,14 @@ Section bilimit.
       exists (LimSet k c).
       split; auto.
       split.
-      exists k. simpl.
-      exists Hk1. exists (ord_refl _ _).
-      rewrite (ds_ident DS k (ord_refl _ _)).
-      simpl. auto.
-      exists k. simpl.
-      exists Hk2. exists (ord_refl _ _).
-      rewrite (ds_ident DS k (ord_refl _ _)).
-      simpl. auto.
+      - exists k. simpl.
+        exists Hk1. exists (ord_refl _ _).
+        rewrite (ds_ident DS k (ord_refl _ _)).
+        simpl. auto.
+      - exists k. simpl.
+        exists Hk2. exists (ord_refl _ _).
+        rewrite (ds_ident DS k (ord_refl _ _)).
+        simpl. auto.
     Qed.
 
     Lemma limord_univ_commute i :
@@ -517,7 +518,7 @@ Section bilimit.
     Proof.
       cut (forall x,
         cocone_spoke YC i x ≈ limord_univ (limset_spoke i x)).
-      intros. split; intro x; destruct (H x); auto.
+      { intros. split; intro x; destruct (H x); auto. }
       simpl; intros; auto.
     Qed.
 
@@ -527,7 +528,7 @@ Section bilimit.
     Proof.
       intros.
       cut (forall x, f x ≈ limord_univ x).
-      intros. split; intro x; destruct (H0 x); auto.
+      { intros. split; intro x; destruct (H0 x); auto. }
       simpl. intros.
       destruct x as [i x].
       rewrite H. simpl. auto.
@@ -553,19 +554,19 @@ Section bilimit.
     apply PLT.compose_hom_rel.
     exists (ds_hom DS a b H z).
     split; simpl.
-    simpl in *.
-    apply project_rel_elem.
-    apply project_rel_elem in H0.
-    rewrite <- H0.
-    generalize (limset_spoke_commute a b H).
-    intro. 
-    destruct H2. apply H3.
-    apply embed_rel_elem.
-    simpl in H1.
-    apply embed_rel_elem in H1.
-    rewrite H1.
-    generalize (limset_spoke_commute a b H).
-    intros [??]. apply H2.
+    - simpl in *.
+      apply project_rel_elem.
+      apply project_rel_elem in H0.
+      rewrite <- H0.
+      generalize (limset_spoke_commute a b H).
+      intro. 
+      destruct H2. apply H3.
+    - apply embed_rel_elem.
+      simpl in H1.
+      apply embed_rel_elem in H1.
+      rewrite H1.
+      generalize (limset_spoke_commute a b H).
+      intros [??]. apply H2.
   Qed.
 
   Program Definition Iset : Preord.carrier (cl_eset (directed_hf_cl hf) I)
@@ -585,10 +586,10 @@ Section bilimit.
     intros. destruct H as [k [Hk1 [Hk2 ?]]].
     exists k. exists (ds_hom DS (idx x) k Hk2 (elem x)).
     split.
-    exists k. simpl. exists Hk1. exists (ord_refl _ _). 
-    rewrite (ds_ident DS k (ord_refl _ _)); simpl; auto.
-    exists k. simpl. exists (ord_refl _ _). exists Hk2.
-    rewrite (ds_ident DS k (ord_refl _ _)); simpl; auto.
+    - exists k. simpl. exists Hk1. exists (ord_refl _ _). 
+      rewrite (ds_ident DS k (ord_refl _ _)); simpl; auto.
+    - exists k. simpl. exists (ord_refl _ _). exists Hk2.
+      rewrite (ds_ident DS k (ord_refl _ _)); simpl; auto.
   Qed.
 
   Lemma bilimit_cpo_colimit1 :
@@ -602,17 +603,17 @@ Section bilimit.
     destruct (bilimit_cpo_colimit x y) as [i [a [??]]]; auto.
     exists (PLT.hom_rel (ep_set#i)).
     split.
-    apply image_axiom1'.
-    exists (ep_set#i).
-    split; auto.
-    apply image_axiom1'.
-    exists i. split; auto.
-    apply eff_complete.
-    simpl.
-    apply PLT.compose_hom_rel.
-    exists a. split.
-    apply project_rel_elem. auto.
-    apply embed_rel_elem. auto.
+    - apply image_axiom1'.
+      exists (ep_set#i).
+      split; auto.
+      apply image_axiom1'.
+      exists i. split; auto.
+      apply eff_complete.
+    - simpl.
+      apply PLT.compose_hom_rel.
+      exists a. split.
+      apply project_rel_elem. auto.
+      apply embed_rel_elem. auto.
   Qed.
 
   Lemma bilimit_cpo_colimit2 :
@@ -652,22 +653,23 @@ Section colimit_decompose.
     exists (idx _ _ _ y).    
     exists (elem _ _ _ y).
     split.
-    apply (embed_reflects 
-      (colim_univ Hcolimit (bilimit_cocone hf I DS))).
-    generalize (colim_commute Hcolimit (bilimit_cocone hf I DS) (idx _ _ _ y)).
-    simpl. intros.
-    transitivity (limset_spoke hf I DS (idx _ _ _ y) (elem hf I DS y)).
-    rewrite H. auto.
-    transitivity y; auto.
-    destruct y; simpl; auto.
-    apply (embed_reflects 
-      (colim_univ Hcolimit (bilimit_cocone hf I DS))).
-    generalize (colim_commute Hcolimit (bilimit_cocone hf I DS) (idx _ _ _ y)).
-    simpl. intros.
-    transitivity (limset_spoke hf I DS (idx _ _ _ y) (elem hf I DS y)).
-    transitivity y; auto.
-    destruct y; simpl; auto.
-    rewrite H; auto.
+    - apply (embed_reflects 
+               (colim_univ Hcolimit (bilimit_cocone hf I DS))).
+      generalize (colim_commute Hcolimit (bilimit_cocone hf I DS) (idx _ _ _ y)).
+      simpl. intros.
+      transitivity (limset_spoke hf I DS (idx _ _ _ y) (elem hf I DS y)).
+      { rewrite H. auto. }
+      transitivity y; auto.
+      destruct y; simpl; auto.
+    - apply (embed_reflects 
+               (colim_univ Hcolimit (bilimit_cocone hf I DS))).
+      generalize (colim_commute Hcolimit (bilimit_cocone hf I DS) (idx _ _ _ y)).
+      simpl. intros.
+      transitivity (limset_spoke hf I DS (idx _ _ _ y) (elem hf I DS y)).
+      { transitivity y; auto.
+        destruct y; simpl; auto.
+      } 
+      rewrite H; auto.
   Qed.
 End colimit_decompose.
 
@@ -699,10 +701,10 @@ Section colimit_decompose2.
     apply embed_mono.
     apply (embed_reflects (cocone_spoke CC k)).
     apply (use_ord H).
-    rewrite <- e.
-    rewrite (cocone_commute CC i k H0). auto.
-    rewrite <- e0.
-    rewrite (cocone_commute CC j k H1). auto.
+    - rewrite <- e.
+      rewrite (cocone_commute CC i k H0). auto.
+    - rewrite <- e0.
+      rewrite (cocone_commute CC j k H1). auto.
   Qed.
   Next Obligation.
     unfold decompose_univ_func. intros.
@@ -751,26 +753,26 @@ Section colimit_decompose2.
       (ds_hom DS j k H2 q')) as [z [?[??]]]; auto.
     exists (cocone_spoke CC k z).
     split.
-    destruct (decompose (cocone_spoke CC k z)) as [m [z' ?]]. simpl.
-    rewrite <- H3.
+    - destruct (decompose (cocone_spoke CC k z)) as [m [z' ?]]. simpl.
+      rewrite <- H3.
 
-    destruct (choose_ub I m k) as [k' [??]].
-    rewrite (cocone_commute YC m k' H6).
-    rewrite (cocone_commute YC k k' H7).
-    simpl. apply embed_mono.
-    destruct e1.
-    rewrite (cocone_commute CC m k' H6) in H8.
-    rewrite (cocone_commute CC k k' H7) in H8.
-    simpl in H8.
-    apply (embed_reflects (cocone_spoke CC k')) in H8. auto.
+      destruct (choose_ub I m k) as [k' [??]].
+      rewrite (cocone_commute YC m k' H6).
+      rewrite (cocone_commute YC k k' H7).
+      simpl. apply embed_mono.
+      destruct e1.
+      rewrite (cocone_commute CC m k' H6) in H8.
+      rewrite (cocone_commute CC k k' H7) in H8.
+      simpl in H8.
+      apply (embed_reflects (cocone_spoke CC k')) in H8. auto.
 
-    split.
-    rewrite <- e.
-    rewrite (cocone_commute CC i k H1).
-    simpl. apply embed_mono. auto.
-    rewrite <- e0.
-    rewrite (cocone_commute CC j k H2).
-    simpl. apply embed_mono. auto.
+    - split.
+      + rewrite <- e.
+        rewrite (cocone_commute CC i k H1).
+        simpl. apply embed_mono. auto.
+      + rewrite <- e0.
+        rewrite (cocone_commute CC j k H2).
+        simpl. apply embed_mono. auto.
   Qed.
 
   Program Definition decompose_is_colimit : directed_colimit DS CC :=
@@ -786,8 +788,8 @@ Section colimit_decompose2.
     rewrite (cocone_commute CC j k H0) in e.
     simpl in e. 
     destruct e; split; simpl.
-    apply embed_reflects in H2. apply embed_mono; auto.
-    apply embed_reflects in H1. apply embed_mono; auto.
+    - apply embed_reflects in H2. apply embed_mono; auto.
+    - apply embed_reflects in H1. apply embed_mono; auto.
   Qed.    
   Next Obligation.
     simpl; intros.
@@ -797,7 +799,7 @@ Section colimit_decompose2.
     destruct (decompose x) as [i [x' ?]]. simpl.
     (* FIXME, why can I not just rewrite using <- e here? *)
     transitivity (f (cocone_spoke CC i x')).
-    apply embed_map_eq_morphism; auto.
+    { apply embed_map_eq_morphism; auto. }
     rewrite (H i).
     simpl; auto.
   Qed.
@@ -877,38 +879,38 @@ Section total_fixpoint.
   Proof.
     induction i; simpl; intros; auto.
     destruct j.
-    elimtype False. inversion H1.
-    apply Functor.respects.
-    apply IHi.
+    - elimtype False. inversion H1.
+    - apply Functor.respects.
+      apply IHi.
   Qed.
 
   Program Definition kleene_chain_alt : directed_system nat_dirord (EMBED false) :=
     DirSys nat_dirord _ iterF iter_hom _ _.
   Next Obligation.      
-    induction i; simpl; intros.
-    auto.
+    induction i; simpl; intros; auto.
     apply Functor.ident; auto.
   Qed.
   Next Obligation.
     induction i. simpl; intros.
-    clear Hij Hik.
-    revert k Hjk; induction j; simpl; intros.
-    apply cat_ident1.
-    destruct k.
-    elimtype False. inversion Hjk.
-    simpl.
-    rewrite (@cat_assoc (EMBED false)).
-    apply cat_respects; auto.
-    symmetry. apply Functor.compose.
-    symmetry. apply IHj.
+    - clear Hij Hik.
+      revert k Hjk; induction j; simpl; intros.
+      + apply cat_ident1.
+      + destruct k.
+        { elimtype False. inversion Hjk. }
+        simpl.
+        rewrite (@cat_assoc (EMBED false)).
+        apply cat_respects; auto.
+        symmetry. apply Functor.compose.
+        symmetry. apply IHj.
     
-    intros. destruct j.
-    elimtype False. inversion Hij.
-    destruct k.
-    elimtype False. inversion Hjk.
-    simpl.
-    rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
-    reflexivity. auto.
+    - intros. destruct j.
+      + elimtype False. inversion Hij.
+      + destruct k.
+        * elimtype False. inversion Hjk.
+        * simpl.
+          rewrite <- (Functor.compose F _ _ _ (iter_hom j k (gt_S_le j k Hjk))).
+          ** reflexivity.
+          ** auto.
   Qed.
 
   Definition fixpoint_alt : ob PLT := bilimit false nat_dirord kleene_chain_alt.
@@ -923,7 +925,7 @@ Section total_fixpoint.
       (fun i => cocone_spoke (bilimit_cocone false nat_dirord kleene_chain_alt) (S i)) _.
   Next Obligation.
     simpl; intros.
-    assert (Hij' : S i <= S j). auto with arith.
+    assert (Hij' : S i <= S j) by auto with arith.
     rewrite (cocone_commute (bilimit_cocone false nat_dirord kleene_chain_alt) (S i) (S j) Hij').
     simpl. apply cat_respects; auto.
     apply Functor.respects.
@@ -938,32 +940,33 @@ Section total_fixpoint.
            _.
   Next Obligation.
     simpl. intros.
-    assert (i <= S j). auto with arith.
+    assert (i <= S j) by auto with arith.
     rewrite <- (@cat_assoc (EMBED false)).
     rewrite (kleene_chain_alt_obligation_2 i j (S j) Hij (le_S j j (le_refl j)) H).
-    destruct i. simpl.
+    destruct i.
 
-    rewrite Functor.ident; auto.
-    rewrite (@cat_ident2 (EMBED false)).
-    rewrite (@cat_assoc (EMBED false)).
-    apply cat_respects; auto.
-    apply Functor.compose.
-    rewrite (limset_spoke_commute false nat_dirord kleene_chain_alt 0%nat j Hij).
-    simpl. auto.
+    - simpl.
+      rewrite Functor.ident; auto.
+      rewrite (@cat_ident2 (EMBED false)).
+      rewrite (@cat_assoc (EMBED false)).
+      apply cat_respects; auto.
+      apply Functor.compose.
+      rewrite (limset_spoke_commute false nat_dirord kleene_chain_alt 0%nat j Hij).
+      simpl. auto.
 
-    simpl.
-    etransitivity.
-    symmetry.
-    apply (Functor.compose F) with 
-      (f:=limset_spoke false nat_dirord kleene_chain_alt (S i))
-      (g:=iter_hom i (S i) (gt_S_le i (S i) (le_S (S i) (S i) (le_refl (S i)))))
-      (h:=limset_spoke false nat_dirord kleene_chain_alt j ∘
-          iter_hom i j (gt_S_le i j H)).
-    2: apply (Functor.compose F); auto.
-    assert (i <= j) by auto with arith.
-    rewrite <- (limset_spoke_commute false nat_dirord kleene_chain_alt i j).
-    rewrite <- (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
-    auto.
+    - simpl.
+      etransitivity.
+      + symmetry.
+        apply (Functor.compose F) with 
+          (f:=limset_spoke false nat_dirord kleene_chain_alt (S i))
+          (g:=iter_hom i (S i) (gt_S_le i (S i) (le_S (S i) (S i) (le_refl (S i)))))
+          (h:=limset_spoke false nat_dirord kleene_chain_alt j ∘
+            iter_hom i j (gt_S_le i j H)).
+        assert (i <= j) by auto with arith.
+        rewrite <- (limset_spoke_commute false nat_dirord kleene_chain_alt i j).
+        rewrite <- (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
+        auto.
+      + apply (Functor.compose F); auto.
   Qed.
 
   Definition fixpoint_alt_in : F fixpoint_alt ⇀ fixpoint_alt :=
@@ -975,45 +978,47 @@ Section total_fixpoint.
   Proof.
     transitivity (limord_univ false nat_dirord kleene_chain_alt 
       (bilimit_cocone false nat_dirord kleene_chain_alt)).
-    apply (limord_univ_uniq false nat_dirord kleene_chain_alt
+   -  apply (limord_univ_uniq false nat_dirord kleene_chain_alt
       (bilimit_cocone false nat_dirord kleene_chain_alt)).
-    simpl; intros. unfold fixpoint_alt_in. unfold fixpoint_alt_out.
-    rewrite <- (@cat_assoc (EMBED false)).
-    rewrite <- (limord_univ_commute false nat_dirord kleene_chain_alt cocone_minus1 i).
-    simpl.
-    generalize (colim_commute BL cocone_plus1 i). simpl. intros.
-    transitivity (limset_spoke false nat_dirord kleene_chain_alt (S i)
-      ∘ iter_hom i (S i) (le_S i i (le_refl i))).
-    apply (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
-    rewrite (@cat_assoc (EMBED false)).
-    apply cat_respects; auto.
-    symmetry.
-    apply (limord_univ_uniq false nat_dirord kleene_chain_alt
-      (bilimit_cocone false nat_dirord kleene_chain_alt)).
-    simpl; intros.  
-    symmetry. apply cat_ident2.
+      simpl; intros. unfold fixpoint_alt_in. unfold fixpoint_alt_out.
+      rewrite <- (@cat_assoc (EMBED false)).
+      rewrite <- (limord_univ_commute false nat_dirord kleene_chain_alt cocone_minus1 i).
+      simpl.
+      generalize (colim_commute BL cocone_plus1 i). simpl. intros.
+      transitivity (limset_spoke false nat_dirord kleene_chain_alt (S i)
+                                 ∘ iter_hom i (S i) (le_S i i (le_refl i))).
+      { apply (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)). }
+      rewrite (@cat_assoc (EMBED false)).
+      apply cat_respects; auto.
+   - symmetry.
+     apply (limord_univ_uniq false nat_dirord kleene_chain_alt
+                             (bilimit_cocone false nat_dirord kleene_chain_alt)).
+     simpl; intros.  
+     symmetry.
+     apply cat_ident2.
   Qed.
 
   Lemma fixpoint_alt_out_in : fixpoint_alt_out ∘ fixpoint_alt_in ≈ id.
   Proof.
     transitivity (colim_univ BL 
         (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
-    apply (colim_uniq BL (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
-    simpl. unfold fixpoint_alt_out. unfold fixpoint_alt_in.
-    intros.
-    generalize (colim_commute BL cocone_plus1 i).
-    simpl. intros. 
-    rewrite <- (@cat_assoc (EMBED false)).
-    rewrite <- H.
-    generalize (limord_univ_commute false nat_dirord kleene_chain_alt
+
+    - apply (colim_uniq BL (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
+      simpl. unfold fixpoint_alt_out. unfold fixpoint_alt_in.
+      intros.
+      generalize (colim_commute BL cocone_plus1 i).
+      simpl. intros. 
+      rewrite <- (@cat_assoc (EMBED false)).
+      rewrite <- H.
+      generalize (limord_univ_commute false nat_dirord kleene_chain_alt
       cocone_minus1 (S i)). simpl. intros.
-    rewrite <- H0.
-    apply Functor.compose.
-    apply (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
-    symmetry. 
-    apply (colim_uniq BL (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
-    simpl; intros.
-    symmetry. apply cat_ident2.
+      rewrite <- H0.
+      apply Functor.compose.
+      apply (limset_spoke_commute false nat_dirord kleene_chain_alt i (S i)).
+    - symmetry. 
+      apply (colim_uniq BL (cocone_app (bilimit_cocone false nat_dirord kleene_chain_alt) F)).
+      simpl; intros.
+      symmetry. apply cat_ident2.
   Qed.
 
   Definition fixpoint_embed : A ⇀ fixpoint_alt :=

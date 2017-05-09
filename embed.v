@@ -69,17 +69,17 @@ Next Obligation.
   intros. 
   generalize (refl_equal hf).
   pattern hf at 2. case hf; intros.
-  pattern hf at 1. rewrite H. auto.
-  pattern hf at 1. rewrite H.
-  generalize (embed_directed0 g y).
-  rewrite H at 1.
-  intros [q ?].
-  generalize (embed_directed0 f q).
-  rewrite H at 1.
-  intros [q' ?].
-  exists q'.
-  transitivity (embed_map g q); auto.
-  apply embed_mono. auto.
+  - pattern hf at 1. rewrite H. auto.
+  - pattern hf at 1. rewrite H.
+    generalize (embed_directed0 g y).
+    rewrite H at 1.
+    intros [q ?].
+    generalize (embed_directed0 f q).
+    rewrite H at 1.
+    intros [q' ?].
+    exists q'.
+    transitivity (embed_map g q); auto.
+    apply embed_mono. auto.
 Qed.
 Next Obligation.
   intros.
@@ -117,18 +117,18 @@ Lemma embed_cat_axioms hf :
 Proof.
   intros. constructor.
 
-  intros. split; hnf; simpl; intros; auto.
-  intros. split; hnf; simpl; intros; auto.
-  intros. split; hnf; simpl; intros; auto.
-  intros. split; hnf; simpl; intros.
-  transitivity (embed_map f' (embed_map g x)).
-  destruct H. apply H.
-  apply embed_mono.  
-  destruct H0. apply H0.
-  transitivity (embed_map f' (embed_map g x)).
-  apply embed_mono.
-  destruct H0. apply H1.
-  destruct H. apply H1.
+  - intros. split; hnf; simpl; intros; auto.
+  - intros. split; hnf; simpl; intros; auto.
+  - intros. split; hnf; simpl; intros; auto.
+  - intros. split; hnf; simpl; intros.
+    + transitivity (embed_map f' (embed_map g x)).
+      * destruct H. apply H.
+      * apply embed_mono.  
+        destruct H0. apply H0.
+    + transitivity (embed_map f' (embed_map g x)).
+      * apply embed_mono.
+        destruct H0. apply H1.
+      * destruct H. apply H1.
 Qed.
 
 Definition EMBED hf :=
@@ -145,7 +145,8 @@ Add Parametric Morphism hf A B :
 Proof.
   intros.
   transitivity (y x0).
-  apply H. apply embed_mono. auto.
+  - apply H.
+  - apply embed_mono; auto.
 Qed.
 
 Add Parametric Morphism hf A B :
@@ -249,19 +250,19 @@ Section ep_pairs.
     destruct g as [e' p' [??]].
     destruct f as [e p [??]]. simpl in *.
     constructor.
-    rewrite <- (cat_assoc _ _ _ _ _ p).
-    rewrite (cat_assoc _ _ _ _ _ p').
-    rewrite pe_ident0.
-    rewrite (cat_ident2 _ _ _ e). auto.
-    
-    rewrite <- (cat_assoc _ _ _ _ _ e').
-    rewrite (cat_assoc _ _ _ _ _ e).
-    transitivity (e' ∘ p'); auto.
-    apply PLT.compose_mono; auto.
-    transitivity (id ∘ p').
-    apply PLT.compose_mono; auto.
-    rewrite (cat_ident2 _ _ _ p').
-    auto.
+    - rewrite <- (cat_assoc _ _ _ _ _ p).
+      rewrite (cat_assoc _ _ _ _ _ p').
+      rewrite pe_ident0.
+      rewrite (cat_ident2 _ _ _ e). auto.
+      
+    - rewrite <- (cat_assoc _ _ _ _ _ e').
+      rewrite (cat_assoc _ _ _ _ _ e).
+      transitivity (e' ∘ p'); auto.
+      apply PLT.compose_mono; auto.
+      transitivity (id ∘ p').
+      { apply PLT.compose_mono; auto. }
+      rewrite (cat_ident2 _ _ _ p').
+      auto.
   Qed.    
 
   Lemma ep_pair_embed_eq_proj_eq : forall X Y e e' p p',
@@ -271,30 +272,33 @@ Section ep_pairs.
   Proof.
     intros.
     split.
-    transitivity (id ∘ p).
-    rewrite (cat_ident2 _ _ _ p). auto.
-    destruct H0.
-    transitivity ((p' ∘ e') ∘ p).
-    apply PLT.compose_mono; auto.
-    rewrite <- H1.
-    rewrite <- (cat_assoc _ _ _ _ _ p').
-    transitivity (p' ∘ id).
-    apply PLT.compose_mono.
-    destruct H. auto.
-    auto.
-    rewrite (cat_ident1 _ _ _ p'). auto.
-    transitivity (id ∘ p').
-    rewrite (cat_ident2 _ _ _ p'). auto.
-    destruct H.
-    transitivity ((p ∘ e) ∘ p').
-    apply PLT.compose_mono; auto.
-    rewrite H1.
-    rewrite <- (cat_assoc _ _ _ _ _ p).
-    transitivity (p ∘ id).
-    apply PLT.compose_mono.
-    destruct H0. auto.
-    auto.
-    rewrite (cat_ident1 _ _ _ p). auto.
+    - transitivity (id ∘ p).
+      + rewrite (cat_ident2 _ _ _ p). auto.
+      + destruct H0.
+        transitivity ((p' ∘ e') ∘ p).
+        { apply PLT.compose_mono; auto. }
+        rewrite <- H1.
+        rewrite <- (cat_assoc _ _ _ _ _ p').
+        transitivity (p' ∘ id).
+        { apply PLT.compose_mono.
+          destruct H. auto.
+          auto.
+        }
+        rewrite (cat_ident1 _ _ _ p'). auto.
+
+    - transitivity (id ∘ p').
+      { rewrite (cat_ident2 _ _ _ p'). auto. }
+      destruct H.
+      transitivity ((p ∘ e) ∘ p').
+      { apply PLT.compose_mono; auto. }
+      rewrite H1.
+      rewrite <- (cat_assoc _ _ _ _ _ p).
+      transitivity (p ∘ id).
+      { apply PLT.compose_mono.
+        destruct H0. auto.
+        auto.
+      }
+      rewrite (cat_ident1 _ _ _ p). auto.
   Qed.
 
   Program Definition ep_pair_eq_mixin X Y : Eq.mixin_of (ep_pair X Y) :=
@@ -311,10 +315,10 @@ Section ep_pairs.
     Category.axioms _ ep_pair ep_pair_eq_mixin ep_pair_comp_mixin.
   Proof.  
     constructor; simpl; intros.
-    red. simpl. apply (cat_ident1 _ _ _ (embed f)).
-    red. simpl. apply (cat_ident2 _ _ _ (embed f)).
-    red. simpl. apply (cat_assoc _ _ _ _ _ (embed f)).
-    red. simpl. apply (cat_respects _ _ _ _ _ _ _ _ H H0).
+    - red. simpl. apply (cat_ident1 _ _ _ (embed f)).
+    - red. simpl. apply (cat_ident2 _ _ _ (embed f)).
+    - red. simpl. apply (cat_assoc _ _ _ _ _ (embed f)).
+    - red. simpl. apply (cat_respects _ _ _ _ _ _ _ _ H H0).
   Qed.
 
   Canonical Structure PLT_EP :=
@@ -346,14 +350,14 @@ Section ep_pairs.
       Proof.
         intro.
         apply semidec_conj.
-        apply semidec_iff with (y ∈ erel_image (PLT.ord X) (PLT.ord Y) (PLT.dec X) 
-          (PLT.hom_rel e) x).
-        intros. apply erel_image_elem.
-        apply semidec_in. apply PLT.dec.
-        apply semidec_iff with (y ∈ erel_inv_image (PLT.ord Y) (PLT.ord X) (PLT.dec X) 
-          (PLT.hom_rel p) x).
-        intros. apply erel_inv_image_elem.
-        apply semidec_in. apply PLT.dec.
+        - apply semidec_iff with (y ∈ erel_image (PLT.ord X) (PLT.ord Y) (PLT.dec X) 
+                                    (PLT.hom_rel e) x).
+          + intros. apply erel_image_elem.
+          + apply semidec_in. apply PLT.dec.
+        - apply semidec_iff with (y ∈ erel_inv_image (PLT.ord Y) (PLT.ord X) (PLT.dec X) 
+                                    (PLT.hom_rel p) x).
+          + intros. apply erel_inv_image_elem.
+          + apply semidec_in. apply PLT.dec.
       Qed.
 
       Definition embed_image :=
@@ -367,20 +371,19 @@ Section ep_pairs.
         generalize (pe_ident _ _ _ _ Hep).
         intros.
         assert ((x,x) ∈ PLT.hom_rel (p ∘ e)).
-        apply H.
-        apply ident_elem. auto.
+        { apply H. apply ident_elem. auto. }
         apply PLT.compose_hom_rel in H0.
         destruct H0 as [y [??]].
         exists y. unfold embed_image.
         apply esubset_elem.
-        intros. destruct H3; split.
-        apply member_eq with (x,a); auto.
-        destruct H2; split; split; auto.
-        apply member_eq with (a,x); auto.
-        destruct H2; split; split; auto.
-        split.
+        { intros. destruct H3; split.
+          apply member_eq with (x,a); auto.
+          destruct H2; split; split; auto.
+          apply member_eq with (a,x); auto.
+          destruct H2; split; split; auto.
+        } 
+        repeat split; auto.
         apply eff_complete.
-        split; auto.
       Qed.
     End embed_func.  
     
@@ -398,27 +401,28 @@ Section ep_pairs.
       unfold embed_image in *.
       apply esubset_elem in m.
       apply esubset_elem in m0.
-      destruct m as [_ [??]].
-      destruct m0 as [_ [??]]. 
-      destruct Hep.
-      cut ((y',y) ∈ PLT.hom_rel id).
-      intros. simpl in H4.
-      apply ident_elem in H4. auto.
-      apply ep_ident0.
-      simpl.
-      apply PLT.compose_hom_rel; auto.
-      exists a. split; auto.
-      apply PLT.hom_order with y' b; auto.
-      intros. destruct H2; split.
-      apply member_eq with (b,a0); auto.
-      destruct H1; split; split; auto.
-      apply member_eq with (a0,b); auto.
-      destruct H1; split; split; auto.
-      intros. destruct H2; split.
-      apply member_eq with (a,a0); auto.
-      destruct H1; split; split; auto.
-      apply member_eq with (a0,a); auto.
-      destruct H1; split; split; auto.
+      - destruct m as [_ [??]].
+        destruct m0 as [_ [??]]. 
+        destruct Hep.
+        cut ((y',y) ∈ PLT.hom_rel id).
+        { intros. simpl in H4.
+          apply ident_elem in H4. auto.
+        } 
+        apply ep_ident0.
+        simpl.
+        apply PLT.compose_hom_rel; auto.
+        exists a. split; auto.
+        apply PLT.hom_order with y' b; auto.
+      - intros. destruct H2; split.
+        apply member_eq with (b,a0); auto.
+        destruct H1; split; split; auto.
+        apply member_eq with (a0,b); auto.
+        destruct H1; split; split; auto.
+      - intros. destruct H2; split.
+        apply member_eq with (a,a0); auto.
+        destruct H1; split; split; auto.
+        apply member_eq with (a0,a); auto.
+        destruct H1; split; split; auto.
     Qed.
 
     Lemma embed_func_reflects : forall x x',
@@ -433,59 +437,58 @@ Section ep_pairs.
       unfold embed_image in *.
       apply esubset_elem in m.
       apply esubset_elem in m0.
-      destruct m. destruct m0.
-      destruct Hep.
-      cut ((x',x) ∈ PLT.hom_rel id).
-      simpl; intros. apply ident_elem in H4. auto.
-      apply pe_ident0.
-      simpl. apply PLT.compose_hom_rel.
-      exists y'. intuition.
-      apply PLT.hom_order with y x; auto.
-      intros. destruct H2; split.
-      apply member_eq with (x',a); auto.
-      destruct H1; split; split; auto.
-      apply member_eq with (a,x'); auto.
-      destruct H1; split; split; auto.
-      intros. destruct H2; split.
-      apply member_eq with (x,a); auto.
-      destruct H1; split; split; auto.
-      apply member_eq with (a,x); auto.
-      destruct H1; split; split; auto.
+      - destruct m. destruct m0.
+        destruct Hep.
+        cut ((x',x) ∈ PLT.hom_rel id).
+        { simpl; intros. apply ident_elem in H4. auto. }
+        apply pe_ident0.
+        simpl. apply PLT.compose_hom_rel.
+        exists y'. intuition.
+        apply PLT.hom_order with y x; auto.
+      - intros. destruct H2; split.
+        apply member_eq with (x',a); auto.
+        destruct H1; split; split; auto.
+        apply member_eq with (a,x'); auto.
+        destruct H1; split; split; auto.
+      - intros. destruct H2; split.
+        apply member_eq with (x,a); auto.
+        destruct H1; split; split; auto.
+        apply member_eq with (a,x); auto.
+        destruct H1; split; split; auto.
     Qed.
-
+    
     Lemma embed_func_directed0 : forall y,
       if hf then True else exists x, ep_embed#x ≤ y.
     Proof.
       intros.
       generalize (refl_equal hf).
       pattern hf at 2; case hf; intros.
-      pattern hf at 1; rewrite H; auto.
+      { pattern hf at 1; rewrite H; auto. }
       destruct (PLT.hom_directed _ _ _ p y nil).
-      hnf.
-      pattern hf at 1. rewrite H. auto.
-      hnf; intros. apply nil_elem in H0. elim H0.
-      destruct H0.
-      pattern hf at 1. rewrite H.
-      exists x. apply erel_image_elem in H1.
-      unfold embed_func; simpl.
-      unfold choose'.
-      destruct (find_inhabitant' (PLT.ord Y) (embed_image x) (embed_image_inhabited x))
-        as [y' ?]. simpl in *.
-      unfold embed_image in m.
-      apply esubset_elem in m.
-      destruct m as [_ [??]].
-      destruct Hep.
-      cut ((y,y') ∈ PLT.hom_rel id).
-      simpl; auto.
-      intros. apply ident_elem in H4. auto.
-      apply ep_ident0.
-      simpl. apply PLT.compose_hom_rel.
-      exists x; auto.
-      intros. destruct H4; split.
-      apply member_eq with (x,a); auto.
-      destruct H3; split; split; auto.
-      apply member_eq with (a,x); auto.
-      destruct H3; split; split; auto.
+      - hnf.
+        pattern hf at 1. rewrite H. auto.
+      - hnf; intros. apply nil_elem in H0. elim H0.
+      - destruct H0.
+        pattern hf at 1. rewrite H.
+        exists x. apply erel_image_elem in H1.
+        unfold embed_func; simpl.
+        unfold choose'.
+        destruct (find_inhabitant' (PLT.ord Y) (embed_image x) (embed_image_inhabited x))
+          as [y' ?]. simpl in *.
+        unfold embed_image in m.
+        apply esubset_elem in m.
+        + destruct m as [_ [??]].
+          destruct Hep.
+          cut ((y,y') ∈ PLT.hom_rel id).
+          { simpl. intros. apply ident_elem in H4. auto. }
+          apply ep_ident0.
+          simpl. apply PLT.compose_hom_rel.
+          exists x; auto.
+        + intros. destruct H4; split.
+          apply member_eq with (x,a); auto.
+          destruct H3; split; split; auto.
+          apply member_eq with (a,x); auto.
+          destruct H3; split; split; auto.
     Qed.
 
     Lemma embed_func_directed2 : forall y, forall a b,
@@ -504,58 +507,58 @@ Section ep_pairs.
       unfold embed_image in m0.
       apply esubset_elem in m.
       apply esubset_elem in m0.
-      destruct m as [_ [??]].
-      destruct m0 as [_ [??]].
-      assert ((y,a) ∈ PLT.hom_rel p).
-      apply PLT.hom_order with ya a; auto.
-      assert ((y,b) ∈ PLT.hom_rel p).
-      apply PLT.hom_order with yb b; auto.
-      destruct (PLT.hom_directed _ _ _ p y (a::b::nil)%list).
-      apply elem_inh with a. apply cons_elem; auto.
-      hnf; simpl; intros.
-      apply erel_image_elem.
-      apply cons_elem in H7. destruct H7.
-      apply PLT.hom_order with y a; auto.
-      apply cons_elem in H7. destruct H7.
-      apply PLT.hom_order with y b; auto.
-      apply nil_elem in H7. elim H7.
-      destruct H7.
-      apply erel_image_elem in H8.
-      rename x into q.
-      exists q.
-      split.
-      destruct (find_inhabitant' (PLT.ord Y) (embed_image q) (embed_image_inhabited q))
-        as [yq ?]. simpl in *.
-      unfold embed_image in m.
-      apply esubset_elem in m.
-      destruct m as [_ [??]].
-      destruct Hep.
-      cut ((y,yq) ∈ PLT.hom_rel id).
-      simpl; intros. apply ident_elem in H11. auto.
-      apply ep_ident0.
-      simpl.
-      apply PLT.compose_hom_rel.
-      exists q. split; auto.
+      - destruct m as [_ [??]].
+        destruct m0 as [_ [??]].
+        assert ((y,a) ∈ PLT.hom_rel p) by
+            (apply PLT.hom_order with ya a; auto).
+        assert ((y,b) ∈ PLT.hom_rel p) by 
+            (apply PLT.hom_order with yb b; auto).
+        destruct (PLT.hom_directed _ _ _ p y (a::b::nil)%list).
+        + apply elem_inh with a. apply cons_elem; auto.
+        + hnf; simpl; intros.
+          apply erel_image_elem.
+          apply cons_elem in H7. destruct H7.
+          * apply PLT.hom_order with y a; auto.
+          * apply cons_elem in H7. destruct H7.
+            ** apply PLT.hom_order with y b; auto.
+            ** apply nil_elem in H7. elim H7.
+        + destruct H7.
+          apply erel_image_elem in H8.
+          rename x into q.
+          exists q.
+          split.
+          * destruct (find_inhabitant' (PLT.ord Y) (embed_image q) (embed_image_inhabited q))
+              as [yq ?]. simpl in *.
+            unfold embed_image in m.
+            apply esubset_elem in m.
+            ** destruct m as [_ [??]].
+               destruct Hep.
+               cut ((y,yq) ∈ PLT.hom_rel id).
+               { simpl; intros. apply ident_elem in H11. auto. }
+               apply ep_ident0.
+               simpl.
+               apply PLT.compose_hom_rel.
+               exists q. split; auto.
 
-      intros. destruct H11. split.
-      apply member_eq with (q,a0); auto.
-      destruct H10; split; split; auto.
-      apply member_eq with (a0,q); auto.
-      destruct H10; split; split; auto.
-      split; apply H7; auto.
-      apply cons_elem; auto.
-      apply cons_elem; right.
-      apply cons_elem; auto.
-      intros. destruct H3. split.
-      apply member_eq with (b,a0); auto.
-      destruct H2; split; split; auto.
-      apply member_eq with (a0,b); auto.
-      destruct H2; split; split; auto.
-      intros. destruct H3. split.
-      apply member_eq with (a,a0); auto.
-      destruct H2; split; split; auto.
-      apply member_eq with (a0,a); auto.
-      destruct H2; split; split; auto.
+            ** intros. destruct H11. split.
+               *** apply member_eq with (q,a0); auto.
+                   destruct H10; split; split; auto.
+               *** apply member_eq with (a0,q); auto.
+                   destruct H10; split; split; auto.
+          * split; apply H7; auto.
+            ** apply cons_elem; auto.
+            ** apply cons_elem; right.
+               apply cons_elem; auto.
+      - intros. destruct H3. split.
+        + apply member_eq with (b,a0); auto.
+          destruct H2; split; split; auto.
+        + apply member_eq with (a0,b); auto.
+          destruct H2; split; split; auto.
+      - intros. destruct H3. split.
+        + apply member_eq with (a,a0); auto.
+          destruct H2; split; split; auto.
+        + apply member_eq with (a0,a); auto.
+          destruct H2; split; split; auto.
     Qed.
 
     Definition ep_embedding : embedding hf X Y :=
@@ -582,21 +585,21 @@ Section ep_pairs.
       embed#x ≤ y <-> (y,x) ∈ project_rel.
     Proof.
       intros. split; intros.
-      unfold project_rel.
-      apply esubset_dec_elem.
-      intros.
-      change (fst y0) with (π₁#y0)%cat_ops.
-      change (snd y0) with (π₂#y0)%cat_ops.
-      rewrite <- H0. auto.
-      split; auto.
-      apply eprod_elem; split; apply eff_complete; auto.
-      unfold project_rel in H.
-      apply esubset_dec_elem in H.
-      destruct H; auto.
-      intros.
-      change (fst y0) with (π₁#y0)%cat_ops.
-      change (snd y0) with (π₂#y0)%cat_ops.
-      rewrite <- H1. auto.
+      - unfold project_rel.
+        apply esubset_dec_elem.
+        + intros.
+          change (fst y0) with (π₁#y0)%cat_ops.
+          change (snd y0) with (π₂#y0)%cat_ops.
+          rewrite <- H0. auto.
+        + split; auto.
+          apply eprod_elem; split; apply eff_complete; auto.
+      - unfold project_rel in H.
+        apply esubset_dec_elem in H.
+        + destruct H; auto.
+        + intros.
+          change (fst y0) with (π₁#y0)%cat_ops.
+          change (snd y0) with (π₂#y0)%cat_ops.
+          rewrite <- H1. auto.
     Qed.
 
     Program Definition project_hom : Y → X :=
@@ -611,25 +614,25 @@ Section ep_pairs.
     Next Obligation.
       red. intro y.
       apply prove_directed.
-      generalize (refl_equal hf). pattern hf at 2. case hf; intros.
-      pattern hf at 1. rewrite H. auto.
-      pattern hf at 1. rewrite H.
-      generalize (embed_directed0 embed y).
-      rewrite H at 1.
-      intros [x ?].
-      exists x.
-      apply erel_image_elem.
-      apply project_rel_elem. auto.
+      - generalize (refl_equal hf). pattern hf at 2. case hf; intros.
+        + pattern hf at 1. rewrite H. auto.
+        + pattern hf at 1. rewrite H.
+          generalize (embed_directed0 embed y).
+          rewrite H at 1.
+          intros [x ?].
+          exists x.
+          apply erel_image_elem.
+          apply project_rel_elem. auto.
       
-      intros.
-      apply erel_image_elem in H.
-      apply erel_image_elem in H0.
-      apply project_rel_elem in H.
-      apply project_rel_elem in H0.
-      destruct (embed_directed2 embed y x y0) as [z [?[??]]]; auto.
-      exists z; split; auto. split; auto.
-      apply erel_image_elem.
-      apply project_rel_elem. auto.
+      - intros.
+        apply erel_image_elem in H.
+        apply erel_image_elem in H0.
+        apply project_rel_elem in H.
+        apply project_rel_elem in H0.
+        destruct (embed_directed2 embed y x y0) as [z [?[??]]]; auto.
+        exists z; split; auto. split; auto.
+        apply erel_image_elem.
+        apply project_rel_elem. auto.
     Qed.      
 
     Definition embed_rel :=
@@ -642,21 +645,21 @@ Section ep_pairs.
       embed#x ≥ y <-> (x,y) ∈ embed_rel.
     Proof.
       intros; split; intros.
-      unfold embed_rel.
-      apply esubset_dec_elem.
-      intros.
-      change (fst y0) with (π₁#y0)%cat_ops.
-      change (snd y0) with (π₂#y0)%cat_ops.
-      rewrite <- H0. auto.
-      split; auto.
-      apply eprod_elem; split; apply eff_complete; auto.
-      unfold embed_rel in H.
-      apply esubset_dec_elem in H.
-      destruct H; auto.
-      intros.
-      change (fst y0) with (π₁#y0)%cat_ops.
-      change (snd y0) with (π₂#y0)%cat_ops.
-      rewrite <- H1. auto.
+      - unfold embed_rel.
+        apply esubset_dec_elem.
+        + intros.
+          change (fst y0) with (π₁#y0)%cat_ops.
+          change (snd y0) with (π₂#y0)%cat_ops.
+          rewrite <- H0. auto.
+        + split; auto.
+          apply eprod_elem; split; apply eff_complete; auto.
+      - unfold embed_rel in H.
+        apply esubset_dec_elem in H.
+        + destruct H; auto.
+        + intros.
+          change (fst y0) with (π₁#y0)%cat_ops.
+          change (snd y0) with (π₂#y0)%cat_ops.
+          rewrite <- H1. auto.
     Qed.
 
     Program Definition embed_hom : X → Y :=
@@ -673,47 +676,47 @@ Section ep_pairs.
       hnf. simpl; intros.
       exists (embed#(x:X)).
       split.
-      hnf; simpl; intros.
-      apply H in H0.
-      apply erel_image_elem in H0.
-      apply embed_rel_elem in H0. auto.
-      apply erel_image_elem.
-      apply embed_rel_elem.
-      auto.
+      - hnf; simpl; intros.
+        apply H in H0.
+        apply erel_image_elem in H0.
+        apply embed_rel_elem in H0. auto.
+      - apply erel_image_elem.
+        apply embed_rel_elem.
+        auto.
     Qed.
 
     Lemma embed_func_is_ep_pair : is_ep_pair X Y embed_hom project_hom.
     Proof.
       constructor.
 
-      split.
-      hnf; simpl; intros.
-      destruct a as [x x'].
-      apply PLT.compose_hom_rel in H.
-      apply ident_elem.
-      destruct H as [y [??]].
-      apply embed_rel_elem in H.
-      apply project_rel_elem in H0.
-      apply (embed_reflects embed).
-      transitivity y; auto.
+      - split.
+        + hnf; simpl; intros.
+          destruct a as [x x'].
+          apply PLT.compose_hom_rel in H.
+          apply ident_elem.
+          destruct H as [y [??]].
+          apply embed_rel_elem in H.
+          apply project_rel_elem in H0.
+          apply (embed_reflects embed).
+          transitivity y; auto.
 
-      hnf; simpl; intros.
-      destruct a as [x x'].
-      apply ident_elem in H.
-      apply PLT.compose_hom_rel.
-      exists (embed#(x:X)).
-      split.
-      apply embed_rel_elem. auto.
-      apply project_rel_elem. auto.
+        + hnf; simpl; intros.
+          destruct a as [x x'].
+          apply ident_elem in H.
+          apply PLT.compose_hom_rel.
+          exists (embed#(x:X)).
+          split.
+          apply embed_rel_elem. auto.
+          apply project_rel_elem. auto.
 
-      hnf; simpl; intros.      
-      destruct a as [y y'].
-      apply PLT.compose_hom_rel in H.
-      apply ident_elem.
-      destruct H as [x [??]].
-      apply project_rel_elem in H.
-      apply embed_rel_elem in H0.
-      transitivity (embed#x); auto.
+      - hnf; simpl; intros.      
+        destruct a as [y y'].
+        apply PLT.compose_hom_rel in H.
+        apply ident_elem.
+        destruct H as [x [??]].
+        apply project_rel_elem in H.
+        apply embed_rel_elem in H0.
+        transitivity (embed#x); auto.
     Qed.
 
     Definition embed_ep_pair := 
@@ -728,87 +731,88 @@ Section ep_pairs.
     embed_ep_pair (ep_embedding ep) ≈ ep.
   Proof.
     intros. split; hnf; simpl; intros.
-    destruct a.
-    apply embed_rel_elem in H.
-    simpl in H.
-    unfold choose' in H.
-    match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
-      destruct (find_inhabitant' A X Y); simpl in *
-    end.
-    unfold embed_image in m.
-    apply esubset_elem in m.
-    destruct m as [?[??]].
-    apply PLT.hom_order with c x; auto.
+    - destruct a.
+      apply embed_rel_elem in H.
+      simpl in H.
+      unfold choose' in H.
+      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+          destruct (find_inhabitant' A X Y); simpl in *
+      end.
+      unfold embed_image in m.
+      apply esubset_elem in m.
+      + destruct m as [?[??]].
+        apply PLT.hom_order with c x; auto.
 
-    intros.
-    destruct H2. split.
-    apply member_eq with (c,a); auto.
-    destruct H1; split; split; auto.
-    apply member_eq with (a,c); auto.
-    destruct H1; split; split; auto.
+      + intros.
+        destruct H2. split.
+        * apply member_eq with (c,a); auto.
+          destruct H1; split; split; auto.
+        * apply member_eq with (a,c); auto.
+          destruct H1; split; split; auto.
 
-    destruct a.
-    apply embed_rel_elem.
-    simpl. unfold choose'.
-    match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
-      destruct (find_inhabitant' A X Y); simpl in *
-    end.
-    unfold embed_image in m.
-    apply esubset_elem in m. intuition.
-    cut ((x,c0) ∈ PLT.hom_rel id).
-    simpl; intros. apply ident_elem in H1. auto.
-    generalize (ep_correct X Y ep). intros [??].
-    apply ep_ident0. simpl.
-    apply PLT.compose_hom_rel.
-    eauto.
+    - destruct a.
+      apply embed_rel_elem.
+      simpl. unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+          destruct (find_inhabitant' A X Y); simpl in *
+      end.
+      unfold embed_image in m.
+      + apply esubset_elem in m.
+        * intuition.
+          cut ((x,c0) ∈ PLT.hom_rel id).
+          { simpl; intros. apply ident_elem in H1. auto. }
+          generalize (ep_correct X Y ep). intros [??].
+          apply ep_ident0. simpl.
+          apply PLT.compose_hom_rel.
+          eauto.
 
-    intros.
-    destruct H2. split.
-    apply member_eq with (c,a); auto.
-    destruct H1; split; split; auto.
-    apply member_eq with (a,c); auto.
-    destruct H1; split; split; auto.
+        * intros.
+          destruct H2. split.
+          ** apply member_eq with (c,a); auto.
+             destruct H1; split; split; auto.
+          ** apply member_eq with (a,c); auto.
+             destruct H1; split; split; auto.
   Qed.
 
   Lemma embed_ep_roundtrip2 : forall X Y (e : X ⇀ Y),
     e ≈ ep_embedding (embed_ep_pair e).
   Proof.
     intros. split; hnf; simpl; intros.
-    unfold choose'.
-    match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
-      destruct (find_inhabitant' A X Y); simpl in *
-    end.
-    unfold embed_image in m.
-    apply esubset_elem in m.
-    intuition.
-    unfold embed_hom in H1.
-    simpl in *.
-    apply embed_rel_elem in H1.
-    apply project_rel_elem in H2.
-    simpl in *; auto.
+    - unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
+      end.
+      unfold embed_image in m.
+      apply esubset_elem in m.
+      + intuition.
+        unfold embed_hom in H1.
+        simpl in *.
+        apply embed_rel_elem in H1.
+        apply project_rel_elem in H2.
+        simpl in *; auto.
 
-    intros. destruct H1; split.
-    apply member_eq with (x,a); auto.
-    destruct H0; split; split; auto.
-    apply member_eq with (a,x); auto.
-    destruct H0; split; split; auto.
+      + intros. destruct H1; split.
+        * apply member_eq with (x,a); auto.
+          destruct H0; split; split; auto.
+        * apply member_eq with (a,x); auto.
+          destruct H0; split; split; auto.
 
-    unfold choose'.
-    match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
-      destruct (find_inhabitant' A X Y); simpl in *
-    end.
-    unfold embed_image in m.
-    apply esubset_elem in m.
-    intuition.
-    simpl in *.
-    apply embed_rel_elem in H1.
-    auto.
+    - unfold choose'.
+      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+        destruct (find_inhabitant' A X Y); simpl in *
+      end.
+      unfold embed_image in m.
+      apply esubset_elem in m.
+      + intuition.
+        simpl in *.
+        apply embed_rel_elem in H1.
+        auto.
 
-    intros. destruct H1; split.
-    apply member_eq with (x,a); auto.
-    destruct H0; split; split; auto.
-    apply member_eq with (a,x); auto.
-    destruct H0; split; split; auto.
+      + intros. destruct H1; split.
+        * apply member_eq with (x,a); auto.
+          destruct H0; split; split; auto.
+        * apply member_eq with (a,x); auto.
+          destruct H0; split; split; auto.
   Qed.
 End ep_pairs.
 
@@ -826,44 +830,44 @@ Program Definition embedForget hf : functor (EMBED hf) (PLT.PLT hf) :=
   Functor (EMBED hf) (PLT.PLT hf) (fun X => X) (fun X Y f => embed_hom hf X Y f) _ _ _.
 Next Obligation.
   intros. split; hnf; simpl; intros.
-  destruct a.
-  apply embed_rel_elem in H0.
-  apply ident_elem.
-  rewrite H0.
-  destruct H. apply H.
-  destruct a.
-  apply embed_rel_elem.
-  apply ident_elem in H0.
-  rewrite H0. destruct H. apply H1.
+  - destruct a.
+    apply embed_rel_elem in H0.
+    apply ident_elem.
+    rewrite H0.
+    destruct H. apply H.
+  - destruct a.
+    apply embed_rel_elem.
+    apply ident_elem in H0.
+    rewrite H0. destruct H. apply H1.
 Qed.
 Next Obligation.
   simpl; intros.
   split; hnf; simpl; intros.
-  destruct a as [a c].
-  apply embed_rel_elem in H0.
-  destruct H. 
-  apply PLT.compose_hom_rel.
-  exists (g a).
-  split.
-  apply embed_rel_elem. auto.
-  apply embed_rel_elem. 
-  rewrite H0. apply H.
-  destruct a as [a c].
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [y [??]].
-  apply embed_rel_elem.
-  simpl in *.
-  apply embed_rel_elem in H0.
-  apply embed_rel_elem in H1.
-  rewrite H1. rewrite H0.
-  destruct H. apply H2.
+  - destruct a as [a c].
+    apply embed_rel_elem in H0.
+    destruct H. 
+    apply PLT.compose_hom_rel.
+    exists (g a).
+    split.
+    + apply embed_rel_elem. auto.
+    + apply embed_rel_elem. 
+      rewrite H0. apply H.
+  - destruct a as [a c].
+    apply PLT.compose_hom_rel in H0.
+    destruct H0 as [y [??]].
+    apply embed_rel_elem.
+    simpl in *.
+    apply embed_rel_elem in H0.
+    apply embed_rel_elem in H1.
+    rewrite H1. rewrite H0.
+    destruct H. apply H2.
 Qed.
 Next Obligation.
   repeat intro. split; hnf; simpl; intros.
-  destruct a as [a b].
-  apply embed_rel_elem in H0. apply embed_rel_elem.
-  rewrite H0. destruct H. apply H.
-  destruct a as [a b].
-  apply embed_rel_elem in H0. apply embed_rel_elem.
-  rewrite H0. destruct H. apply H1.
+  - destruct a as [a b].
+    apply embed_rel_elem in H0. apply embed_rel_elem.
+    rewrite H0. destruct H. apply H.
+  - destruct a as [a b].
+    apply embed_rel_elem in H0. apply embed_rel_elem.
+    rewrite H0. destruct H. apply H1.
 Qed.
