@@ -54,15 +54,16 @@ Proof.
   simpl in H2.
   apply union_axiom.
   exists (PLT.hom_rel (precompose C f q')).
-  split. apply image_axiom1'.
-  exists (precompose C f q').
-  split; auto.
-  apply image_axiom1'.
-  exists q'. split; auto.
-  unfold precompose.
-  apply PLT.compose_hom_rel.
-  exists y. split; auto.
-  rewrite <- H2; auto.
+  split.
+  - apply image_axiom1'.
+    exists (precompose C f q').
+    split; auto.
+    apply image_axiom1'.
+    exists q'. split; auto.
+  - unfold precompose.
+    apply PLT.compose_hom_rel.
+    exists y. split; auto.
+    rewrite <- H2; auto.
 Qed.
 
 Lemma postcompose_continuous hf (A B C:PLT.PLT hf) (g:B → C) :
@@ -79,15 +80,16 @@ Proof.
   simpl in H2.
   apply union_axiom.
   exists (PLT.hom_rel (postcompose A g q')).
-  split. apply image_axiom1'.
-  exists (postcompose A g q').
-  split; auto.
-  apply image_axiom1'.
-  exists q'. split; auto.
-  unfold postcompose.
-  apply PLT.compose_hom_rel.
-  exists y. split; auto.
-  rewrite <- H2; auto.
+  split.
+  - apply image_axiom1'.
+    exists (postcompose A g q').
+    split; auto.
+    apply image_axiom1'.
+    exists q'. split; auto.
+  - unfold postcompose.
+    apply PLT.compose_hom_rel.
+    exists y. split; auto.
+    rewrite <- H2; auto.
 Qed.
 
 Program Definition pair_right hf (A B C:PLT.PLT hf) (f:C → A) :
@@ -124,12 +126,12 @@ Proof.
   apply union_axiom.
   exists (PLT.hom_rel (pair_right B f q')).
   split.
-  apply image_axiom1'. 
-  exists (pair_right B f q'). split; auto.
-  apply image_axiom1'.  exists q'. split; auto.
-  simpl.
-  apply PLT.pair_hom_rel. split; auto.
-  rewrite <- H2; auto.
+  - apply image_axiom1'. 
+    exists (pair_right B f q'). split; auto.
+    apply image_axiom1'.  exists q'. split; auto.
+  - simpl.
+    apply PLT.pair_hom_rel. split; auto.
+    rewrite <- H2; auto.
 Qed.
 
 Lemma pair_left_continuous hf (A B C:PLT.PLT hf) (g:C → B) :
@@ -148,12 +150,12 @@ Proof.
   apply union_axiom.
   exists (PLT.hom_rel (pair_left A g q')).
   split.
-  apply image_axiom1'. 
-  exists (pair_left A g q'). split; auto.
-  apply image_axiom1'.  exists q'. split; auto.
-  simpl.
-  apply PLT.pair_hom_rel. split; auto.
-  rewrite <- H2; auto.
+  - apply image_axiom1'. 
+    exists (pair_left A g q'). split; auto.
+    apply image_axiom1'.  exists q'. split; auto.
+  - simpl.
+    apply PLT.pair_hom_rel. split; auto.
+    rewrite <- H2; auto.
 Qed.
 
 Section fixes.
@@ -181,10 +183,10 @@ Section fixes.
     unfold fixes_step.
     apply continuous_equiv with
       (postcompose Γ PLT.app ∘ pair_right (U A) f); auto.
-    hnf; simpl; intros. split; auto.
-    apply continuous_sequence.
-    apply postcompose_continuous.
-    apply pair_right_continuous.
+    - hnf; simpl; intros. split; auto.
+    - apply continuous_sequence.
+      + apply postcompose_continuous.
+      + apply pair_right_continuous.
   Qed.
 
   Definition fixes : Γ → U A := lfp fixes_step'.
@@ -206,15 +208,16 @@ Lemma fixes_mono Γ A (f g:Γ → U A ⇒ U A) :
 Proof.
   intro. unfold fixes at 1.
   apply scott_induction.
-  red. split. apply bottom_least.
-  intros. 
-  apply CPO.sup_is_least.
-  red; intros. apply H1; auto.
-  intros. rewrite <- H0; auto.
-  simpl; intros. unfold fixes_step.
-  rewrite fixes_unroll.
-  apply PLT.compose_mono; auto.
-  apply PLT.pair_mono; auto.
+  - red. split.
+    + apply bottom_least.
+    + intros. 
+      apply CPO.sup_is_least.
+      red; intros. apply H1; auto.
+  - intros. rewrite <- H0; auto.
+  - simpl; intros. unfold fixes_step.
+    rewrite fixes_unroll.
+    apply PLT.compose_mono; auto.
+    apply PLT.pair_mono; auto.
 Qed.
 
 Lemma fixes_eq Γ A (f g:Γ → U A ⇒ U A) : 
@@ -243,37 +246,38 @@ Lemma plt_bot_None A B x y :
   (x,y) ∈ PLT.hom_rel (⊥ : A → U B) <-> y = None.
 Proof.
   split; intros.
-  simpl in H.
-  unfold plt_hom_adj' in H.
-  apply PLT.compose_hom_rel in H.
-  destruct H as [?[??]].
-  simpl in H.
-  apply adj_unit_rel_elem in H.
-  apply U_hom_rel in H0.
-  destruct H0; auto.
-  destruct H0 as [?[?[??]]].
-  simpl in H0.
-  apply union_axiom in H0.
-  destruct H0 as [?[??]].
-  apply image_axiom2 in H0.
-  destruct H0 as [?[??]].
-  apply empty_elem in H0. elim H0.
+  - simpl in H.
+    unfold plt_hom_adj' in H.
+    apply PLT.compose_hom_rel in H.
+    destruct H as [?[??]].
+    simpl in H.
+    apply adj_unit_rel_elem in H.
+    apply U_hom_rel in H0.
+    destruct H0; auto.
+    destruct H0 as [?[?[??]]].
+    simpl in H0.
+    apply union_axiom in H0.
+    destruct H0 as [?[??]].
+    apply image_axiom2 in H0.
+    destruct H0 as [?[??]].
+    apply empty_elem in H0. elim H0.
 
-  subst y.
-  simpl.
-  unfold plt_hom_adj'.
-  apply PLT.compose_hom_rel.
-  exists None.
-  split. simpl.
-  apply adj_unit_rel_elem.
-  hnf; auto.
-  apply U_hom_rel. auto.
+  - subst y.
+    simpl.
+    unfold plt_hom_adj'.
+    apply PLT.compose_hom_rel.
+    exists None.
+    split.
+    + simpl.
+      apply adj_unit_rel_elem.
+      hnf; auto.
+    + apply U_hom_rel. auto.
 Qed.
 
 Lemma plt_bot_chomp A B C (g:A → B) :
   (⊥ : B → U C) ∘ g ≈ ⊥.
 Proof.
-  split. 2: apply bottom_least.
+  split; [| apply bottom_least ].
   hnf. intros.
   destruct a.
   apply PLT.compose_hom_rel in H.
@@ -285,43 +289,45 @@ Qed.
 Lemma fixes_compose_commute Γ Γ' A (f:Γ → U A ⇒ U A) (g:Γ' → Γ) :
   fixes f ∘ g ≈ fixes (f ∘ g).
 Proof.
-  split; unfold fixes at 1; apply scott_induction.
-  red; split.
-  rewrite plt_bot_chomp.
-  apply bottom_least.
-  intros.
-  transitivity (∐(image (precompose (U A) g) XS)).
-  destruct (CPO.continuous_sup _ _ _ (precompose (U A) g)).
-  apply H1.
-  apply (precompose_continuous false _ _ (U A) g).
-  apply CPO.sup_is_least.
-  red; intros.
-  apply image_axiom2 in H1.
-  destruct H1 as [q [??]].
-  rewrite H2. simpl.
-  apply H0. auto.
-  intros. rewrite <- H. auto.
-  simpl; intros.
-  unfold fixes_step.
-  rewrite fixes_unroll.
-  rewrite <- (cat_assoc PLT).
-  apply PLT.compose_mono; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_mono; auto.
+  split.
+  - unfold fixes at 1; apply scott_induction.
+    + red; split.
+      * rewrite plt_bot_chomp.
+        apply bottom_least.
+      * intros.
+        transitivity (∐(image (precompose (U A) g) XS)).
+        ** destruct (CPO.continuous_sup _ _ _ (precompose (U A) g)).
+           apply H1.
+           apply (precompose_continuous false _ _ (U A) g).
+        ** apply CPO.sup_is_least.
+           red; intros.
+           apply image_axiom2 in H1.
+           destruct H1 as [q [??]].
+           rewrite H2. simpl.
+           apply H0. auto.
+    + intros. rewrite <- H. auto.
+    + simpl; intros.
+      unfold fixes_step.
+      rewrite fixes_unroll.
+      rewrite <- (cat_assoc PLT).
+      apply PLT.compose_mono; auto.
+      rewrite (PLT.pair_compose_commute false).
+      apply PLT.pair_mono; auto.
   
-  red; split.
-  apply bottom_least.
-  intros.
-  apply CPO.sup_is_least.
-  red; intros.
-  apply H0; auto.
-  intros.
-  rewrite <- H; auto.
-  simpl; intros.
-  unfold fixes_step.
-  rewrite fixes_unroll.
-  rewrite <- (cat_assoc PLT).
-  apply PLT.compose_mono; auto.
-  rewrite (PLT.pair_compose_commute false).
-  apply PLT.pair_mono; auto.
+  - unfold fixes at 1; apply scott_induction.
+    + red; split.
+      * apply bottom_least.
+      * intros.
+        apply CPO.sup_is_least.
+        red; intros.
+        apply H0; auto.
+    + intros.
+      rewrite <- H; auto.
+    + simpl; intros.
+      unfold fixes_step.
+      rewrite fixes_unroll.
+      rewrite <- (cat_assoc PLT).
+      apply PLT.compose_mono; auto.
+      rewrite (PLT.pair_compose_commute false).
+      apply PLT.pair_mono; auto.
 Qed.
