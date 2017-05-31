@@ -39,10 +39,8 @@ Lemma eagerLamF_continuous : continuous_functor eagerLamF.
 Proof.
   unfold eagerLamF.
   apply composeF_continuous.
-  apply expF_continuous.
-  apply pairF_continuous.
-  apply identF_continuous.
-  apply identF_continuous.
+  - apply expF_continuous.
+  - apply pairF_continuous; apply identF_continuous.
 Qed.
 
 Lemma cbvLamF_continuous : continuous_functor cbvLamF.
@@ -51,12 +49,10 @@ Proof.
   apply composeF_continuous.
   apply composeF_continuous.
   apply composeF_continuous.
-  apply forgetEMBED_continuous.
-  apply liftEMBED_continuous.
-  apply expF_continuous.
-  apply pairF_continuous.
-  apply identF_continuous.
-  apply identF_continuous.
+  - apply forgetEMBED_continuous.
+  - apply liftEMBED_continuous.
+  - apply expF_continuous.
+  - apply pairF_continuous; apply identF_continuous.
 Qed.
 
 Lemma cbnLamF_continuous : continuous_functor cbnLamF.
@@ -65,12 +61,10 @@ Proof.
   apply composeF_continuous.
   apply composeF_continuous.
   apply composeF_continuous.
-  apply forgetEMBED_continuous.
-  apply expF_continuous.
-  apply pairF_continuous.
-  apply identF_continuous.
-  apply identF_continuous.
-  apply liftEMBED_continuous.
+  - apply forgetEMBED_continuous.
+  - apply expF_continuous.
+  - apply pairF_continuous; apply identF_continuous.
+  - apply liftEMBED_continuous.
 Qed.
 
 Definition lamModelEager : ∂PLT := fixpoint eagerLamF.
