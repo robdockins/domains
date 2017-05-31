@@ -85,23 +85,23 @@ Section cPLT.
   Proof.
     simpl; intros.
     red; simpl.
-    unfold compose. simpl.
     red in H; simpl in H.
     red in H0; simpl in H0.
     transitivity 
       ((cplt_retract Z ∘ cplt_hom g ∘ cplt_retract Y) ∘
        (cplt_retract Y ∘ cplt_hom f ∘ cplt_retract X)).
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono; auto.
-    apply PLT.compose_mono; auto.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono; auto.
-    apply PLT.compose_mono; auto.
-    rewrite (cplt_idem Y). auto.
+    { repeat rewrite (cat_assoc (PLT.PLT hf)).
+      apply PLT.compose_mono; auto.
+      apply PLT.compose_mono; auto.
+      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+      apply PLT.compose_mono; auto.
+      apply PLT.compose_mono; auto.
+      rewrite (cplt_idem Y). auto.
+    }
     transitivity 
       ((cplt_retract Z ∘ cplt_hom g' ∘ cplt_retract Y) ∘
        (cplt_retract Y ∘ cplt_hom f' ∘ cplt_retract X)).
-    apply PLT.compose_mono; auto.
+    { apply PLT.compose_mono; auto. } 
     repeat rewrite (cat_assoc (PLT.PLT hf)).
     apply PLT.compose_mono; auto.
     apply PLT.compose_mono; auto.
@@ -125,33 +125,33 @@ Section cPLT.
     f ≈ g.
   Proof.
     split.
-    intros; destruct H; split; apply cplt_hom_le; auto.
-    intros; destruct H.
-    apply cplt_hom_le in H.
-    apply cplt_hom_le in H0.
-    split; auto.
+    - intros; destruct H; split; apply cplt_hom_le; auto.
+    - intros; destruct H.
+      apply cplt_hom_le in H.
+      apply cplt_hom_le in H0.
+      split; auto.
   Qed.
 
   Lemma cat_axioms : Category.axioms ob hom hom_eq_mixin comp_mixin.
   Proof.
     constructor.
 
-    intros. rewrite <- cplt_hom_eq. simpl. 
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cat_ident1 (PLT.PLT hf)).
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A). auto.
+    - intros. rewrite <- cplt_hom_eq. simpl. 
+      repeat rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cat_ident1 (PLT.PLT hf)).
+      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem A). auto.
 
-    intros. rewrite <- cplt_hom_eq. simpl. 
-    rewrite (cat_ident2 (PLT.PLT hf)).
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem B). auto.
+    - intros. rewrite <- cplt_hom_eq. simpl. 
+      rewrite (cat_ident2 (PLT.PLT hf)).
+      repeat rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem B). auto.
 
-    intros. rewrite <- cplt_hom_eq. simpl.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    auto.
+    - intros. rewrite <- cplt_hom_eq. simpl.
+      repeat rewrite (cat_assoc (PLT.PLT hf)).
+      auto.
 
-    intros. split; apply compose_mono; auto.
+    - intros. split; apply compose_mono; auto.
   Qed.
 
   Canonical Structure cPLT : category :=
@@ -184,18 +184,18 @@ Section cPLT.
        _. 
   Next Obligation.
     intros. apply PLT.sum_cases_universal.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A). auto.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem B). auto.
+    - rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota1_cases_commute hf).
+      rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota1_cases_commute hf).
+      rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem A). auto.
+    - rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota2_cases_commute hf).
+      rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota2_cases_commute hf).
+      rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem B). auto.
   Qed.
   Canonical Structure sum.
 
@@ -217,12 +217,12 @@ Section cPLT.
     rewrite (cplt_idem B).
     apply PLT.curry_eq.
     rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects. auto.
+    apply cat_respects; auto.
     etransitivity.
-    symmetry. apply PLT.pair_map_pair.
-    apply PLT.pair_eq; auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A). auto.
+    - symmetry. apply PLT.pair_map_pair.
+    - apply PLT.pair_eq; auto.
+      rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem A). auto.
   Qed.
   Canonical Structure exp.
 
@@ -283,14 +283,14 @@ Section cPLT.
     repeat rewrite <- (cat_assoc (PLT.PLT hf)).
     apply cat_respects. auto.
     etransitivity.
-    apply cat_respects. auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A). auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    auto.
+    - apply cat_respects. auto.
+      rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota1_cases_commute hf).
+      rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem A). auto.
+    - rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota1_cases_commute hf).
+      auto.
   Qed.
 
   Theorem iota2_cases_commute C A B (f:A → C) (g:B → C) :
@@ -298,16 +298,16 @@ Section cPLT.
   Proof.
     rewrite <- cplt_hom_eq. simpl.
     repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects. auto.
+    apply cat_respects; auto.
     etransitivity.
-    apply cat_respects. auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem B). auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    auto.
+    - apply cat_respects. auto.
+      rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota2_cases_commute hf).
+      rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem B). auto.
+    - rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.iota2_cases_commute hf).
+      auto.
   Qed.
 
   Theorem sum_cases_universal C A B (f:A → C) (g:B → C) (CASES:(sum A B) → C) :
@@ -321,51 +321,52 @@ Section cPLT.
     transitivity
        (PLT.sum_cases (cplt_retract C ∘ cplt_hom f ∘ cplt_retract A)
                       (cplt_retract C ∘ cplt_hom g ∘ cplt_retract B)).
-    apply PLT.sum_cases_universal.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    auto.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    auto.
+    - apply PLT.sum_cases_universal.
+      + rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota1_cases_commute hf).
+        rewrite (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota1_cases_commute hf).
+        auto.
+      + rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota2_cases_commute hf).
+        rewrite (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota2_cases_commute hf).
+        auto.
 
-    symmetry.
-    apply PLT.sum_cases_universal.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    etransitivity. 2: apply H. simpl.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A). auto.
+    - symmetry.
+      apply PLT.sum_cases_universal.
+      + rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota1_cases_commute hf).
+        etransitivity. 2: apply H. simpl.
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota1_cases_commute hf).
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem A). auto.
 
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    etransitivity. 2: apply H0. simpl.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem B). auto.
+      + rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota2_cases_commute hf).
+        etransitivity; [ |apply H0 ].
+        simpl.
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite (cat_assoc (PLT.PLT hf)).
+        rewrite (PLT.iota2_cases_commute hf).
+        rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem B). auto.
   Qed.
 
   Theorem pair_universal_le C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
@@ -397,7 +398,7 @@ Section cPLT.
          (π₂%plt ∘
            (PLT.pair_map (cplt_retract A) (cplt_retract B) ∘
              h))) ).
-    auto. 
+    { auto. }
     clearbody h.
     repeat rewrite (cat_assoc (PLT.PLT hf)).
     
@@ -409,137 +410,142 @@ Section cPLT.
     apply PLT.compose_hom_rel in H0.
     destruct H0 as [q2 [??]].
     destruct (PLT.hom_directed hf _ _ h c (q1::q2::nil)%list) as [q3 [??]].
-    apply elem_inh with q1. apply cons_elem; auto.
-    red; intros.
-    rewrite erel_image_elem.
-    apply cons_elem in H3; destruct H3.
-    eapply PLT.hom_order with c q1; auto.
-    apply cons_elem in H3; destruct H3.
-    eapply PLT.hom_order with c q2; auto.
-    apply nil_elem in H3. elim H3.
-    apply erel_image_elem in H4.
-    apply PLT.compose_hom_rel in H1.
-    destruct H1 as [m [??]].
-    simpl in H1.
-    destruct q1 as [q1 q1'].
-    rewrite (pi1_rel_elem _ _ _ _ q1 q1' m) in H1.
-    apply PLT.compose_hom_rel in H2.
-    destruct H2 as [n [??]].
-    simpl in H2.
-    destruct q2 as [q2 q2'].
-    rewrite (pi2_rel_elem _ _ _ _ q2 q2' n) in H2.
-    apply PLT.pair_hom_rel. split.
-    apply PLT.compose_hom_rel. exists q3.
-    split; auto.
-    destruct (cplt_idem A).
-    generalize (H8 (m,c0) H5).
-    intros.
-    apply PLT.compose_hom_rel in H9.
-    destruct H9 as [m' [??]].
-    apply PLT.compose_hom_rel.
-    exists (m',c1).
-    split.
-    unfold PLT.pair_map.
-    apply PLT.pair_hom_rel.
-    split.
-    apply PLT.compose_hom_rel.
-    exists m. split; auto.
-    simpl.
-    destruct q3 as [q3 q3'].
-    apply pi1_rel_elem.
-    transitivity q1; auto.
-    assert ((q1,q1') ≤ (q3,q3')).
-    apply H3. apply cons_elem; auto. destruct H11; auto.
-    apply PLT.compose_hom_rel.
-    exists n. split; auto.
-    simpl.
-    destruct q3 as [q3 q3'].
-    apply pi2_rel_elem.
-    transitivity q2'; auto.
-    assert ((q2,q2') ≤ (q3,q3')).
-    apply H3. 
-    apply cons_elem; right.
-    apply cons_elem; auto.
-    destruct H11; auto.
-    apply PLT.compose_hom_rel.
-    exists m'. split; auto.
-    simpl.
-    apply pi1_rel_elem. auto.
-    apply PLT.compose_hom_rel.
-    exists q3. split; auto.
+    - apply elem_inh with q1. apply cons_elem; auto.
+    - red; intros.
+      rewrite erel_image_elem.
+      apply cons_elem in H3; destruct H3.
+      { eapply PLT.hom_order with c q1; auto. }
+      apply cons_elem in H3; destruct H3.
+      { eapply PLT.hom_order with c q2; auto. }
+      apply nil_elem in H3. elim H3.
+    - apply erel_image_elem in H4.
+      apply PLT.compose_hom_rel in H1.
+      destruct H1 as [m [??]].
+      simpl in H1.
+      destruct q1 as [q1 q1'].
+      rewrite (pi1_rel_elem _ _ _ _ q1 q1' m) in H1.
+      apply PLT.compose_hom_rel in H2.
+      destruct H2 as [n [??]].
+      simpl in H2.
+      destruct q2 as [q2 q2'].
+      rewrite (pi2_rel_elem _ _ _ _ q2 q2' n) in H2.
+      apply PLT.pair_hom_rel.
+      split.
+      + apply PLT.compose_hom_rel. exists q3.
+        split; auto.
+        destruct (cplt_idem A).
+        generalize (H8 (m,c0) H5); intros.
+        apply PLT.compose_hom_rel in H9.
+        destruct H9 as [m' [??]].
+        apply PLT.compose_hom_rel.
+        exists (m',c1).
+        split.
+        * unfold PLT.pair_map.
+          apply PLT.pair_hom_rel.
+          split.
+          ** apply PLT.compose_hom_rel.
+             exists m. split; auto.
+             simpl.
+             destruct q3 as [q3 q3'].
+             apply pi1_rel_elem.
+             transitivity q1; auto.
+             assert ((q1,q1') ≤ (q3,q3')).
+             { apply H3. apply cons_elem; auto. }
+             destruct H11; auto.
+          ** apply PLT.compose_hom_rel.
+             exists n. split; auto.
+             simpl.
+             destruct q3 as [q3 q3'].
+             apply pi2_rel_elem.
+             transitivity q2'; auto.
+             assert ((q2,q2') ≤ (q3,q3')).
+             { apply H3. 
+               apply cons_elem; right.
+               apply cons_elem; auto.
+             }
+             destruct H11; auto.
+        * apply PLT.compose_hom_rel.
+          exists m'. split; auto.
+          simpl.
+          apply pi1_rel_elem. auto.
+      + apply PLT.compose_hom_rel.
+        exists q3. split; auto.
     
-    destruct (cplt_idem B).
-    generalize (H8 (n,c1) H6).
-    intros.
-    apply PLT.compose_hom_rel in H9.
-    destruct H9 as [n' [??]].
-    apply PLT.compose_hom_rel.
-    exists (c0,n').
-    split.
-    unfold PLT.pair_map.
-    apply PLT.pair_hom_rel.
-    split.
-    apply PLT.compose_hom_rel.
-    exists m. split; auto.
-    simpl.
-    destruct q3 as [q3 q3'].
-    apply pi1_rel_elem.
-    transitivity q1; auto.
-    assert ((q1,q1') ≤ (q3,q3')).
-    apply H3. apply cons_elem; auto. destruct H11; auto.
-    apply PLT.compose_hom_rel.
-    exists n. split; auto.
-    simpl.
-    destruct q3 as [q3 q3'].
-    apply pi2_rel_elem.
-    transitivity q2'; auto.
-    assert ((q2,q2') ≤ (q3,q3')).
-    apply H3. 
-    apply cons_elem; right.
-    apply cons_elem; auto.
-    destruct H11; auto.
-    apply PLT.compose_hom_rel.
-    exists n'. split; auto.
-    simpl.
-    apply pi2_rel_elem. auto.
+        destruct (cplt_idem B).
+        generalize (H8 (n,c1)); intros.
+        apply PLT.compose_hom_rel in H9.
+        destruct H9 as [n' [??]].
+        apply PLT.compose_hom_rel.
+        exists (c0,n').
+        split.
+        * unfold PLT.pair_map.
+          apply PLT.pair_hom_rel.
+          split.
+          ** apply PLT.compose_hom_rel.
+             exists m. split; auto.
+             simpl.
+             destruct q3 as [q3 q3'].
+             apply pi1_rel_elem.
+             transitivity q1; auto.
+             assert ((q1,q1') ≤ (q3,q3')).
+             { apply H3. apply cons_elem; auto. }
+             destruct H11; auto.
+          ** apply PLT.compose_hom_rel.
+             exists n. split; auto.
+             simpl.
+             destruct q3 as [q3 q3'].
+             apply pi2_rel_elem.
+             transitivity q2'; auto.
+             assert ((q2,q2') ≤ (q3,q3')).
+             { apply H3. 
+               apply cons_elem; right.
+               apply cons_elem; auto.
+             } 
+             destruct H11; auto.
+        * apply PLT.compose_hom_rel.
+          exists n'. split; auto.
+          simpl.
+          apply pi2_rel_elem. auto.
+        * auto.
   Qed.
 
   Theorem pair_universal C A B (f:C → A) (g:C → B) (PAIR:C → (prod A B)) :
     pi1 ∘ PAIR ≈ f -> pi2 ∘ PAIR ≈ g -> PAIR ≈ pair f g.
   Proof.
-    intros. split. apply pair_universal_le; auto.
-    rewrite <- cplt_hom_le. simpl.
-    rewrite <- cplt_hom_eq in H. 
-    rewrite <- cplt_hom_eq in H0.
-    rewrite <- (PLT.pair_map_pair hf).
-    unfold PLT.pair_map.
-    rewrite (PLT.pair_compose_commute hf).
-    rewrite (PLT.pair_compose_commute hf).
-    rewrite (PLT.pair_compose_commute hf).
-    rewrite <- H. rewrite <- H0. clear H H0.
+    intros. split.
+    - apply pair_universal_le; auto.
+    - rewrite <- cplt_hom_le. simpl.
+      rewrite <- cplt_hom_eq in H. 
+      rewrite <- cplt_hom_eq in H0.
+      rewrite <- (PLT.pair_map_pair hf).
+      unfold PLT.pair_map.
+      rewrite (PLT.pair_compose_commute hf).
+      rewrite (PLT.pair_compose_commute hf).
+      rewrite (PLT.pair_compose_commute hf).
+      rewrite <- H. rewrite <- H0. clear H H0.
 
-    simpl.
-    apply PLT.pair_mono.
-    unfold PLT.pair_map.
-    etransitivity.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. 2: reflexivity.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. reflexivity.
-    apply PLT.pair_le_commute1.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A).
-    auto.
-    unfold PLT.pair_map.
-    etransitivity.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. 2: reflexivity.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. reflexivity.
-    apply PLT.pair_le_commute2.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem B).
-    auto.
+      simpl.
+      apply PLT.pair_mono.
+      + unfold PLT.pair_map.
+        etransitivity.
+        * repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+          apply PLT.compose_mono; [ | reflexivity ].
+          rewrite (cat_assoc (PLT.PLT hf)).
+          apply PLT.compose_mono; [ reflexivity |].
+          apply PLT.pair_le_commute1.
+        * repeat rewrite (cat_assoc (PLT.PLT hf)).
+          rewrite (cplt_idem A).
+          auto.
+      + unfold PLT.pair_map.
+        etransitivity.
+        * repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+          apply PLT.compose_mono; [ | reflexivity ].
+          rewrite (cat_assoc (PLT.PLT hf)).
+          apply PLT.compose_mono; [ reflexivity |].
+          apply PLT.pair_le_commute2.
+        * repeat rewrite (cat_assoc (PLT.PLT hf)).
+          rewrite (cplt_idem B).
+          auto.
   Qed.
 
   Theorem pair_le_commute1 C A B (f:C → A) (g:C → B) :
@@ -547,19 +553,19 @@ Section cPLT.
   Proof.
     rewrite <- cplt_hom_le. simpl.
     repeat rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. reflexivity.
+    apply PLT.compose_mono; [ reflexivity |].
     repeat rewrite <- (cat_assoc (PLT.PLT hf)).
     etransitivity.
-    apply PLT.compose_mono. 2: reflexivity.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. reflexivity.
-    apply PLT.pair_le_commute1.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono.
-    apply PLT.pair_le_commute1.
-    auto.
+    - apply PLT.compose_mono; [| reflexivity ].
+      rewrite (cat_assoc (PLT.PLT hf)).
+      apply PLT.compose_mono; [ reflexivity |].
+      apply PLT.pair_le_commute1.
+    - repeat rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem A).
+      rewrite <- (cat_assoc (PLT.PLT hf)).
+      apply PLT.compose_mono.
+      + apply PLT.pair_le_commute1.
+      + auto.
   Qed.
 
   Theorem pair_le_commute2 C A B (f:C → A) (g:C → B) :
@@ -567,19 +573,19 @@ Section cPLT.
   Proof.
     rewrite <- cplt_hom_le. simpl.
     repeat rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. reflexivity.
+    apply PLT.compose_mono; [ reflexivity |].
     repeat rewrite <- (cat_assoc (PLT.PLT hf)).
     etransitivity.
-    apply PLT.compose_mono. 2: reflexivity.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono. reflexivity.
-    apply PLT.pair_le_commute2.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem B).
-    rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply PLT.compose_mono.
-    apply PLT.pair_le_commute2.
-    auto.
+    - apply PLT.compose_mono; [| reflexivity ].
+      rewrite (cat_assoc (PLT.PLT hf)).
+      apply PLT.compose_mono; [ reflexivity |].
+      apply PLT.pair_le_commute2.
+    - repeat rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem B).
+      rewrite <- (cat_assoc (PLT.PLT hf)).
+      apply PLT.compose_mono.
+      + apply PLT.pair_le_commute2.
+      + auto.
   Qed.
 
   Theorem pair_compose_commute A B C D
@@ -607,15 +613,17 @@ Section cPLT.
     rewrite <- (cat_assoc (PLT.PLT hf)).
     rewrite <- (cat_assoc (PLT.PLT hf)).
     etransitivity.
-    apply cat_respects. reflexivity.
-    apply cat_respects. reflexivity.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    symmetry. apply PLT.pair_map_pair.
+    { apply cat_respects. reflexivity.
+      apply cat_respects. reflexivity.
+      repeat rewrite (cat_assoc (PLT.PLT hf)).
+      symmetry. apply PLT.pair_map_pair.
+    } 
     etransitivity.
-    apply cat_respects. reflexivity.
-    rewrite (PLT.curry_compose_commute hf).
-    rewrite (PLT.curry_compose_commute hf).
-    apply PLT.curry_apply3.
+    { apply cat_respects. reflexivity.
+      rewrite (PLT.curry_compose_commute hf).
+      rewrite (PLT.curry_compose_commute hf).
+      apply PLT.curry_apply3.
+    } 
     repeat rewrite (cat_assoc (PLT.PLT hf)).
     rewrite (cplt_idem B).
     repeat rewrite <- (cat_assoc (PLT.PLT hf)).
@@ -644,12 +652,12 @@ Section cPLT.
     rewrite (PLT.pair_compose_commute hf).
     rewrite <- (PLT.pair_map_pair hf).
     apply PLT.pair_mono.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply H.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cat_assoc (PLT.PLT hf)).
-    apply H0.
+    - rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cat_assoc (PLT.PLT hf)).
+      apply H.
+    - rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cat_assoc (PLT.PLT hf)).
+      apply H0.
   Qed.
 
   Theorem pair_eq (C A B:ob) (f f':C → A) (g g':C → B) :
@@ -668,37 +676,37 @@ Section cPLT.
       (PLT.sum_cases 
          (cplt_retract C ∘ cplt_hom f ∘ cplt_retract A)
          (cplt_retract C ∘ cplt_hom g ∘ cplt_retract B)).
-    apply eq_ord.
-    apply PLT.sum_cases_universal.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₁%plt). 
-    rewrite (PLT.iota1_cases_commute hf).
-    auto.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₂%plt). 
-    rewrite (PLT.iota2_cases_commute hf).
-    auto.
-    
+    { apply eq_ord.
+      apply PLT.sum_cases_universal.
+      - repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
+        rewrite (PLT.iota1_cases_commute hf).
+        rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₁%plt). 
+        rewrite (PLT.iota1_cases_commute hf).
+        auto.
+      - repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
+        rewrite (PLT.iota2_cases_commute hf).
+        rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₂%plt). 
+        rewrite (PLT.iota2_cases_commute hf).
+        auto.
+    }    
     transitivity
       (PLT.sum_cases 
          (cplt_retract C ∘ cplt_hom f' ∘ cplt_retract A)
          (cplt_retract C ∘ cplt_hom g' ∘ cplt_retract B)).
-    apply PLT.sum_cases_mono; auto.
+    { apply PLT.sum_cases_mono; auto. }
 
     apply eq_ord.
     symmetry. apply PLT.sum_cases_universal.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
-    rewrite (PLT.iota1_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₁%plt). 
-    rewrite (PLT.iota1_cases_commute hf).
-    auto.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
-    rewrite (PLT.iota2_cases_commute hf).
-    rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₂%plt). 
-    rewrite (PLT.iota2_cases_commute hf).
-    auto.
+    - repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
+      rewrite (PLT.iota1_cases_commute hf).
+      rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₁%plt). 
+      rewrite (PLT.iota1_cases_commute hf).
+      auto.
+    - repeat rewrite <- (cat_assoc (PLT.PLT hf)). 
+      rewrite (PLT.iota2_cases_commute hf).
+      rewrite (cat_assoc (PLT.PLT hf) _ _ _ _ _ ι₂%plt). 
+      rewrite (PLT.iota2_cases_commute hf).
+      auto.
   Qed.
 
   Theorem sum_cases_eq (C A B:ob) (f f':A → C) (g g':B → C) :
@@ -714,19 +722,20 @@ Section cPLT.
     rewrite <- cplt_hom_le. simpl.
     rewrite <- cplt_hom_le in H.
     transitivity (Λ(cplt_retract B ∘ cplt_hom f ∘ cplt_retract (prod C A)))%plt.
-    apply eq_ord. apply PLT.curry_universal.
-    unfold PLT.pair_map at 1.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite PLT.curry_apply3.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite <- (PLT.pair_map_pair hf).
-    repeat rewrite (cat_ident2 (PLT.PLT hf)).    
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite (PLT.curry_apply3 hf).
-    auto.
+    { apply eq_ord. apply PLT.curry_universal.
+      unfold PLT.pair_map at 1.
+      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite PLT.curry_apply3.
+      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite <- (PLT.pair_map_pair hf).
+      repeat rewrite (cat_ident2 (PLT.PLT hf)).    
+      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite (PLT.curry_apply3 hf).
+      auto.
+    } 
 
     transitivity (Λ(cplt_retract B ∘ cplt_hom f' ∘ cplt_retract (prod C A)))%plt.
-    apply PLT.curry_mono; auto.
+    { apply PLT.curry_mono; auto. }
 
     apply eq_ord. symmetry. apply PLT.curry_universal.
     unfold PLT.pair_map at 1.
@@ -760,18 +769,19 @@ Section cPLT.
       (PLT.pair_map (cplt_retract X)
                     (cplt_retract Z)) ∘
       (PLT.pair (cplt_hom f1) (cplt_hom g1))).
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    rewrite <- (PLT.pair_map_pair hf).
-    rewrite <- (PLT.pair_map_pair hf).
-    apply PLT.pair_eq.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem X). auto.
-    repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-    apply cat_respects; auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem Z). auto.
+    { repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+      rewrite <- (PLT.pair_map_pair hf).
+      rewrite <- (PLT.pair_map_pair hf).
+      apply PLT.pair_eq.
+      - repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem X). auto.
+      - repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+        apply cat_respects; auto.
+        rewrite (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem Z). auto.
+    } 
     reflexivity.
   Qed.    
 
@@ -779,24 +789,26 @@ Section cPLT.
     app ∘ pair (curry f) g ≈ f ∘ pair id g.
   Proof.
     cut (pair (curry f) g ≈ pair_map (curry f) id ∘ pair id g).
-    intros. rewrite H.
-    rewrite (@cat_assoc cPLT).
-    rewrite curry_apply. auto.
+    { intros. rewrite H.
+      rewrite (@cat_assoc cPLT).
+      rewrite curry_apply. auto.
+    } 
     rewrite <- pair_map_pair.
     apply pair_eq.
-    symmetry. apply cat_ident1.
-    symmetry. apply cat_ident2.
+    - symmetry. apply cat_ident1.
+    - symmetry. apply cat_ident2.
   Qed.
 
   Theorem curry_apply3 A B C D (f:(prod D A) → B) (h:C → D) (g:C → A) :
     app ∘ pair (curry f ∘ h) g ≈ f ∘ pair h g.
   Proof.
     cut (pair (curry f ∘ h) g ≈ pair_map (curry f) id ∘ pair h g).
-    intros. rewrite H.
-    rewrite (@cat_assoc cPLT).
-    rewrite curry_apply. auto.
+    { intros. rewrite H. 
+      rewrite (@cat_assoc cPLT).
+      rewrite curry_apply. auto.
+    } 
     rewrite <- pair_map_pair.
-    apply pair_eq. auto.
+    apply pair_eq; auto.
     symmetry. apply cat_ident2.
   Qed.
 
@@ -820,10 +832,11 @@ Section cPLT.
     repeat rewrite <- (cat_assoc (PLT.PLT hf)).
     unfold PLT.pair_map at 3.
     etransitivity.
-    apply cat_respects. auto.
-    apply cat_respects. auto.
-    apply cat_respects. auto.
-    symmetry. apply PLT.pair_map_pair.
+    { apply cat_respects. auto.
+      apply cat_respects. auto.
+      apply cat_respects. auto.
+      symmetry. apply PLT.pair_map_pair.
+    } 
     rewrite <- (PLT.pair_map_pair hf).
     rewrite (PLT.curry_apply3 hf).
     repeat rewrite (cat_assoc (PLT.PLT hf)).
@@ -837,14 +850,14 @@ Section cPLT.
     rewrite <- (PLT.pair_map_pair hf).
     repeat rewrite (cat_ident2 (PLT.PLT hf)).
     apply PLT.pair_eq.
-    apply cat_respects. auto.
-    rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem C). auto.
-    repeat rewrite (cat_assoc (PLT.PLT hf)).
-    rewrite (cplt_idem A).
-    rewrite (cplt_idem A).
-    rewrite (cplt_idem A).
-    auto.
+    - apply cat_respects. auto.
+      rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem C). auto.
+    - repeat rewrite (cat_assoc (PLT.PLT hf)).
+      rewrite (cplt_idem A).
+      rewrite (cplt_idem A).
+      rewrite (cplt_idem A).
+      auto.
   Qed.
 
   Theorem curry_compose_commute A B C D (f:(prod C A) → B) (h:D → C) :
@@ -866,9 +879,9 @@ Section cPLT.
     Cocartesian.Mixin ob hom hom_eq_mixin comp_mixin sum iota1 iota2 (@sum_cases) _.
   Next Obligation.
     constructor.
-    apply iota1_cases_commute.
-    apply iota2_cases_commute.
-    apply sum_cases_universal.
+    - apply iota1_cases_commute.
+    - apply iota2_cases_commute.
+    - apply sum_cases_universal.
   Qed.
 
   Definition cocartesian :=
@@ -892,15 +905,16 @@ Section cPLT.
       red; simpl.
       transitivity
         (cplt_retract B ∘ (cplt_retract B ∘ cplt_hom x ∘ cplt_retract A) ∘ cplt_retract A). 
-      repeat rewrite (cat_assoc (PLT.PLT hf)).
-      rewrite (cplt_idem B).
-      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-      rewrite (cplt_idem A).
-      auto.
-      apply PLT.compose_mono; auto.
-      apply PLT.compose_mono; auto.
-      apply CPO.sup_is_ub.
-      apply (image_axiom1'). exists x. split; auto.
+      - repeat rewrite (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem B).
+        repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem A).
+        auto.
+      - apply PLT.compose_mono; auto.
+        apply PLT.compose_mono; auto.
+        apply CPO.sup_is_ub.
+        apply (image_axiom1').
+        exists x. split; auto.
     Qed.
     Next Obligation.
       intros.
@@ -911,33 +925,33 @@ Require Import fixes.
       transitivity ((∐
         (image (postcompose _ (cplt_retract B) ∘ precompose _ (cplt_retract A)) 
            (image hom_rel' X)))).
-      destruct (@CPO.continuous_sup _
+      - destruct (@CPO.continuous_sup _
                             (PLT.homset_cpo hf (cplt_ob A) (cplt_ob B))
                             (PLT.homset_cpo hf (cplt_ob A) (cplt_ob B))
                             (postcompose _ (cplt_retract B) ∘ precompose _ (cplt_retract A)))
                as [? _].
-      etransitivity. 2: apply H0. simpl.
-      rewrite (cat_assoc (PLT.PLT hf)). auto.
-      apply continuous_sequence.
-      apply postcompose_continuous.
-      apply precompose_continuous.
-      apply CPO.sup_is_least.
-      red; simpl; intros.
-      apply image_axiom2 in H0.
-      destruct H0 as [q [??]].
-      apply image_axiom2 in H0.
-      destruct H0 as [q' [??]].
-      rewrite H1. simpl.
-      rewrite H2. simpl.
-      red in H.
-      generalize (H q' H0).
-      intros. red in H3. simpl in H3.
-      repeat rewrite (cat_assoc (PLT.PLT hf)).
-      rewrite (cplt_idem B).
-      repeat rewrite <- (cat_assoc (PLT.PLT hf)).
-      rewrite (cplt_idem A).
-      repeat rewrite (cat_assoc (PLT.PLT hf)).
-      auto.
+        etransitivity; [| apply H0 ].
+        { simpl. rewrite (cat_assoc (PLT.PLT hf)). auto. }
+        apply continuous_sequence.
+        apply postcompose_continuous.
+        apply precompose_continuous.
+      - apply CPO.sup_is_least.
+        red; simpl; intros.
+        apply image_axiom2 in H0.
+        destruct H0 as [q [??]].
+        apply image_axiom2 in H0.
+        destruct H0 as [q' [??]].
+        rewrite H1. simpl.
+        rewrite H2. simpl.
+        red in H.
+        generalize (H q' H0).
+        intros. red in H3. simpl in H3.
+        repeat rewrite (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem B).
+        repeat rewrite <- (cat_assoc (PLT.PLT hf)).
+        rewrite (cplt_idem A).
+        repeat rewrite (cat_assoc (PLT.PLT hf)).
+        auto.
     Qed.
 
     Definition homset_cpo : CPO.type (directed_hf_cl hf) :=
@@ -949,7 +963,7 @@ End cPLT.
 Theorem pair_commute1 (C A B:cPLT false) (f:C → A) (g:C → B) :
   pi1 false ∘ pair false f g ≈ f.
 Proof.
-  split. apply pair_le_commute1.
+  split; [ apply pair_le_commute1 |].
   rewrite <- (cplt_hom_le false C A). simpl.
   unfold PLT.pair_map.
   rewrite PLT.pair_commute1.
@@ -963,7 +977,7 @@ Qed.
 Theorem pair_commute2 (C A B:cPLT false) (f:C → A) (g:C → B) :
   pi2 false ∘ pair false f g ≈ g.
 Proof.
-  split. apply pair_le_commute2.
+  split; [ apply pair_le_commute2 |].
   rewrite <- (cplt_hom_le false C B). simpl.
   unfold PLT.pair_map.
   rewrite PLT.pair_commute2.
@@ -981,8 +995,8 @@ Proof.
   rewrite <- (cplt_hom_eq false A (unit false)). simpl.
   do 2 rewrite (cat_ident2 PLT).
   etransitivity.
-  apply PLT.terminate_univ.
-  symmetry. apply PLT.terminate_univ.
+  - apply PLT.terminate_univ.
+  - symmetry. apply PLT.terminate_univ.
 Qed.
 
 Definition terminated_mixin
@@ -997,9 +1011,9 @@ Program Definition cartesian_mixin
        (@pair false) _.
 Next Obligation.
   constructor.
-  apply pair_commute1.
-  apply pair_commute2.
-  apply pair_universal.
+  - apply pair_commute1.
+  - apply pair_commute2.
+  - apply pair_universal.
 Qed.
 
 Program Definition cartesian_closed_mixin
@@ -1012,21 +1026,21 @@ Program Definition cartesian_closed_mixin
        _.
 Next Obligation.
   constructor.
-  intros. 
-  generalize (curry_apply false A B C f).
-  intros. 
-  etransitivity. 2: apply H.
-  apply cat_respects; auto.
-  unfold pair_map.
-  apply pair_eq; auto.
-  symmetry. apply cat_ident2.
-  intros.
-  apply curry_universal.
-  etransitivity. 2: apply H.
-  apply cat_respects; auto.
-  unfold pair_map.
-  apply pair_eq; auto.
-  apply cat_ident2.
+  - intros. 
+    generalize (curry_apply false A B C f).
+    intros. 
+    etransitivity; [| apply H ].
+    apply cat_respects; auto.
+    unfold pair_map.
+    apply pair_eq; auto.
+    symmetry. apply cat_ident2.
+  - intros.
+    apply curry_universal.
+    etransitivity; [ | apply H ].
+    apply cat_respects; auto.
+    unfold pair_map.
+    apply pair_eq; auto.
+    apply cat_ident2.
 Qed.
 
 Definition terminated :=
@@ -1202,12 +1216,14 @@ Proof.
         cPLT.cplt_retract B ∘ cPLT.cplt_hom f ∘
         PLT.terminate hf (cPLT.cplt_ob A) ∘
         cPLT.cplt_retract A)).
-  apply PLT.compose_hom_rel.
-  exists a'. split; auto.
-  apply PLT.compose_hom_rel.
-  exists tt. split; auto.
-  simpl. apply eprod_elem; split.
-  apply eff_complete. apply single_axiom. auto.
+  { apply PLT.compose_hom_rel.
+    exists a'. split; auto.
+    apply PLT.compose_hom_rel.
+    exists tt. split; auto.
+    simpl. apply eprod_elem; split.
+    - apply eff_complete.
+    - apply single_axiom. auto.
+  } 
   generalize (H0 (a,b) H2); intros.
   apply PLT.compose_hom_rel in H3.
   destruct H3 as [a'' [??]].
@@ -1223,8 +1239,8 @@ Lemma cplt_terminate_cancel (hf:bool) (A B:cPLT.cPLT hf) (f g:1 → B) (a a':A) 
 Proof.
   intros. destruct H0.
   split.
-  eapply cplt_terminate_le_cancel. eauto. auto.
-  eapply cplt_terminate_le_cancel. eauto. auto.
+  - eapply cplt_terminate_le_cancel. eauto. auto.
+  - eapply cplt_terminate_le_cancel. eauto. auto.
 Qed.
 
 
@@ -1234,7 +1250,7 @@ Definition cplt_const hf (A B:cPLT.cPLT hf) (b:B) :=
 Theorem pair_bottom1 (C A B:c∂PLT) (f:C → A) :
   《 f, ⊥ : C → B 》 ≈ ⊥.
 Proof.
-  split. 2: apply bottom_least.
+  split; [ | apply bottom_least ].
   rewrite <- cPLT.cplt_hom_le.
   apply PLT.compose_mono; auto.
   apply PLT.compose_mono; auto.
@@ -1245,7 +1261,7 @@ Qed.
 Theorem pair_bottom2 (C A B:c∂PLT) (g:C → B) :
   《 ⊥ : C → A,  g 》 ≈ ⊥.
 Proof.
-  split. 2: apply bottom_least.
+  split; [| apply bottom_least ].
   rewrite <- cPLT.cplt_hom_le.
   apply PLT.compose_mono; auto.
   apply PLT.compose_mono; auto.
@@ -1269,26 +1285,26 @@ Proof.
   assert ((b,a') ∈ PLT.hom_rel
            (cPLT.cplt_retract A ∘ cPLT.cplt_hom (cplt_const true B A a) ∘
              cPLT.cplt_retract B)).
-  apply (H B (cplt_const _ _ _ a) (id) (b,a')).
-  destruct (cPLT.cplt_idem B).
-  generalize (H5 (b,b2) H2); clear H4 H5; intro.
-  apply PLT.compose_hom_rel in H4. destruct H4 as [b3 [??]].
-  apply PLT.compose_hom_rel.
-  exists b3; split; auto.
-  apply PLT.compose_hom_rel.
-  exists a3; split; auto.
-  rewrite cplt_compose_unfold.
-  apply PLT.compose_hom_rel.
-  exists (a,b3). split.
-  apply PLT.pair_hom_rel.
-  split; simpl.
-  apply plt_const_rel_elem. auto.
-  apply ident_elem. auto.
-  apply PLT.compose_hom_rel.
-  exists (a2,b2). split; auto.
-  simpl.
-  apply hom_rel_pair_map. split; auto.
-  
+  { apply (H B (cplt_const _ _ _ a) (id) (b,a')).
+    destruct (cPLT.cplt_idem B).
+    generalize (H5 (b,b2) H2); clear H4 H5; intro.
+    apply PLT.compose_hom_rel in H4. destruct H4 as [b3 [??]].
+    apply PLT.compose_hom_rel.
+    exists b3; split; auto.
+    apply PLT.compose_hom_rel.
+    exists a3; split; auto.
+    rewrite cplt_compose_unfold.
+    apply PLT.compose_hom_rel.
+    exists (a,b3). split.
+    - apply PLT.pair_hom_rel.
+      split; simpl.
+      + apply plt_const_rel_elem. auto.
+      + apply ident_elem. auto.
+    - apply PLT.compose_hom_rel.
+      exists (a2,b2). split; auto.
+      simpl.
+      apply hom_rel_pair_map. split; auto.
+  } 
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [b' [??]].
   apply PLT.compose_hom_rel in H5.
@@ -1303,12 +1319,12 @@ Proof.
   apply PLT.compose_hom_rel.
   exists (aq',b2).
   split.
-  simpl.
-  apply hom_rel_pair_map. split; auto.
-  apply PLT.hom_order with aq aq'; auto.
-  apply PLT.compose_hom_rel.
-  exists aq'. split; auto.
-  simpl. apply pi1_rel_elem. auto.
+  - simpl.
+    apply hom_rel_pair_map. split; auto.
+    apply PLT.hom_order with aq aq'; auto.
+  - apply PLT.compose_hom_rel.
+    exists aq'. split; auto.
+    simpl. apply pi1_rel_elem. auto.
 Qed.
 
 Theorem pi2_greatest (A B:c∂PLT) (proj:A⊗B → B) :
@@ -1327,26 +1343,26 @@ Proof.
   assert ((a,b') ∈ PLT.hom_rel
            (cPLT.cplt_retract B ∘ cPLT.cplt_hom (cplt_const true A B b) ∘
              cPLT.cplt_retract A)).
-  apply (H A (id) (cplt_const _ _ _ b) (a,b')).
-  destruct (cPLT.cplt_idem A).
-  generalize (H5 (a,a2) H0); clear H4 H5; intro.
-  apply PLT.compose_hom_rel in H4. destruct H4 as [a3 [??]].
-  apply PLT.compose_hom_rel.
-  exists a3; split; auto.
-  apply PLT.compose_hom_rel.
-  exists b3; split; auto.
-  rewrite cplt_compose_unfold.
-  apply PLT.compose_hom_rel.
-  exists (a3,b). split.
-  apply PLT.pair_hom_rel.
-  split; simpl.
-  apply ident_elem. auto.
-  apply plt_const_rel_elem. auto.
-  apply PLT.compose_hom_rel.
-  exists (a2,b2). split; auto.
-  simpl.
-  apply hom_rel_pair_map. split; auto.
-  
+  { apply (H A (id) (cplt_const _ _ _ b) (a,b')).
+    destruct (cPLT.cplt_idem A).
+    generalize (H5 (a,a2) H0); clear H4 H5; intro.
+    apply PLT.compose_hom_rel in H4. destruct H4 as [a3 [??]].
+    apply PLT.compose_hom_rel.
+    exists a3; split; auto.
+    apply PLT.compose_hom_rel.
+    exists b3; split; auto.
+    rewrite cplt_compose_unfold.
+    apply PLT.compose_hom_rel.
+    exists (a3,b). split.
+    - apply PLT.pair_hom_rel.
+      split; simpl.
+      + apply ident_elem. auto.
+      + apply plt_const_rel_elem. auto.
+    - apply PLT.compose_hom_rel.
+      exists (a2,b2). split; auto.
+      simpl.
+      apply hom_rel_pair_map. split; auto.
+  } 
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [a' [??]].
   apply PLT.compose_hom_rel in H5.
@@ -1361,12 +1377,12 @@ Proof.
   apply PLT.compose_hom_rel.
   exists (a2,bq').
   split.
-  simpl.
-  apply hom_rel_pair_map. split; auto.
-  apply PLT.hom_order with bq bq'; auto.
-  apply PLT.compose_hom_rel.
-  exists bq'. split; auto.
-  simpl. apply pi2_rel_elem. auto.
+  - simpl.
+    apply hom_rel_pair_map. split; auto.
+    apply PLT.hom_order with bq bq'; auto.
+  - apply PLT.compose_hom_rel.
+    exists bq'. split; auto.
+    simpl. apply pi2_rel_elem. auto.
 Qed.
 
 
@@ -1383,59 +1399,59 @@ Lemma antistrict_nonbottom (A B:c∂PLT) (f:A → B) :
   antistrict f <-> (forall C (g:C → A), nonbottom g -> nonbottom (f ∘ g)).
 Proof.
   split; intros.
-  unfold antistrict in H.
-  hnf in H0.
+  - unfold antistrict in H.
+    hnf in H0.
+    
+    destruct H0 as [[c a] ?].
+    apply PLT.compose_hom_rel in H0.
+    destruct H0 as [c' [??]].
+    apply PLT.compose_hom_rel in H1.
+    destruct H1 as [a' [??]].
+    destruct (H a' a) as [b ?]; auto.
+    red. rewrite cplt_compose_unfold.
+    red. simpl.
+    exists (c, b).
+    apply PLT.compose_hom_rel.
+    exists c'; split; auto.
+    apply PLT.compose_hom_rel in H3.
+    destruct H3 as [q1 [??]].
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [q2 [??]].
+    apply PLT.compose_hom_rel.
+    exists q2; split; auto.
+    apply PLT.compose_hom_rel.
+    exists a'; split; auto.
+    apply PLT.compose_hom_rel.
+    exists q1; split; auto.
 
-  destruct H0 as [[c a] ?].
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [c' [??]].
-  apply PLT.compose_hom_rel in H1.
-  destruct H1 as [a' [??]].
-  destruct (H a' a) as [b ?]; auto.
-  red. rewrite cplt_compose_unfold.
-  red. simpl.
-  exists (c, b).
-  apply PLT.compose_hom_rel.
-  exists c'; split; auto.
-  apply PLT.compose_hom_rel in H3.
-  destruct H3 as [q1 [??]].
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [q2 [??]].
-  apply PLT.compose_hom_rel.
-  exists q2; split; auto.
-  apply PLT.compose_hom_rel.
-  exists a'; split; auto.
-  apply PLT.compose_hom_rel.
-  exists q1; split; auto.
-
-  red; simpl; intros.
-  destruct (H A (cplt_const true A A a)).
-  red. simpl.
-  exists (a,a').
-  apply PLT.compose_hom_rel.
-  exists a'. split; auto.
-  apply PLT.compose_hom_rel.
-  exists a. split; auto.
-  simpl.
-  apply plt_const_rel_elem. auto.
-  destruct x as [m n].
-  apply PLT.compose_hom_rel in H1.
-  destruct H1 as [q1 [??]].
-  apply PLT.compose_hom_rel in H2.
-  destruct H2 as [q2 [??]].
-  rewrite cplt_compose_unfold in H2.
-  apply PLT.compose_hom_rel in H2.
-  destruct H2 as [q3 [??]].
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [q4 [??]].
-  simpl in H2.
-  apply plt_const_rel_elem in H2.
-  exists n.
-  apply PLT.compose_hom_rel.
-  exists q4. split.
-  apply PLT.hom_order with q3 q4; auto.
-  apply PLT.compose_hom_rel.
-  exists q2. split; auto.
+  - red; simpl; intros.
+    destruct (H A (cplt_const true A A a)).
+    + red. simpl.
+      exists (a,a').
+      apply PLT.compose_hom_rel.
+      exists a'. split; auto.
+      apply PLT.compose_hom_rel.
+      exists a. split; auto.
+      simpl.
+      apply plt_const_rel_elem. auto.
+    + destruct x as [m n].
+      apply PLT.compose_hom_rel in H1.
+      destruct H1 as [q1 [??]].
+      apply PLT.compose_hom_rel in H2.
+      destruct H2 as [q2 [??]].
+      rewrite cplt_compose_unfold in H2.
+      apply PLT.compose_hom_rel in H2.
+      destruct H2 as [q3 [??]].
+      apply PLT.compose_hom_rel in H4.
+      destruct H4 as [q4 [??]].
+      simpl in H2.
+      apply plt_const_rel_elem in H2.
+      exists n.
+      apply PLT.compose_hom_rel.
+      exists q4. split.
+      * apply PLT.hom_order with q3 q4; auto.
+      * apply PLT.compose_hom_rel.
+        exists q2. split; auto.
 Qed.
 
 Theorem antistrict_pair_commute1 (C B:c∂PLT) (g:C → B) :
@@ -1443,85 +1459,85 @@ Theorem antistrict_pair_commute1 (C B:c∂PLT) (g:C → B) :
 Proof.
   intros.
   split; repeat intro.
-  split. apply cPLT.pair_le_commute1.
-  hnf; intros.
-  destruct a as [c a].
-  apply PLT.compose_hom_rel.
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [c' [??]].
-  apply PLT.compose_hom_rel in H1.
-  destruct H1 as [a' [??]].
-  destruct (H c c') as [b ?]; auto.
-  apply PLT.compose_hom_rel in H3.
-  destruct H3 as [c'' [??]].
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [b' [??]].
-  destruct (PLT.hom_directed _ _ _ (cPLT.cplt_retract C) c (c'::c''::nil)%list) as [cz [??]].
-  exists c'. apply cons_elem; auto.
-  red; intros.
-  apply erel_image_elem.
-  apply cons_elem in H6. destruct H6.
-  apply PLT.hom_order with c c'; auto.
-  apply cons_elem in H6. destruct H6.
-  apply PLT.hom_order with c c''; auto.
-  apply nil_elem in H6. elim H6.
-  apply erel_image_elem in H7.
-  destruct (cPLT.cplt_idem A).
-  generalize (H9 (a',a) H2). clear H8 H9.
-  intros. apply PLT.compose_hom_rel in H8.
-  destruct H8 as [a'' [??]].
-  destruct (cPLT.cplt_idem B).
-  generalize (H11 (b',b) H5). clear H10 H11.
-  intros. apply PLT.compose_hom_rel in H10.
-  destruct H10 as [b'' [??]].
+  - split; [ apply cPLT.pair_le_commute1 |].
+    hnf; intros.
+    destruct a as [c a].
+    apply PLT.compose_hom_rel.
+    apply PLT.compose_hom_rel in H0.
+    destruct H0 as [c' [??]].
+    apply PLT.compose_hom_rel in H1.
+    destruct H1 as [a' [??]].
+    destruct (H c c') as [b ?]; auto.
+    apply PLT.compose_hom_rel in H3.
+    destruct H3 as [c'' [??]].
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [b' [??]].
+    destruct (PLT.hom_directed _ _ _ (cPLT.cplt_retract C) c (c'::c''::nil)%list) as [cz [??]].
+    + exists c'. apply cons_elem; auto.
+    + red; intros.
+      apply erel_image_elem.
+      apply cons_elem in H6. destruct H6.
+      * apply PLT.hom_order with c c'; auto.
+      * apply cons_elem in H6. destruct H6.
+        ** apply PLT.hom_order with c c''; auto.
+        ** apply nil_elem in H6. elim H6.
+    + apply erel_image_elem in H7.
+      destruct (cPLT.cplt_idem A).
+      generalize (H9 (a',a) H2). clear H8 H9.
+      intros. apply PLT.compose_hom_rel in H8.
+      destruct H8 as [a'' [??]].
+      destruct (cPLT.cplt_idem B).
+      generalize (H11 (b',b) H5). clear H10 H11.
+      intros. apply PLT.compose_hom_rel in H10.
+      destruct H10 as [b'' [??]].
 
-  exists cz. split; auto.
-  apply PLT.compose_hom_rel.
-  exists a''. split; auto.
-  apply PLT.compose_hom_rel.
-  exists (a',b'). split.
-  apply PLT.pair_hom_rel. split; auto.
-  apply PLT.hom_order with c' a'; auto.
-  apply H6. apply cons_elem; auto.
-  apply PLT.hom_order with c'' b'; auto.
-  apply H6. apply cons_elem; right. apply cons_elem; auto.
-  apply PLT.compose_hom_rel. 
-  exists (a'',b'').
-  split.
-  simpl.
-  apply hom_rel_pair_map. split; auto.
-  simpl. apply pi1_rel_elem. auto.
+      exists cz. split; auto.
+      apply PLT.compose_hom_rel.
+      exists a''. split; auto.
+      apply PLT.compose_hom_rel.
+      exists (a',b'). split.
+      * apply PLT.pair_hom_rel. split; auto.
+        ** apply PLT.hom_order with c' a'; auto.
+           apply H6. apply cons_elem; auto.
+        ** apply PLT.hom_order with c'' b'; auto.
+           apply H6. apply cons_elem; right. apply cons_elem; auto.
+      * apply PLT.compose_hom_rel. 
+        exists (a'',b'').
+        split.
+        ** simpl.
+           apply hom_rel_pair_map. split; auto.
+        ** simpl. apply pi1_rel_elem. auto.
   
-  destruct (H C id).
-  red in H2. simpl in H2.
-  rewrite (cat_ident1 (∂PLT)) in H2.
-  rewrite (cPLT.cplt_idem C) in H2.
-  generalize (H2 (a,a') H0). intros.
-  apply PLT.compose_hom_rel in H3.
-  destruct H3 as [c1 [??]].
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [c2 [??]].
-  rewrite cplt_compose_unfold in H4.
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [c3 [??]].
-  destruct c3.
-  rewrite (PLT.pair_hom_rel true (cPLT.cplt_ob C) (cPLT.cplt_ob B) (cPLT.cplt_ob C) 
-                            id(_) (cPLT.cplt_hom g) c1 c c0) in H4.
-  destruct H4.
-  simpl in H4. apply ident_elem in H4.
-  apply PLT.compose_hom_rel in H6.
-  destruct H6 as [q [??]].
-  simpl in H8.
-  destruct q.
-  rewrite (pi1_rel_elem _ _ _ _ c3 c4 c2) in H8.
-  simpl in H6.
-  rewrite (hom_rel_pair_map  _ _ _ _ _ _ _ c c0 c3 c4) in H6.
-  destruct H6.
-  exists c4.
-  apply PLT.compose_hom_rel.
-  exists c1. split; auto.
-  apply PLT.compose_hom_rel.
-  exists c0. split; auto.
+  - destruct (H C id).
+    red in H2. simpl in H2.
+    rewrite (cat_ident1 (∂PLT)) in H2.
+    rewrite (cPLT.cplt_idem C) in H2.
+    generalize (H2 (a,a') H0). intros.
+    apply PLT.compose_hom_rel in H3.
+    destruct H3 as [c1 [??]].
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [c2 [??]].
+    rewrite cplt_compose_unfold in H4.
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [c3 [??]].
+    destruct c3.
+    rewrite (PLT.pair_hom_rel true (cPLT.cplt_ob C) (cPLT.cplt_ob B) (cPLT.cplt_ob C) 
+                              id(_) (cPLT.cplt_hom g) c1 c c0) in H4.
+    destruct H4.
+    simpl in H4. apply ident_elem in H4.
+    apply PLT.compose_hom_rel in H6.
+    destruct H6 as [q [??]].
+    simpl in H8.
+    destruct q.
+    rewrite (pi1_rel_elem _ _ _ _ c3 c4 c2) in H8.
+    simpl in H6.
+    rewrite (hom_rel_pair_map  _ _ _ _ _ _ _ c c0 c3 c4) in H6.
+    destruct H6.
+    exists c4.
+    apply PLT.compose_hom_rel.
+    exists c1. split; auto.
+    apply PLT.compose_hom_rel.
+    exists c0. split; auto.
 Qed.
 
 Theorem antistrict_pair_commute2 (C A:c∂PLT) (f:C → A) :
@@ -1529,84 +1545,83 @@ Theorem antistrict_pair_commute2 (C A:c∂PLT) (f:C → A) :
 Proof.
   intros.
   split; repeat intro.
-  split. apply cPLT.pair_le_commute2.
-  hnf; intros.
-  destruct a as [c b].
-  apply PLT.compose_hom_rel.
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [c' [??]].
-  apply PLT.compose_hom_rel in H1.
-  destruct H1 as [b' [??]].
-  destruct (H c c') as [a ?]; auto.
-  apply PLT.compose_hom_rel in H3.
-  destruct H3 as [c'' [??]].
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [a' [??]].
-  destruct (PLT.hom_directed _ _ _ (cPLT.cplt_retract C) c (c'::c''::nil)%list) as [cz [??]].
-  exists c'. apply cons_elem; auto.
-  red; intros.
-  apply erel_image_elem.
-  apply cons_elem in H6. destruct H6.
-  apply PLT.hom_order with c c'; auto.
-  apply cons_elem in H6. destruct H6.
-  apply PLT.hom_order with c c''; auto.
-  apply nil_elem in H6. elim H6.
-  apply erel_image_elem in H7.
-  destruct (cPLT.cplt_idem A).
-  generalize (H9 (a',a) H5). clear H8 H9.
-  intros. apply PLT.compose_hom_rel in H8.
-  destruct H8 as [a'' [??]].
-  destruct (cPLT.cplt_idem B).
-  generalize (H11 (b',b) H2). clear H10 H11.
-  intros. apply PLT.compose_hom_rel in H10.
-  destruct H10 as [b'' [??]].
-
-  exists cz. split; auto.
-  apply PLT.compose_hom_rel.
-  exists b''. split; auto.
-  apply PLT.compose_hom_rel.
-  exists (a',b'). split.
-  apply PLT.pair_hom_rel. split; auto.
-  apply PLT.hom_order with c'' a'; auto.
-  apply H6. apply cons_elem; right. apply cons_elem; auto.
-  apply PLT.hom_order with c' b'; auto.
-  apply H6.
-  apply cons_elem; auto.
-  apply PLT.compose_hom_rel. 
-  exists (a'',b'').
-  split.
-  simpl.
-  apply hom_rel_pair_map. split; auto.
-  simpl. apply pi2_rel_elem. auto.
+  - split; [ apply cPLT.pair_le_commute2 |].
+    hnf; intros.
+    destruct a as [c b].
+    apply PLT.compose_hom_rel.
+    apply PLT.compose_hom_rel in H0.
+    destruct H0 as [c' [??]].
+    apply PLT.compose_hom_rel in H1.
+    destruct H1 as [b' [??]].
+    destruct (H c c') as [a ?]; auto.
+    apply PLT.compose_hom_rel in H3.
+    destruct H3 as [c'' [??]].
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [a' [??]].
+    destruct (PLT.hom_directed _ _ _ (cPLT.cplt_retract C) c (c'::c''::nil)%list) as [cz [??]].
+    + exists c'. apply cons_elem; auto.
+    + red; intros.
+      apply erel_image_elem.
+      apply cons_elem in H6. destruct H6.
+      * apply PLT.hom_order with c c'; auto.
+      * apply cons_elem in H6. destruct H6.
+        ** apply PLT.hom_order with c c''; auto.
+        ** apply nil_elem in H6. elim H6.
+    + apply erel_image_elem in H7.
+      destruct (cPLT.cplt_idem A).
+      generalize (H9 (a',a) H5). clear H8 H9.
+      intros. apply PLT.compose_hom_rel in H8.
+      destruct H8 as [a'' [??]].
+      destruct (cPLT.cplt_idem B).
+      generalize (H11 (b',b) H2). clear H10 H11.
+      intros. apply PLT.compose_hom_rel in H10.
+      destruct H10 as [b'' [??]].
+      exists cz. split; auto.
+      apply PLT.compose_hom_rel.
+      exists b''. split; auto.
+      apply PLT.compose_hom_rel.
+      exists (a',b'). split.
+      * apply PLT.pair_hom_rel. split; auto.
+        ** apply PLT.hom_order with c'' a'; auto.
+           apply H6. apply cons_elem; right. apply cons_elem; auto.
+        ** apply PLT.hom_order with c' b'; auto.
+           apply H6.
+           apply cons_elem; auto.
+      * apply PLT.compose_hom_rel. 
+        exists (a'',b'').
+        split.
+        ** simpl.
+           apply hom_rel_pair_map. split; auto.
+        ** simpl. apply pi2_rel_elem. auto.
   
-  destruct (H C id).
-  red in H2. simpl in H2.
-  rewrite (cat_ident1 (∂PLT)) in H2.
-  rewrite (cPLT.cplt_idem C) in H2.
-  generalize (H2 (a,a') H0). intros.
-  apply PLT.compose_hom_rel in H3.
-  destruct H3 as [c1 [??]].
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [c2 [??]].
-  rewrite cplt_compose_unfold in H4.
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [c3 [??]].
-  destruct c3.
-  rewrite (PLT.pair_hom_rel true (cPLT.cplt_ob A) (cPLT.cplt_ob C) (cPLT.cplt_ob C) 
-                            (cPLT.cplt_hom f) id(_)  c1 c c0) in H4.
-  destruct H4.
-  simpl in H7. apply ident_elem in H7.
-  apply PLT.compose_hom_rel in H6.
-  destruct H6 as [q [??]].
-  simpl in H8.
-  destruct q.
-  rewrite (pi2_rel_elem _ _ _ _ c3 c4 c2) in H8.
-  simpl in H6.
-  rewrite (hom_rel_pair_map  _ _ _ _ _ _ _ c c0 c3 c4) in H6.
-  destruct H6.
-  exists c3.
-  apply PLT.compose_hom_rel.
-  exists c1. split; auto.
-  apply PLT.compose_hom_rel.
-  exists c. split; auto.
+  - destruct (H C id).
+    red in H2. simpl in H2.
+    rewrite (cat_ident1 (∂PLT)) in H2.
+    rewrite (cPLT.cplt_idem C) in H2.
+    generalize (H2 (a,a') H0). intros.
+    apply PLT.compose_hom_rel in H3.
+    destruct H3 as [c1 [??]].
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [c2 [??]].
+    rewrite cplt_compose_unfold in H4.
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [c3 [??]].
+    destruct c3.
+    rewrite (PLT.pair_hom_rel true (cPLT.cplt_ob A) (cPLT.cplt_ob C) (cPLT.cplt_ob C) 
+                              (cPLT.cplt_hom f) id(_)  c1 c c0) in H4.
+    destruct H4.
+    simpl in H7. apply ident_elem in H7.
+    apply PLT.compose_hom_rel in H6.
+    destruct H6 as [q [??]].
+    simpl in H8.
+    destruct q.
+    rewrite (pi2_rel_elem _ _ _ _ c3 c4 c2) in H8.
+    simpl in H6.
+    rewrite (hom_rel_pair_map  _ _ _ _ _ _ _ c c0 c3 c4) in H6.
+    destruct H6.
+    exists c3.
+    apply PLT.compose_hom_rel.
+    exists c1. split; auto.
+    apply PLT.compose_hom_rel.
+    exists c. split; auto.
 Qed.
