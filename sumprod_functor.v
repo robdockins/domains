@@ -43,12 +43,12 @@ Section prod_functor.
     intros. destruct a as [a c]. destruct a' as [a' c']. simpl.
     destruct H. simpl in *.
     split; simpl.
-    apply embed_reflects in H. auto.
-    apply embed_reflects in H0. auto.
+    - apply embed_reflects in H. auto.
+    - apply embed_reflects in H0. auto.
   Qed.
   Next Obligation.
     intros [b d]. simpl.
-    destruct hf. auto.
+    destruct hf; auto.
     simpl.
     destruct (embed_directed0 f b).
     destruct (embed_directed0 g d).
@@ -59,11 +59,13 @@ Section prod_functor.
     destruct a as [a c].
     destruct b as [a' c']. simpl in *.
     destruct (embed_directed2 f (fst y) a a') as [p [?[??]]].
-    destruct H; auto. destruct H0; auto.
-    destruct (embed_directed2 g (snd y) c c') as [q [?[??]]].
-    destruct H; auto. destruct H0; auto.
-    exists (p,q). simpl. 
-    repeat split; auto.
+    - destruct H; auto.
+    - destruct H0; auto.
+    - destruct (embed_directed2 g (snd y) c c') as [q [?[??]]].
+      + destruct H; auto.
+      + destruct H0; auto.
+      + exists (p,q). simpl. 
+        repeat split; auto.
   Qed.
 
 End prod_functor.
@@ -87,7 +89,10 @@ Next Obligation.
   destruct x as [x y]. simpl.
   destruct H. simpl in *.
   destruct H; destruct H0; split; split; simpl; auto.
-  apply H. apply H0. apply H1. apply H2.
+  - apply H.
+  - apply H0.
+  - apply H1.
+  - apply H2.
 Qed.
 Next Obligation.
   simpl; intros.
@@ -97,10 +102,10 @@ Next Obligation.
   destruct H; simpl in *.
   apply embed_lift'; simpl; intros.
   split; split; simpl.
-  rewrite H. auto.
-  rewrite H0; auto.
-  rewrite H; auto.
-  rewrite H0; auto.
+  - rewrite H. auto.
+  - rewrite H0; auto.
+  - rewrite H; auto.
+  - rewrite H0; auto.
 Qed.
 Next Obligation.
   simpl; intros.
@@ -109,10 +114,10 @@ Next Obligation.
   destruct H; simpl in *.
   apply embed_lift'; simpl; intros.
   split; split; simpl.
-  rewrite H. auto.
-  rewrite H0; auto.
-  rewrite H; auto.
-  rewrite H0; auto.
+  - rewrite H. auto.
+  - rewrite H0; auto.
+  - rewrite H; auto.
+  - rewrite H0; auto.
 Qed.
 
 
@@ -157,47 +162,48 @@ Section sum_functor.
   Program Definition sum_fmap : PLT.sum A C ⇀ PLT.sum B D
     := Embedding hf (PLT.sum A C) (PLT.sum B D) sum_fmap_func _ _ _ _.
   Next Obligation.
-    intros. destruct a as [a|c]. destruct a' as [a'|c']; simpl.
-    apply embed_mono; auto.
-    elim H.
-    destruct a' as [a'|c']; simpl.
-    elim H.
-    apply embed_mono; auto.
+    intros. destruct a as [a|c].
+    - destruct a' as [a'|c']; simpl.
+      + apply embed_mono; auto.
+      + elim H.
+    - destruct a' as [a'|c']; simpl.
+      + elim H.
+      + apply embed_mono; auto.
   Qed.
   Next Obligation.
     intros.
     destruct a as [a|c]. 
-    destruct a' as [a'|c']. simpl.
-    simpl in H. red in H. simpl in H.
-    apply embed_reflects in H. auto.
-    elim H.
-    destruct a' as [a'|c']. simpl.
-    destruct H.
-    red in H. simpl in H.
-    apply embed_reflects in H. auto.
+    - destruct a' as [a'|c']. simpl.
+      + simpl in H. red in H. simpl in H.
+        apply embed_reflects in H. auto.
+      + elim H.
+    - destruct a' as [a'|c']. simpl.
+      + destruct H.
+      + red in H. simpl in H.
+        apply embed_reflects in H. auto.
   Qed.
   Next Obligation.
     intro y. simpl in *. unfold sum_fmap_func.
-    destruct hf. auto.
-    destruct y as [b|d]. simpl.
-    destruct (embed_directed0 f b).
-    exists (inl x). auto.
-    destruct (embed_directed0 g d).
-    exists (inr x). auto.
+    destruct hf; auto.
+    destruct y as [b|d].
+    - destruct (embed_directed0 f b).
+      exists (inl x). auto.
+    - destruct (embed_directed0 g d).
+      exists (inr x). auto.
   Qed.
   Next Obligation.
     intros.
     destruct y as [y|y].
-    destruct a as [a|a]. 2: elim H.
-    destruct b as [b|b]. 2: elim H0.
-    unfold sum_fmap_func in *.
-    destruct (embed_directed2 f y a b) as [p [?[??]]]; auto.
-    exists (inl p). auto.
-    destruct a as [a|a]. elim H.
-    destruct b as [b|b]. elim H0.
-    unfold sum_fmap_func in *.
-    destruct (embed_directed2 g y a b) as [p [?[??]]]; auto.
-    exists (inr p). auto.
+    - destruct a as [a|a]; [ | elim H ].
+      destruct b as [b|b]; [ | elim H0 ].
+      unfold sum_fmap_func in *.
+      destruct (embed_directed2 f y a b) as [p [?[??]]]; auto.
+      exists (inl p). auto.
+    - destruct a as [a|a]; [ elim H |].
+      destruct b as [b|b]; [ elim H0 |].
+      unfold sum_fmap_func in *.
+      destruct (embed_directed2 g y a b) as [p [?[??]]]; auto.
+      exists (inr p). auto.
   Qed.
 End sum_functor.
 
@@ -217,12 +223,11 @@ Next Obligation.
   simpl; intros.
   destruct f; simpl in *.
   apply embed_lift'; simpl; intros.
-  destruct x as [x|x]. simpl.
-  destruct H. simpl in *.
-  destruct H; split. apply H. apply H1.
-  simpl.
-  destruct H. simpl in *.
-  destruct H0. split. apply H0. apply H1.
+  destruct x as [x|x]; simpl.
+  - destruct H. simpl in *.
+    destruct H; split; [ apply H | apply H1 ].
+  - destruct H. simpl in *.
+    destruct H0. split; [ apply H0 | apply H1 ].
 Qed.
 Next Obligation.
   simpl; intros.
@@ -233,10 +238,8 @@ Next Obligation.
   apply embed_lift'; simpl; intros.
   unfold sum_fmap_func.
   destruct x as [x|x].
-  destruct H; split.
-  apply H. apply H1.
-  destruct H0; split.
-  apply H0. apply H1.
+  - destruct H; split; [ apply H | apply H1 ].
+  - destruct H0; split; [ apply H0 | apply H1 ].
 Qed.
 Next Obligation.
   simpl; intros.
@@ -246,10 +249,8 @@ Next Obligation.
   apply embed_lift'; simpl; intros.
   unfold sum_fmap_func.
   destruct x as [x|x].
-  destruct H; split.
-  apply H. apply H1.
-  destruct H0; split.
-  apply H0. apply H1.
+  - destruct H; split; [apply H | apply H1 ].
+  - destruct H0; split; [ apply H0 | apply H1 ].
 Qed.
 
 
@@ -259,12 +260,12 @@ Proof.
   apply decompose_is_colimit.
   simpl. intros.
   destruct x as [x|x].
-  generalize (fstF_continuous _ _ I DS CC X). intros.
-  destruct (colimit_decompose hf I _ _ X0 x) as [i [x' ?]].
-  exists i. exists (inl x').
-  simpl. destruct e; auto.
-  generalize (sndF_continuous _ _ I DS CC X). intros.
-  destruct (colimit_decompose hf I _ _ X0 x) as [i [x' ?]].
-  exists i. exists (inr x').
-  simpl. destruct e; auto.
+  - generalize (fstF_continuous _ _ I DS CC X). intros.
+    destruct (colimit_decompose hf I _ _ X0 x) as [i [x' ?]].
+    exists i. exists (inl x').
+    simpl. destruct e; auto.
+  - generalize (sndF_continuous _ _ I DS CC X). intros.
+    destruct (colimit_decompose hf I _ _ X0 x) as [i [x' ?]].
+    exists i. exists (inr x').
+    simpl. destruct e; auto.
 Qed.

@@ -55,33 +55,33 @@ Qed.
 Next Obligation.
   simpl. intros. 
   destruct a; destruct b.
-  destruct y. 
-  destruct embed_directed2 with true A B f c1 c c0 as [q [?[??]]]; auto.
-  exists (Some q); auto.
-  elim H.
-  exists (Some c). auto.
-  exists (Some c). auto.
-  exists None. auto.
+  - destruct y. 
+    + destruct embed_directed2 with true A B f c1 c c0 as [q [?[??]]]; auto.
+      exists (Some q); auto.
+    + elim H.
+  - exists (Some c). auto.
+  - exists (Some c). auto.
+  - exists None. auto.
 Qed.
 
 Program Definition liftEMBED : functor (EMBED true) (EMBED false) :=
   Functor (EMBED true) (EMBED false) liftPPLT_ob liftEMBED_map _ _ _.
 Next Obligation.
   intros. split; hnf; simpl; intros.
-  destruct x; simpl.
-  destruct H. apply H. auto.
-  destruct x; simpl.
-  destruct H. apply H0. auto.
+  - destruct x; simpl; auto.
+    destruct H. apply H.
+  - destruct x; simpl; auto.
+    destruct H. apply H0.
 Qed.
 Next Obligation.
   intros. split; hnf; simpl; intros.
-  destruct x. destruct H. apply H. auto.
-  destruct x. destruct H. apply H0. auto.
+  - destruct x; auto. destruct H. apply H.
+  - destruct x; auto. destruct H. apply H0.
 Qed.
 Next Obligation.
   intros. split; hnf; simpl; intros.
-  destruct x. destruct H. apply H. auto.
-  destruct x. destruct H. apply H0. auto.
+  - destruct x; auto. destruct H. apply H.
+  - destruct x; auto. destruct H. apply H0.
 Qed.
 
 Require Import bilimit.
@@ -101,8 +101,8 @@ Proof.
   apply decompose_is_colimit; simpl.
   intros.
   destruct x.
-  destruct (colimit_decompose _ I DS CC X c) as [i [s H]].
-  exists i. exists (Some s). auto.
-  destruct (directed.choose_ub_set I nil) as [i0 ?].
-  exists i0. exists None. auto.
+  - destruct (colimit_decompose _ I DS CC X c) as [i [s H]].
+    exists i. exists (Some s). auto.
+  - destruct (directed.choose_ub_set I nil) as [i0 ?].
+    exists i0. exists None. auto.
 Qed.
