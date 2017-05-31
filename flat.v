@@ -64,22 +64,24 @@ Module enumtype.
     has_normals (ord X) (enumtype_effective X) true.
   Proof.
     repeat intro. exists X0.
-    split. hnf; auto.
+    split; [ hnf; auto |].
     split; auto.
     repeat intro. exists z.
-    split. red; simpl; intros.
-    apply H in H0.
-    apply finsubset_elem in H0. destruct H0; auto.
-    intros. hnf in H2. destruct H2. eauto.
-    apply finsubset_elem.
-    intros. hnf in H1. subst x. destruct H0; auto.
-    hnf in Hinh0.
-    destruct Hinh0.
-    apply H in H0.
-    apply finsubset_elem in H0.
-    destruct H0. hnf in H1. subst x.
-    split; auto.
-    intros. hnf in H3. subst z. destruct H2; auto.
+    split.
+    - red; simpl; intros.
+      apply H in H0.
+      apply finsubset_elem in H0.
+      + destruct H0; auto.
+      + intros. hnf in H2. destruct H2. eauto.
+    - apply finsubset_elem.
+      + intros. hnf in H1. subst x. destruct H0; auto.
+      + hnf in Hinh0.
+        destruct Hinh0.
+        apply H in H0.
+        apply finsubset_elem in H0.
+        * destruct H0. hnf in H1. subst x.
+          split; auto.
+        * intros. hnf in H3. subst z. destruct H2; auto.
   Qed.
 
   Definition enumtype_plotkin (X:enumtype) : plotkin_order true (ord X) :=
@@ -108,17 +110,18 @@ Next Obligation.
   apply single_axiom.
   destruct H1. destruct H1. simpl in *.
   split; split; simpl; auto.
-  rewrite H0; auto.
-  hnf in H0. subst y'. hnf in H3. hnf. auto.
+  - rewrite H0; auto.
+  - hnf in H0. subst y'. hnf in H3. hnf. auto.
 Qed.
 Next Obligation.
   repeat intro. exists y.
-  split. repeat intro.
-  apply H in H0. apply erel_image_elem in H0.
-  apply single_axiom in H0.
-  destruct H0 as [[??][??]]; auto.
-  apply erel_image_elem.
-  apply single_axiom. destruct x. auto.
+  split.
+  - repeat intro.
+    apply H in H0. apply erel_image_elem in H0.
+    apply single_axiom in H0.
+    destruct H0 as [[??][??]]; auto.
+  - apply erel_image_elem.
+    apply single_axiom. destruct x. auto.
 Qed.
 
 Lemma flat_elem_inj Y : forall y1 y2,
@@ -126,7 +129,7 @@ Lemma flat_elem_inj Y : forall y1 y2,
 Proof.
   intros. destruct H.
   assert ((tt,y1) ∈ PLT.hom_rel (flat_elem Y y2)).
-  apply H. apply single_axiom. auto.
+  { apply H. apply single_axiom. auto. }
   simpl in H1. apply single_axiom in H1.
   destruct H1 as [[??][??]]; auto.
 Qed.
@@ -161,27 +164,29 @@ Section flat_cases.
     intros. unfold flat_cases_rel.
     rewrite union_axiom.
     intuition.
-    exists (map_indexes x).
-    split. apply image_axiom1. 
-    destruct (enumtype.enumtype_complete X x) as [n ?].
-    exists n. rewrite H0. auto.
-    unfold map_indexes. simpl.
-    apply image_axiom1'.
-    exists (a,b). split; auto.
-    destruct H as [Q [??]].
-    apply image_axiom2 in H. destruct H as [y [??]].
-    rewrite H1 in H0.
-    simpl in H0.
-    apply image_axiom2 in H0.
-    destruct H0 as [?[??]].
-    simpl in H2.
-    destruct H2 as [??].
-    destruct H2 as [??]. simpl in *.
-    destruct H2. simpl in *. hnf in H5. subst y.
-    destruct x0. revert H0.
-    apply PLT.hom_order.
-    destruct H3 as [[??]?]; auto.
-    destruct H3 as [[??]?]; auto.
+    - exists (map_indexes x).
+      split.
+      + apply image_axiom1. 
+        destruct (enumtype.enumtype_complete X x) as [n ?].
+        exists n. rewrite H0. auto.
+      + unfold map_indexes. simpl.
+        apply image_axiom1'.
+        exists (a,b). split; auto.
+    - destruct H as [Q [??]].
+      apply image_axiom2 in H. destruct H as [y [??]].
+      rewrite H1 in H0.
+      simpl in H0.
+      apply image_axiom2 in H0.
+      destruct H0 as [?[??]].
+      simpl in H2.
+      destruct H2 as [??].
+      destruct H2 as [??]. simpl in *.
+      destruct H2. simpl in *.
+      hnf in H5. subst y.
+      destruct x0. revert H0.
+      apply PLT.hom_order.
+      + destruct H3 as [[??]?]; auto.
+      + destruct H3 as [[??]?]; auto.
   Qed.
 
   Program Definition flat_cases : A ⊗ flat X → B :=
@@ -198,48 +203,49 @@ Section flat_cases.
     repeat intro.
     destruct x as [a x].
     destruct (PLT.hom_directed _ _ _ (f x) a M); auto.
-    red; simpl; intros. apply H in H0.
-    apply erel_image_elem in H0.
-    apply erel_image_elem.    
-    apply (flat_cases_rel_elem x a a0). auto.
-    destruct H0.    
-    apply erel_image_elem in H1.
-    exists x0. split; auto.
-    apply erel_image_elem.    
-    apply (flat_cases_rel_elem x a x0). auto.
+    - red; simpl; intros. apply H in H0.
+      apply erel_image_elem in H0.
+      apply erel_image_elem.    
+      apply (flat_cases_rel_elem x a a0). auto.
+    - destruct H0.    
+      apply erel_image_elem in H1.
+      exists x0. split; auto.
+      apply erel_image_elem.    
+      apply (flat_cases_rel_elem x a x0). auto.
   Qed.
 
   Lemma flat_cases_elem C x h :
     flat_cases ∘ 《h, flat_elem x ∘ PLT.terminate true C》 ≈ f x ∘ h.
   Proof.
-    split; intros a H. destruct a.
-    apply PLT.compose_hom_rel in H.
-    apply PLT.compose_hom_rel.
-    destruct H as [q [??]].
-    destruct q.
-    apply (flat_cases_rel_elem) in H0.
-    rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
-    exists c1. split; auto.
-    apply PLT.compose_hom_rel in H1.
-    destruct H1 as [?[??]]. destruct x0.
-    simpl in H2.
-    apply single_axiom in H2.
-    destruct H2 as [[??][??]]. simpl in *.
-    hnf in H3. subst c2. auto.
-    destruct a.
-    apply PLT.compose_hom_rel in H.
-    apply PLT.compose_hom_rel.
-    destruct H as [q [??]].
-    exists (q,x). split.
-    apply pair_rel_elem. split; auto.
-    apply PLT.compose_hom_rel.
-    exists tt. split; auto.
-    simpl. apply eprod_elem.
-    split. apply eff_complete. apply single_axiom; auto.
-    simpl. apply single_axiom.
-    auto.
-    apply (flat_cases_rel_elem).
-    auto.   
+    split; intros a H.
+    - destruct a.
+      apply PLT.compose_hom_rel in H.
+      apply PLT.compose_hom_rel.
+      destruct H as [q [??]].
+      destruct q.
+      apply (flat_cases_rel_elem) in H0.
+      rewrite (PLT.pair_hom_rel _ _ _ _ _ _ c c1 c2) in H. destruct H.
+      exists c1. split; auto.
+      apply PLT.compose_hom_rel in H1.
+      destruct H1 as [?[??]]. destruct x0.
+      simpl in H2.
+      apply single_axiom in H2.
+      destruct H2 as [[??][??]]. simpl in *.
+      hnf in H3. subst c2. auto.
+    - destruct a.
+      apply PLT.compose_hom_rel in H.
+      apply PLT.compose_hom_rel.
+      destruct H as [q [??]].
+      exists (q,x). split.
+      + apply pair_rel_elem. split; auto.
+        * apply PLT.compose_hom_rel.
+          exists tt. split; auto.
+          ** simpl. apply eprod_elem.
+             split.
+             *** apply eff_complete.
+             *** apply single_axiom; auto.
+          ** simpl. apply single_axiom. auto.
+      + apply (flat_cases_rel_elem). auto.
   Qed.
 End flat_cases.
 Arguments flat_cases [X A B] f.
@@ -249,36 +255,39 @@ Lemma flat_cases_univ (X:enumtype) (A B:∂PLT) (f:X -> A → B) q :
   flat_cases f ≈ q.
 Proof.
   intros. split; repeat intro.
-  destruct a as [[a x] b].
-  destruct (H x).
-  simpl in H0.
-  apply (flat_cases_rel_elem _ _ _ f x a b) in H0.
-  apply H1 in H0.
-  apply PLT.compose_hom_rel in H0.
-  destruct H0 as [[a' x'] [??]].
-  apply (PLT.pair_hom_rel _ _ _ _ _ _ a a' x') in H0.
-  destruct H0. simpl in H0. apply ident_elem in H0.
-  apply PLT.compose_hom_rel in H4.
-  destruct H4 as [?[??]]. simpl in H5.
-  apply single_axiom in H5.
-  revert H3. apply PLT.hom_order.
-  split; simpl; auto.
-  destruct H5 as [[??][??]]; auto.
-  auto.
+  - destruct a as [[a x] b].
+    destruct (H x).
+    simpl in H0.
+    apply (flat_cases_rel_elem _ _ _ f x a b) in H0.
+    apply H1 in H0.
+    apply PLT.compose_hom_rel in H0.
+    destruct H0 as [[a' x'] [??]].
+    apply (PLT.pair_hom_rel _ _ _ _ _ _ a a' x') in H0.
+    destruct H0. simpl in H0. apply ident_elem in H0.
+    apply PLT.compose_hom_rel in H4.
+    destruct H4 as [?[??]]. simpl in H5.
+    apply single_axiom in H5.
+    revert H3. apply PLT.hom_order.
+    + split; simpl; auto.
+      destruct H5 as [[??][??]]; auto.
+    + auto.
 
-  destruct a as [[a x] b].
-  destruct (H x).
-  simpl. apply flat_cases_rel_elem.
-  apply H2.
-  apply PLT.compose_hom_rel.
-  exists (a,x). split; auto.
-  apply PLT.pair_hom_rel.
-  split; simpl. apply ident_elem; auto.
-  apply PLT.compose_hom_rel.
-  exists tt. split; auto.
-  simpl. apply eprod_elem.
-  split. apply eff_complete. apply single_axiom. auto.
-  simpl. apply single_axiom; auto.
+  - destruct a as [[a x] b].
+    destruct (H x).
+    simpl. apply flat_cases_rel_elem.
+    apply H2.
+    apply PLT.compose_hom_rel.
+    exists (a,x). split; auto.
+    apply PLT.pair_hom_rel.
+    split; simpl.
+    + apply ident_elem; auto.
+    + apply PLT.compose_hom_rel.
+      exists tt. split; auto.
+      * simpl. apply eprod_elem.
+        split.
+        ** apply eff_complete.
+        ** apply single_axiom. auto.
+      * simpl. apply single_axiom; auto.
 Qed.
 
 Lemma flat_cases_commute : forall (X : enumtype) (A B C : ∂PLT) 
@@ -287,19 +296,19 @@ Lemma flat_cases_commute : forall (X : enumtype) (A B C : ∂PLT)
 Proof.
   intros.
   transitivity (flat_cases f ∘ PLT.pair_map g id ∘ 《id,h》).
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (PLT.pair_map_pair true).
-  rewrite (cat_ident1 ∂PLT).
-  rewrite (cat_ident2 ∂PLT).
-  auto.
-  apply cat_respects; auto.
-  symmetry. apply flat_cases_univ.
-  intros.
-  rewrite <- (cat_assoc ∂PLT).
-  rewrite <- (PLT.pair_map_pair true).
-  rewrite (cat_ident1 ∂PLT).
-  rewrite (cat_ident2 ∂PLT).
-  rewrite flat_cases_elem. auto.
+  - rewrite <- (cat_assoc ∂PLT).
+    rewrite <- (PLT.pair_map_pair true).
+    rewrite (cat_ident1 ∂PLT).
+    rewrite (cat_ident2 ∂PLT).
+    auto.
+  - apply cat_respects; auto.
+    symmetry. apply flat_cases_univ.
+    intros.
+    rewrite <- (cat_assoc ∂PLT).
+    rewrite <- (PLT.pair_map_pair true).
+    rewrite (cat_ident1 ∂PLT).
+    rewrite (cat_ident2 ∂PLT).
+    rewrite flat_cases_elem. auto.
 Qed.
 
 Lemma flat_cases_eq (X:enumtype) (A B:∂PLT) (f g : X -> A → B) :
