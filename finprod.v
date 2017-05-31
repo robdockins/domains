@@ -26,7 +26,7 @@ Require Import permutations.
   *)
 
 (**  First, a short development of cast morphisms.  These are
-     useful for dealing wiht cases where we have types that
+     useful for dealing with cases where we have types that
      are provably equal, but not convertable.
   *)
 Section cast.
@@ -45,13 +45,13 @@ Section cast.
     (a,b) ∈ cast_rel x y H <-> eq_rect x F a y H ≥ b.
   Proof.
     unfold cast_rel. rewrite esubset_dec_elem.
-    simpl. intuition.
-    apply eprod_elem. split; apply eff_complete.
-    intros. destruct H0 as [[??][??]].
-    rewrite H4. rewrite H1.
-    generalize H0.
-    generalize (fst x0). generalize (fst y0).
-    case H. simpl. auto.
+    - simpl. intuition.
+      apply eprod_elem. split; apply eff_complete.
+    - intros. destruct H0 as [[??][??]].
+      rewrite H4. rewrite H1.
+      generalize H0.
+      generalize (fst x0). generalize (fst y0).
+      case H. simpl. auto.
   Qed.
 
   Program Definition cast (x y:A) (H:x = y) : F x → F y :=
@@ -65,48 +65,48 @@ Section cast.
   Next Obligation.
     repeat intro.    
     exists (eq_rect x F x0 y H). split.
-    red; simpl; intros.
-    apply H0 in H1.
-    apply erel_image_elem in H1.
-    apply cast_rel_elem in H1. auto.
-    apply erel_image_elem.
-    apply cast_rel_elem.
-    auto.
+    - red; simpl; intros.
+      apply H0 in H1.
+      apply erel_image_elem in H1.
+      apply cast_rel_elem in H1. auto.
+    - apply erel_image_elem.
+      apply cast_rel_elem.
+      auto.
   Qed.
     
   Lemma cast_refl x :
     cast x x (Logic.eq_refl x) ≈ id (F x).
   Proof.
     split; hnf; simpl; intros.
-    destruct a.
-    apply cast_rel_elem in H. simpl in H.
-    apply ident_elem. auto.
-    destruct a.
-    apply ident_elem in H.
-    apply cast_rel_elem. simpl. auto.
+    - destruct a.
+      apply cast_rel_elem in H. simpl in H.
+      apply ident_elem. auto.
+    - destruct a.
+      apply ident_elem in H.
+      apply cast_rel_elem. simpl. auto.
   Qed.
 
   Lemma cast_compose x y z H1 H2 :
     cast y z H2 ∘ cast x y H1 ≈ cast x z (Logic.eq_trans H1 H2).
   Proof.
     split; hnf; simpl; intros.
-    destruct a. apply PLT.compose_hom_rel in H.
-    destruct H as [q [??]].
-    simpl in *.
-    apply cast_rel_elem in H.
-    apply cast_rel_elem in H0.
-    apply cast_rel_elem.
-    rewrite H0. revert H.
-    case H2. simpl. auto.
-    apply PLT.compose_hom_rel.
-    destruct a. 
-    apply cast_rel_elem in H.
-    exists (eq_rect x F c y H1).
-    split.
-    apply cast_rel_elem. auto.
-    apply cast_rel_elem.
-    rewrite H.
-    case H2. simpl. auto.
+    - destruct a. apply PLT.compose_hom_rel in H.
+      destruct H as [q [??]].
+      simpl in *.
+      apply cast_rel_elem in H.
+      apply cast_rel_elem in H0.
+      apply cast_rel_elem.
+      rewrite H0. revert H.
+      case H2. simpl. auto.
+    - apply PLT.compose_hom_rel.
+      destruct a. 
+      apply cast_rel_elem in H.
+      exists (eq_rect x F c y H1).
+      split.
+      + apply cast_rel_elem. auto.
+      + apply cast_rel_elem.
+        rewrite H.
+        case H2. simpl. auto.
   Qed.
 
   Lemma cast_iso1 x y H :
@@ -131,8 +131,8 @@ Section cast.
   Proof.
     intros.
     replace H with (Logic.eq_refl x).
-    apply cast_refl.
-    apply (Eqdep_dec.UIP_dec Adec).
+    - apply cast_refl.
+    - apply (Eqdep_dec.UIP_dec Adec).
   Qed.
 End cast.
 Arguments cast [hf] [A] F [x y] H.
@@ -355,20 +355,20 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
    := EffectiveOrder (codom avd z i) _ (codom_enum avd z i) _.
   Next Obligation.
     intros. destruct x; destruct y.
-    left; hnf; auto.
-    right; intro H; elim H.
-    right; intro H; elim H.
-    destruct (eff_ord_dec _ (PLT.effective (ty z)) c c0).
-    left; auto. right; auto.
+    - left; hnf; auto.
+    - right; intro H; elim H.
+    - right; intro H; elim H.
+    - destruct (eff_ord_dec _ (PLT.effective (ty z)) c c0).
+      left; auto. right; auto.
   Qed.
   Next Obligation.
     intros. unfold codom_enum. destruct x. 
-    exists 0%N.
-    destruct (in_dec string_dec i avd). split; hnf; auto.
-    contradiction.
-    destruct (in_dec string_dec i avd). contradiction.
-    destruct (eff_complete _ (PLT.effective (ty z)) c). exists x.
-    match goal with [|- match (match ?X with _ => _ end) with _ => _ end ] => destruct X end.
+    - exists 0%N.
+      destruct (in_dec string_dec i avd). split; hnf; auto.
+      contradiction.
+    - destruct (in_dec string_dec i avd). contradiction.
+      destruct (eff_complete _ (PLT.effective (ty z)) c). exists x.
+      match goal with [|- match (match ?X with _ => _ end) with _ => _ end ] => destruct X end.
     destruct H; split; auto.
     auto.
   Qed.
@@ -401,71 +401,77 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
   Proof.
     repeat intro.
     destruct (In_dec string_dec i avd).
-    exists (@codom_avoid avd z i i0 :: nil).
-    split.
-    red; intros.
-    apply cons_elem. left.
-    destruct a. split; hnf; auto.
-    contradiction.
-    split. red; auto.
-    repeat intro.
-    exists (@codom_avoid avd z i i0).
-    split. repeat intro.
-    destruct x. hnf; auto. contradiction.
-    rewrite finsubset_elem. split; auto.
-    apply cons_elem; auto.
-    destruct z0. hnf; auto. contradiction.
-    intros. rewrite <- H0. auto.
+    - exists (@codom_avoid avd z i i0 :: nil).
+      split.
+      + red; intros.
+        apply cons_elem. left.
+        destruct a.
+        * split; hnf; auto.
+        * contradiction.
+      + split. red; auto.
+        repeat intro.
+        exists (@codom_avoid avd z i i0).
+        split.
+        * repeat intro.
+          destruct x. hnf; auto. contradiction.
+        * rewrite finsubset_elem.
+          split; auto.
+          ** apply cons_elem; auto.
+          ** destruct z0. hnf; auto. contradiction.
+          ** intros. rewrite <- H0. auto.
 
-    set (Z' := mub_closure (PLT.plotkin (ty z)) (image (codom_out' avd z i n) X)).
-    exists (image (codom_in' avd z i n) Z').
-    split. red; intros.
-    apply image_axiom1'.
-    exists (codom_out' avd z i n a). split.
-    simpl. unfold codom_out.
-    destruct a; auto. contradiction.
-    split; red; simpl; auto.
-    unfold Z'.
-    apply mub_clos_incl.
-    apply image_axiom1'. exists a. split; auto.
-    split. red; auto.
-    repeat intro.
-    destruct (mub_complete (PLT.plotkin (ty z)) (image (codom_out' avd z i n) M) 
-      (codom_out' avd z i n z0)).
-    red; auto.
-    repeat intro.
-    apply image_axiom2 in H0. destruct H0 as [q [??]].
-    rewrite H1. apply Preord.axiom.
-    apply H in H0.
-    rewrite finsubset_elem in H0. destruct H0; auto.
-    intros. rewrite <- H2; auto.
-    destruct H0.   
-    exists (codom_in' avd z i n x).
-    split.
-    repeat intro.
-    simpl.
-    destruct x0. contradiction.
-    apply H0.
-    apply image_axiom1'.
-    exists (codom_elem n0 c). split; auto.
-    rewrite finsubset_elem. split.
-    apply image_axiom1. unfold Z'.
-    apply mub_clos_mub with (image (codom_out' avd z i n) M); auto.
-    red; intros.
-    apply image_axiom2 in H2. destruct H2 as [q [??]].
-    apply H in H2.    
-    rewrite finsubset_elem in H2.    
-    destruct H2.
-    apply image_axiom2 in H2. destruct H2 as [q' [??]].
-    apply member_eq with q'; auto.
-    rewrite H3.
-    rewrite H5.
-    simpl. auto.
-    intros. rewrite <- H4; auto.
-    simpl. simpl in H1.
-    destruct z0. contradiction.
-    auto.
-    intros. rewrite <- H2. auto.
+    - set (Z' := mub_closure (PLT.plotkin (ty z)) (image (codom_out' avd z i n) X)).
+      exists (image (codom_in' avd z i n) Z').
+      split.
+      + red; intros.
+        apply image_axiom1'.
+        exists (codom_out' avd z i n a). split.
+        * simpl. unfold codom_out.
+          destruct a; auto. contradiction.
+          split; red; simpl; auto.
+        * unfold Z'.
+          apply mub_clos_incl.
+          apply image_axiom1'.
+          exists a. split; auto.
+      + split. red; auto.
+        repeat intro.
+        destruct (mub_complete (PLT.plotkin (ty z)) (image (codom_out' avd z i n) M) 
+                               (codom_out' avd z i n z0)).
+        { red; auto. }
+        { repeat intro.
+          apply image_axiom2 in H0. destruct H0 as [q [??]].
+          rewrite H1. apply Preord.axiom.
+          apply H in H0.
+          rewrite finsubset_elem in H0. destruct H0; auto.
+          intros. rewrite <- H2; auto.
+        } 
+        destruct H0.   
+        exists (codom_in' avd z i n x).
+        split.
+        * repeat intro.
+          simpl.
+          destruct x0. contradiction.
+          apply H0.
+          apply image_axiom1'.
+          exists (codom_elem n0 c). split; auto.
+        * rewrite finsubset_elem. split.
+          ** apply image_axiom1. unfold Z'.
+             apply mub_clos_mub with (image (codom_out' avd z i n) M); auto.
+             red; intros.
+             apply image_axiom2 in H2. destruct H2 as [q [??]].
+             apply H in H2.    
+             rewrite finsubset_elem in H2.    
+             *** destruct H2.
+                 apply image_axiom2 in H2. destruct H2 as [q' [??]].
+                 apply member_eq with q'; auto.
+                 rewrite H3.
+                 rewrite H5.
+                 simpl. auto.
+             *** intros. rewrite <- H4; auto.
+          ** simpl. simpl in H1.
+             destruct z0. contradiction.
+             auto.
+          ** intros. rewrite <- H2. auto.
   Qed.
 
   Definition codom_plotkin avd z i : plotkin_order false (codom avd z i)
@@ -496,78 +502,80 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
       (l1++l2)%list = l ->
       { forall i a, lookup i l2 = Some a -> x i ≤ y i} + 
       { exists i , x i ≰ y i}).
-    intros.
-    destruct (X nil l); clear X; auto.
-    simpl; intuition.
-    discriminate.
-    left. intro.
-    generalize (o i). clear o.
-    destruct (x i); destruct (y i); intuition.
-    hnf. auto.
-    elim n; auto.
-    elim n; auto.
-    red; simpl.
-    unfold Preord.ord_op in H. simpl in H.
-    revert c c0 H.
-    simpl.
-    destruct (lookup i l). intros.
-    eapply H; eauto.
-    simpl; intros. hnf. auto.
-    right. intro. hnf in H.
-    destruct e. apply H0. apply H.
-
+    { intros.
+      destruct (X nil l); clear X; auto.
+      - simpl; intuition.
+        discriminate.
+      - left. intro.
+        generalize (o i). clear o.
+        destruct (x i); destruct (y i); intuition.
+        + hnf. auto.
+        + elim n; auto.
+        + elim n; auto.
+        + red; simpl.
+          unfold Preord.ord_op in H. simpl in H.
+          revert c c0 H.
+          simpl.
+          destruct (lookup i l).
+          * intros. eapply H; eauto.
+          * simpl; intros. hnf. auto.
+      - right. intro. hnf in H.
+        destruct e. apply H0. apply H.
+    }
     intros l1 l2. revert l1. induction l2; simpl; intros.
-    left. intros. discriminate.
+    { left. intros. discriminate. }
 
     subst l.
     destruct a as [i a].
     case_eq (x i); case_eq (y i); intros.
 
-    destruct (IHl2 (l1++(i,a)::nil)%list); auto; clear IHl2.
-    intros.
-    rewrite lookup_app in H2.
-    generalize (H i2 a0).
-    destruct (lookup i2 l1); auto.
-    intros. simpl in H2.
-    destruct (string_dec i i2). subst i2; auto.
-    hnf. simpl. rewrite H1. rewrite H0. auto.
-    discriminate.
-    rewrite app_ass; auto.
-    left; intros.
-    destruct (string_dec i i2). subst i2.
-    hnf. rewrite H1. rewrite H0. auto.
-    apply o with a0; auto.
+    - destruct (IHl2 (l1++(i,a)::nil)%list); auto; clear IHl2.
+      + intros.
+        rewrite lookup_app in H2.
+        generalize (H i2 a0).
+        destruct (lookup i2 l1); auto.
+        intros. simpl in H2.
+        destruct (string_dec i i2).
+        * subst i2; auto.
+          hnf. simpl. rewrite H1. rewrite H0. auto.
+        * discriminate.
+      + rewrite app_ass; auto.
+      + left; intros.
+        destruct (string_dec i i2).
+        * subst i2.
+          hnf. rewrite H1. rewrite H0. auto.
+        * apply o with a0; auto.
 
-    contradiction.
-    contradiction.
+    - contradiction.
+    - contradiction.
 
-    destruct (eff_ord_dec _ (PLT.effective 
+    - destruct (eff_ord_dec _ (PLT.effective 
       (ty (lookup i (l1 ++ (i, a) :: l2))%list))
       c0 c).
 
-    destruct (IHl2 (l1++(i,a)::nil)%list); auto; clear IHl2.
-    intros.
-    rewrite lookup_app in H2.
-    generalize (H i0 a0).
-    destruct (lookup i0 l1); auto.
-    intros. simpl in H2.
-    destruct (string_dec i i0). subst i0; auto.
-    hnf. rewrite H1. rewrite H0. auto.
-    discriminate.
-    rewrite app_ass. auto.
-    left. intros. 
-    destruct (string_dec i i0).
-    subst i0. 
-    hnf. rewrite H1. rewrite H0. auto.
-    apply o0 with a0; auto.
+      + destruct (IHl2 (l1++(i,a)::nil)%list); auto; clear IHl2.
+        * intros.
+          rewrite lookup_app in H2.
+          generalize (H i0 a0).
+          destruct (lookup i0 l1); auto.
+          intros. simpl in H2.
+          destruct (string_dec i i0).
+          ** subst i0; auto.
+             hnf. rewrite H1. rewrite H0. auto.
+          ** discriminate.
+        * rewrite app_ass. auto.
+        * left. intros. 
+          destruct (string_dec i i0).
+          ** subst i0. 
+             hnf. rewrite H1. rewrite H0. auto.
+          ** apply o0 with a0; auto.
 
-    right. exists i.
-    hnf; intro.
-    hnf in H2.
-    rewrite H1 in H2. rewrite H0 in H2.
-    contradiction.
+      + right. exists i.
+        hnf; intro.
+        hnf in H2.
+        rewrite H1 in H2. rewrite H0 in H2.
+        contradiction.
   Qed.
-
 
   Definition f_hd i a ls avd 
     (f:finprod_elem avd ((i,a)::ls)) : finprod_codom avd (Some a) i :=
@@ -629,21 +637,24 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     generalize (H0 i0). clear H0.
     intro. hnf; simpl. hnf in H0.
     unfold f_cons.
-    destruct (in_dec string_dec i0 avd). auto.
+    destruct (in_dec string_dec i0 avd). { auto. }
     simpl.    
     destruct (tl i0).
-    destruct (tl' i0).
-    simpl. destruct (string_dec i i0).
-    subst i0.
-    destruct hd. elim n; auto.
-    destruct hd'. elim n; auto.
-    auto.
-    elim (or_ind n0 n i1). elim H0.
+    - destruct (tl' i0).
+      + simpl. destruct (string_dec i i0).
+        * subst i0.
+          destruct hd.
+          ** elim n; auto.
+          ** destruct hd'.
+             *** elim n; auto.
+             *** auto.
+        * elim (or_ind n0 n i1).
+      + elim H0.
 
-    destruct (tl' i0).
-    elim H0.
-    destruct (string_dec i i0); auto.
-    subst i0. elim n1; simpl; auto.
+    - destruct (tl' i0).
+      + elim H0.
+      + destruct (string_dec i i0); auto.
+        subst i0. elim n1; simpl; auto.
   Qed.
 
   Lemma f_cons_reflects1 i a ls avd
@@ -655,19 +666,22 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     intro. hnf in H. hnf.
     unfold f_cons in *. simpl in *.
     destruct (in_dec string_dec i avd).
-    destruct hd. destruct hd'. auto.
-    elim n; auto.
-    elim n; auto.
-    revert H.
-    destruct (tl i).
-    destruct (tl' i). simpl.
-    destruct hd. contradiction.
-    destruct hd'. contradiction.
-    revert c c0. simpl.
-    destruct (string_dec i i); simpl; auto.
-    elim n2; auto.
-    elim n0; simpl; auto.
-    elim n0; simpl; auto.
+    - destruct hd.
+      + destruct hd'.
+        * auto.
+        * elim n; auto.
+      + elim n; auto.
+    - revert H.
+      destruct (tl i).
+      + destruct (tl' i).
+        * simpl.
+          destruct hd. contradiction.
+          destruct hd'. contradiction.
+          revert c c0. simpl.
+          destruct (string_dec i i); simpl; auto.
+          elim n2; auto.
+        * elim n0; simpl; auto.
+      + elim n0; simpl; auto.
   Qed.
 
   Lemma f_cons_reflects2 i a ls avd
@@ -678,18 +692,19 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     repeat intro. generalize (H i0); clear H.
     intro. hnf. hnf in H. unfold f_cons in *. simpl in *.
     destruct (in_dec string_dec i0 avd).
-    destruct (tl i0).
-    destruct (tl' i0). auto.
-    elim n; auto.
-    elim n; simpl; auto.
-    destruct (tl i0).
-    destruct (tl' i0). auto.
-    elim n0; auto.
-    destruct (tl' i0).
-    elim n0; auto.
-    destruct (string_dec i i0). subst i0.
-    elim n0; simpl; auto.
-    auto.    
+    - destruct (tl i0).
+      + destruct (tl' i0). auto.
+        elim n; auto.
+      + elim n; simpl; auto.
+    - destruct (tl i0).
+      + destruct (tl' i0). auto.
+        elim n0; auto.
+      + destruct (tl' i0).
+        * elim n0; auto.
+        * destruct (string_dec i i0).
+          ** subst i0.
+             elim n0; simpl; auto.
+          ** auto.    
   Qed.
 
   Lemma f_cons_hd_tl i a ls avd 
@@ -704,46 +719,47 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
     cut (forall i',
       finprod_codom_ord _ _ i' (f i') (f_cons i a ls avd hd tl i') /\
       finprod_codom_ord _ _ i' (f_cons i a ls avd hd tl i') (f i')).
-    intros; split; intro; apply H1; auto.
+    { intros; split; intro; apply H1; auto. }
     intro i'.
     pose (string_dec i i').
-    destruct s. subst i'.
-
-    unfold f_cons, f_tl, f_hd, finprod_codom_ord in *. simpl in *.
-    revert H H0; simpl.
-    destruct hd.
-    destruct (f i).
-    destruct (in_dec string_dec i avd). intuition.
-    contradiction.
-    revert c; simpl.
-    destruct (string_dec i i). simpl.
-    intros. destruct H. elim H.
-    elim n0; auto.
-    destruct (f i).
-    contradiction.
-    destruct (in_dec string_dec i avd). contradiction.
-    simpl.
-    revert c c0; simpl.
-    destruct (string_dec i i).
-    simpl; intros.
-    destruct H0; auto.
-    elim n2. auto.
+    destruct s.
+    - subst i'.
+      unfold f_cons, f_tl, f_hd, finprod_codom_ord in *. simpl in *.
+      revert H H0; simpl.
+      destruct hd.
+      + destruct (f i).
+        * destruct (in_dec string_dec i avd); intuition.
+        * revert c; simpl.
+          destruct (string_dec i i).
+          ** simpl.
+             intros. destruct H. elim H.
+          ** elim n0; auto.
+      + destruct (f i).
+        * contradiction.
+        * destruct (in_dec string_dec i avd). contradiction.
+          simpl.
+          revert c c0; simpl.
+          destruct (string_dec i i).
+          ** simpl; intros.
+             destruct H0; auto.
+          ** elim n2. auto.
     
-    clear H. unfold f_tl in H0.
-    destruct H0. simpl in *.
-    generalize (H i') (H0 i'); clear H H0.
-    unfold finprod_codom_ord, f_cons; simpl.
-    destruct (in_dec string_dec i' avd).
-    destruct (f i'); simpl. intros. auto.
-    contradiction.
-    destruct (f i'); simpl. contradiction.
-    revert c; simpl.
-    destruct (string_dec i i'); auto.
-    elim n; auto.
-    intros.
-    destruct (tl i').
-    destruct i0; contradiction.
-    split; auto.
+    - clear H. unfold f_tl in H0.
+      destruct H0. simpl in *.
+      generalize (H i') (H0 i'); clear H H0.
+      unfold finprod_codom_ord, f_cons; simpl.
+      destruct (in_dec string_dec i' avd).
+      + destruct (f i'); simpl.
+        * intros. auto.
+        * contradiction.
+      + destruct (f i'); simpl. contradiction.
+        revert c; simpl.
+        destruct (string_dec i i'); auto.
+        * elim n; auto.
+        * intros.
+          destruct (tl i').
+          ** destruct i0; contradiction.
+          ** split; auto.
   Qed.
 
   Fixpoint enum_finprod (ls:list (atom*A)) (avd:list atom) (z:N) : 
