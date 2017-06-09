@@ -1126,7 +1126,12 @@ Section joinable_plt.
       red. intros Pinh Qinh.
       split; [ apply all_jrels_inh; auto |].
 
-      red. simpl; intros.
+      red. intros z.
+      generalize (fun x : joinable_rel_order hf A B =>
+                    eff_ord_dec
+                      (joinable_rel_order hf A B)
+                      (joinable_rel_effective hf A B HAeff HBeff HAplt) x z).
+      simpl; intros.
       set (R := finsubset (A×B) (mkrel z) (mkrel_dec z) (finprod P Q)).
       assert (is_joinable_relation hf R).
       { apply intersect_approx; auto.
@@ -1142,10 +1147,8 @@ Section joinable_plt.
           generalize (all_jrels_complete).
           unfold all_jrels.
           unfold select_jrels. simpl.
-          generalize (fun x : joinable_relation hf A B =>
-                        joinable_rel_effective_obligation_1 hf A B HAeff HBeff x z).
           generalize (is_joinable_rel_dec' hf A B HAeff HBeff HAplt).
-          revert z.
+          revert z s.
           case hf; simpl; intros; auto.
           destruct H0 as [x ?].
           apply finsubset_elem in H0.
