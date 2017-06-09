@@ -342,7 +342,6 @@ Proof.
   right. constructor.
   left; intros. econstructor. econstructor.
   right. constructor.
-  inj_ty. subst x1.
   destruct (value_app_inv _ _ _ _ H0).
   inv H4.
   left; intros. destruct b.
@@ -1088,7 +1087,13 @@ Proof.
   unfold plt_hom_adj' in H4; simpl in H4.
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [?[??]].
-  simpl in H. apply adj_unit_rel_elem in H.
+  simpl in H.
+  (* FIXME: In 8.6, Coq gets stuck in a reduction loop if we do not apply this
+     generalized lemma *)
+  assert (aurl : forall (X : PLT) (x : X) (x' : U (L X)),
+             (x, x') ∈ adj_unit_rel X (PLT.effective X) <-> x' ≤ Some x).
+  { intros Y y y'. exact (@adj_unit_rel_elem (PLT.ord Y) _ y y'). }
+  apply aurl in H. clear aurl.
   apply U_hom_rel in H0.
   destruct H0. discriminate.
   destruct H0 as [? [? [?[??]]]].

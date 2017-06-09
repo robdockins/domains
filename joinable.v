@@ -1143,7 +1143,7 @@ Section joinable_plt.
           unfold all_jrels.
           unfold select_jrels. simpl.
           generalize (fun x : joinable_relation hf A B =>
-                        joinable_rel_effective_obligation_1 hf A B HAeff HBeff HAplt x z).
+                        joinable_rel_effective_obligation_1 hf A B HAeff HBeff x z).
           generalize (is_joinable_rel_dec' hf A B HAeff HBeff HAplt).
           revert z.
           case hf; simpl; intros; auto.
