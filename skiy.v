@@ -133,12 +133,12 @@ Qed.
 
 Ltac inj_ty :=
   repeat match goal with
-           [ H : existT _ _ _ = existT _ _ _ |- _ ] =>
-             apply inj_pair2_ty in H
+           [ H : existT _ _ ?x = existT _ _ ?y |- _ ] =>
+             apply inj_pair2_ty in H; subst
            end.
 
 Ltac inv H :=
-  inversion H; subst; inj_ty; repeat subst.
+  inversion H; subst; inj_ty; subst.
 
 
 (** Values are terms that evaluate to themselves.
@@ -342,7 +342,6 @@ Proof.
   right. constructor.
   left; intros. econstructor. econstructor.
   right. constructor.
-  inj_ty. subst x1.
   destruct (value_app_inv _ _ _ _ H0).
   inv H4.
   left; intros. destruct b.
@@ -362,14 +361,13 @@ Proof.
   elimtype False. eapply eval_no_redex.
   apply H4. reflexivity. eauto. eauto. eauto.
   inv H11.
-  inv H6.
-  assert (Hm₁ : tmsize _ m₁ <
-         S (S (S (S (tmsize (σ₁ ⇒ ty_bool) m₁ + tmsize σ₁ m₂ + tmsize σ₂0 x2))))).
+  assert (Hn₁ : tmsize _ n₁ <
+         S (S (S (S (tmsize (σ₁ ⇒ ty_bool) n₁ + tmsize σ₁ n₂ + tmsize σ₂0 x2))))).
   omega.
-  destruct (value_app_inv _ _ _ _ H4).
-  generalize (Hind _ Hm₁ _ _ _ _ m₁
-    (refl_equal _) (refl_equal _) (refl_equal _) H5).
-  intros. destruct H13. destruct (H13 m₂).
+  destruct (value_app_inv _ _ _ _ H4). simpl in Hind.
+  generalize (Hind _ Hn₁ _ _ _ _ n₁
+    (refl_equal _) (refl_equal _) (refl_equal _) H6).
+  intros. destruct H13. destruct (H13 n₂).
   elimtype False. eapply eval_no_redex.
   apply H4. reflexivity. eauto. eauto. eauto.
   inv H13.
@@ -425,8 +423,8 @@ Proof.
   elimtype False.
   eapply eval_no_redex.
   apply H6. reflexivity. eauto. eauto. eauto.
-  inv H1. clear H1.
-  destruct (redex_or_inert _ _ m₁); auto.
+  inv H0. clear H0.
+  destruct (redex_or_inert _ _ n₁); auto.
   elim H5; apply H0.
   inv H0.
 Qed.
@@ -557,16 +555,16 @@ Proof.
   eapply eval_no_redex.
   apply H8. reflexivity. eauto. eauto. eauto.
 
-  inv H3. clear H3.
-  destruct (redex_or_inert _ _ m₁); auto.
+  inv H2. clear H2.
+  destruct (redex_or_inert _ _ n₁); auto.
   elim H7; auto.
   simpl in H.
-  assert (Hm1 : (tmsize _ m₁) < S (tmsize _ m₁ + tmsize _ m₂)).
+  assert (Hm1 : (tmsize _ n₁) < S (tmsize _ n₁ + tmsize _ n₂)).
   omega.
   destruct (H _ Hm1).
   apply H3; auto.
   clear H2 H3.
-  assert (Hm2 : (tmsize _ m₂) < S (tmsize _ m₁ + tmsize _ m₂)).
+  assert (Hm2 : (tmsize _ n₂) < S (tmsize _ n₁ + tmsize _ n₂)).
   omega.
   destruct (H _ Hm2).
   apply H2; auto.
@@ -1088,7 +1086,13 @@ Proof.
   unfold plt_hom_adj' in H4; simpl in H4.
   apply PLT.compose_hom_rel in H4.
   destruct H4 as [?[??]].
-  simpl in H. apply adj_unit_rel_elem in H.
+  simpl in H.
+  (* FIXME: In 8.6, Coq gets stuck in a reduction loop if we do not apply this
+     generalized lemma *)
+  assert (aurl : forall (X : PLT) (x : X) (x' : U (L X)),
+             (x, x') ∈ adj_unit_rel X (PLT.effective X) <-> x' ≤ Some x).
+  { intros Y y y'. exact (@adj_unit_rel_elem (PLT.ord Y) _ y y'). }
+  apply aurl in H. clear aurl.
   apply U_hom_rel in H0.
   destruct H0. discriminate.
   destruct H0 as [? [? [?[??]]]].
