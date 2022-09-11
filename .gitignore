@@ -2,3 +2,6 @@
 *.aux
 *.glob
 *.v.d
+*.vok
+*.vos
+.lia.cache
