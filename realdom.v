@@ -1,6 +1,7 @@
 Require Import QArith.
 Require Import Setoid.
 Require Import Coq.Program.Basics.
+Require Import Lia.
 
 Require Import basics.
 Require Import preord.
@@ -44,14 +45,14 @@ Proof.
     destruct H.
     assert (rint_start y < rint_start y).
     { eapply Qlt_le_trans. apply q. auto. }
-    red in H1. omega.
+    red in H1. lia.
   - destruct (Qlt_le_dec (rint_end x) (rint_end y)).
     + right; intro.  
       apply rint_ord_test in H.
       destruct H.
       assert (rint_end x < rint_end x).
       { eapply Qlt_le_trans. apply q0. auto. }
-      red in H1. omega.
+      red in H1. lia.
     + left. apply rint_ord_test.
       split; auto.
 Qed.
@@ -137,7 +138,7 @@ Proof.
     generalize (rint_proper i). intros.
     assert (rint_end i < rint_end i).
     { eapply Qlt_le_trans. apply q. auto. }
-    red in H3. simpl in H3. omega.
+    red in H3. simpl in H3. lia.
   - intros.
     exists (RatInt (rint_start i) (rint_end i) q).
     rewrite pairing.unpairing_pairing.
@@ -184,7 +185,7 @@ Proof.
           apply Qle_trans with (rint_start z); auto.
           apply Qle_trans with (rint_end z); auto.
         } 
-        red in H7. omega.
+        red in H7. lia.
       * left.
         exists (RatInt _ _ H1).
         split; simpl; intros.
@@ -232,7 +233,7 @@ Proof.
           apply Qle_trans with (rint_end z); auto.
           apply rint_proper.
         } 
-        red in H6. omega.
+        red in H6. lia.
   
       * left. exists (RatInt _ _ H1).
         split.
@@ -724,7 +725,7 @@ Proof.
         apply Qle_trans with (rint_start q); auto.
         apply rint_proper.
     } 
-    red in H10. omega.
+    red in H10. lia.
 Qed.
 
 Lemma realdom_napart_eq_iff A (f g:A → PreRealDom) :
@@ -797,7 +798,7 @@ Proof.
         apply Qle_refl.
         assert (ε < ε).
         { apply Qle_lt_trans with 0%Q; auto. }
-        red in H8. omega.
+        red in H8. lia.
 
   - set (ε := (rint_start x - rint_end y) / (2#1)%Q).
     assert (Hε : 0 < ε).
@@ -842,7 +843,7 @@ Proof.
         } 
         assert (ε < ε).
         { apply Qle_lt_trans with 0%Q; auto. }
-        red in H8. omega.
+        red in H8. lia.
 Qed.
 
 
@@ -916,7 +917,7 @@ Proof.
       } 
       assert (ε < ε).
       { apply Qle_lt_trans with 0%Q; auto. }
-      red in H9; omega.
+      red in H9; lia.
 Qed.
 
 Lemma converges_maximal A (f g:A → PreRealDom) :
@@ -1007,7 +1008,7 @@ Proof.
           apply Qle_trans with (rint_end x'); auto.
           apply rint_proper.
       } 
-      red in H14. omega.
+      red in H14. lia.
 Qed.
 
 

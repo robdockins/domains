@@ -152,7 +152,7 @@ Section countable_ID.
     *)
   Inductive einhabited (P:eset A) : Prop :=
     | einh :
-        (P N0 = None -> einhabited (fun n => P (Nsucc n))) ->
+        (P N0 = None -> einhabited (fun n => P (N.succ n))) ->
         einhabited P.
 
   Lemma member_inhabited : forall (P:eset A), (exists a, a ∈ P) -> einhabited P.
@@ -467,7 +467,7 @@ Proof.
     + simpl in H. destruct H; subst.
       * exists N0. simpl. auto.
       * destruct IHl as [n ?]; auto.
-        exists (Nsucc n).
+        exists (N.succ n).
         unfold elist.
         rewrite N2Nat.inj_succ. simpl.
         auto.
@@ -695,12 +695,12 @@ Next Obligation.
   intuition.
   - apply union2_elem in H.
     destruct H.
-    apply decset_correct in H. auto.
-    apply decset_correct in H. auto.
+    rewrite decset_correct in H; auto.
+    rewrite decset_correct in H; auto.
   - apply union2_elem.
-    left. apply decset_correct. auto.
+    left. rewrite decset_correct. auto.
   - apply union2_elem.
-    right. apply decset_correct. auto.
+    right. rewrite decset_correct. auto.
 Qed.
 
 Program Definition semidec_conj (P Q:Prop) (HP:semidec P) (HQ:semidec Q) 
@@ -711,8 +711,8 @@ Next Obligation.
   intros; split; intros.
   - apply intersection_elem in H.
     destruct H; split.
-    + apply decset_correct in H; auto.
-    + apply decset_correct in H0; auto.
+    + rewrite decset_correct in H; auto.
+    + rewrite decset_correct in H0; auto.
   - destruct H. apply intersection_elem.
     split; apply decset_correct; auto.
 Qed.
@@ -790,7 +790,7 @@ Next Obligation.
       destruct H0.
       rewrite IHX in H2.
       apply cons_elem in H1. destruct H1.
-      * apply decset_correct in H0.
+      * rewrite decset_correct in H0.
         apply Hok with a; auto.
       * apply H2; auto.
     + intros.
@@ -823,7 +823,7 @@ Next Obligation.
   - split; simpl; intros.
     + apply union2_elem in H0.
       destruct H0.
-      * apply decset_correct in H0.
+      * rewrite decset_correct in H0.
         exists a. split; auto. apply cons_elem; auto.
       * rewrite IHX in H0.
         destruct H0 as [b [??]].

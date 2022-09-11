@@ -266,7 +266,7 @@ Section PLT.
     - red; intros. apply image_axiom2 in H0. destruct H0 as [y[??]].
       apply erel_image_elem.
       apply H in H0.
-      apply erel_image_elem in H0.
+      apply -> erel_image_elem in H0.
       destruct x; destruct y.
       apply (pair_rel_elem' _ _ _ _ f g) in H0.
       + simpl. destruct H0.
@@ -280,7 +280,7 @@ Section PLT.
       + red; intros. apply image_axiom2 in H1. destruct H1 as [y[??]].
         apply erel_image_elem.
         apply H in H1.
-        apply erel_image_elem in H1.
+        apply -> erel_image_elem in H1.
         destruct x; destruct y.
         apply (pair_rel_elem' _ _ _ _ f g) in H1.
         * simpl. destruct H1.
@@ -902,16 +902,16 @@ Arguments PLT.effective [hf] X.
 Arguments PLT.plotkin [hf] X.
 Arguments PLT.ord [hf] X.
 Arguments PLT.dec [hf] X.
-Arguments PLT.pi1 [hf] [A] [B].
-Arguments PLT.pi2 [hf] [A] [B].
+Arguments PLT.pi1 {hf} {A} {B}.
+Arguments PLT.pi2 {hf} {A} {B}.
 Arguments PLT.pair [hf] [C] [A] [B] f g.
-Arguments PLT.iota1 [hf] [A] [B].
-Arguments PLT.iota2 [hf] [A] [B].
+Arguments PLT.iota1 {hf} {A} {B}.
+Arguments PLT.iota2 {hf} {A} {B}.
 Arguments PLT.sum_cases [hf] [C] [A] [B] f g.
 Arguments PLT.prod [hf] A B.
 Arguments PLT.sum [hf] A B.
 Arguments PLT.exp [hf] A B.
-Arguments PLT.app [hf A B].
+Arguments PLT.app {hf A B}.
 Arguments PLT.curry [hf C A B] f.
 Arguments PLT.pair_map [hf] [A B C D] f g.
 

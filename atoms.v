@@ -7,8 +7,8 @@ Open Scope string_scope.
 Require Import Setoid.
 Require Import NArith.
 Require Import Arith.
-Require Import Omega.
 Require Import List.
+Require Import Lia.
 
 Require Import basics.
 Require Import categories.
@@ -279,7 +279,7 @@ Section idents_length.
     set (z := len - x).
     assert (x = len - z).
     subst z. 
-    omega.
+    lia.
     clearbody z. revert x l H H0.
     induction z using (well_founded_induction lt_wf).
     intro x. 
@@ -288,14 +288,14 @@ Section idents_length.
     constructor; intros.
     destruct y; simpl in *.
     destruct H3; simpl in *.
-    apply H with (len - n); omega.
+    apply H with (len - n); lia.
     destruct H3. subst n.
     apply H0; auto.
     induction l using 
       (well_founded_induction (well_founded_ltof _ (@List.length string))); intros.
     constructor; intros.
     destruct H1. simpl in *.
-    elimtype False. omega.
+    elimtype False. lia.
     simpl in *. destruct H1.
     destruct y; simpl in *.  
     subst n. apply H0.
@@ -321,9 +321,9 @@ Opaque perms.
     red. apply perms_neq_nil.
     rewrite e.
     apply perms_len.
-    left. omega.
+    left. lia.
     red. simpl.
-    left. omega.
+    left. lia.
     left. split; auto.
     red. simpl.
     right. split; auto.
@@ -389,7 +389,7 @@ Section fresh.
     assert (String.length s <= max_len atoms).
     apply max_len_le. exists c. split; auto.
     rewrite H0 in H1.
-    omega.
+    lia.
     auto.
   Defined.
 

@@ -938,7 +938,7 @@ Section normal_sets.
     repeat intro.
     unfold norm_closure in *.
     destruct (check_inh M).
-    - destruct a. subst.
+    - destruct a. subst. rewrite H3 in H.
       destruct H. apply H0 in H.
       apply nil_elem in H. elim H.
     - destruct (Hnorm M i) as [Q [??]].

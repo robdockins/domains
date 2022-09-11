@@ -1285,7 +1285,7 @@ Proof.
     destruct H2 as [y [??]].
     apply erel_image_elem.
     apply H1 in H2.
-    apply erel_image_elem in H2.
+    rewrite erel_image_elem in H2.
     destruct y.
     apply pair_rel_elem in H2.
     destruct H2.
@@ -1298,7 +1298,7 @@ Proof.
       destruct H3 as [y [??]].
       apply erel_image_elem.
       apply H1 in H3.
-      apply erel_image_elem in H3.
+      apply -> erel_image_elem in H3.
       destruct y.
       apply pair_rel_elem in H3.
       destruct H3.
@@ -1316,8 +1316,8 @@ Proof.
            change c0 with (π₂#((c,c0):(A×B))).
            apply image_axiom1. auto.
       * destruct H2. destruct H3.
-        apply erel_image_elem in H4.
-        apply erel_image_elem in H5.
+        apply -> erel_image_elem in H4.
+        apply -> erel_image_elem in H5.
         apply erel_image_elem.
         apply pair_rel_elem.
         split; auto.
@@ -1476,7 +1476,7 @@ Proof.
            destruct H3. split; split; auto.
         ** apply nil_elem in H3. elim H3.
     + destruct H3.
-      apply erel_image_elem in H4.
+      apply -> erel_image_elem in H4.
       apply HPAIR with c x0; auto.
       assert ((x,y) ≤ x0).
       { apply H3. apply cons_elem; auto. }

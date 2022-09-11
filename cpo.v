@@ -820,7 +820,7 @@ Section lfp.
   Qed.
 End lfp.
 
-Arguments lfp [X] f [Hpointed].
+Arguments lfp [X] f {Hpointed}.
 Arguments scott_induction [X] f [Hpointed] P _ _ _. 
 
 (**  The least-fixed point in cpos is uniform.  This fact is somtimes

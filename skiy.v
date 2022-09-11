@@ -3,8 +3,7 @@
 Require Import String.
 Require Import List.
 Require Import Arith.
-Require Import Omega.
-
+Require Import Lia.
 
 Require Import basics.
 Require Import preord.
@@ -330,7 +329,7 @@ Proof.
   subst σ₂. simpl in *. subst n f.
   destruct (value_app_inv _ _ _ _ H).
   assert (Hx1:tmsize _ x1 < S (tmsize _ x1 + tmsize _ x2)).
-  omega.
+  lia.
   generalize (Hind (tmsize _ x1) Hx1 _ _ _ _ x1
     (refl_equal _) (refl_equal _) (refl_equal _) H0).
   intros. destruct H2. 
@@ -353,7 +352,7 @@ Proof.
   apply H13. reflexivity. eauto. eauto. eauto.
   assert (Hm₁ : tmsize _ m₁ <
          S (S (S (S (tmsize (σ₁ ⇒ ty_bool) m₁ + tmsize σ₁ m₂ + tmsize σ₂0 x2))))).
-  omega.
+  lia.
   destruct (value_app_inv _ _ _ _ H4).
   generalize (Hind _ Hm₁ _ _ _ _ m₁ 
     (refl_equal _) (refl_equal _) (refl_equal _) H5).
@@ -363,7 +362,7 @@ Proof.
   inv H11.
   assert (Hn₁ : tmsize _ n₁ <
          S (S (S (S (tmsize (σ₁ ⇒ ty_bool) n₁ + tmsize σ₁ n₂ + tmsize σ₂0 x2))))).
-  omega.
+  lia.
   destruct (value_app_inv _ _ _ _ H4). simpl in Hind.
   generalize (Hind _ Hn₁ _ _ _ _ n₁
     (refl_equal _) (refl_equal _) (refl_equal _) H6).
@@ -560,12 +559,12 @@ Proof.
   elim H7; auto.
   simpl in H.
   assert (Hm1 : (tmsize _ n₁) < S (tmsize _ n₁ + tmsize _ n₂)).
-  omega.
+  lia.
   destruct (H _ Hm1).
   apply H3; auto.
   clear H2 H3.
   assert (Hm2 : (tmsize _ n₂) < S (tmsize _ n₁ + tmsize _ n₂)).
-  omega.
+  lia.
   destruct (H _ Hm2).
   apply H2; auto.
 
@@ -583,7 +582,7 @@ Proof.
   apply strict_curry'_semvalue2.
   destruct (value_app_inv _ _ _ _ H1); auto.
   simpl in H.
-  assert (tmsize _ x0 < S (S (tmsize _ x0))). omega.
+  assert (tmsize _ x0 < S (S (tmsize _ x0))). lia.
   destruct (H _ H5). apply (H6 _ x0); auto.
 
   rewrite strict_curry_app'; auto.
@@ -607,7 +606,7 @@ Proof.
 
   destruct (value_app_inv _ _ _ _ H1); auto.
   simpl in H.
-  assert (tmsize _ x0 < S (S (tmsize _ x0))). omega.
+  assert (tmsize _ x0 < S (S (tmsize _ x0))). lia.
   destruct (H _ H5). apply (H6 _ x0); auto.
   
   unfold Ysem.

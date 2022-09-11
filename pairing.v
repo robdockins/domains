@@ -229,7 +229,7 @@ Lemma pairing_unpairing : forall z, pairing (unpairing z) = z.
 Proof.
   intro z. destruct z. simpl; auto.
   unfold unpairing.
-  revert p. fix 1. intro p.
+  revert p. fix pairing_unpairing 1. intro p.
   destruct p.
   - destruct p.
     + rewrite deflate11. rewrite deflate11'.

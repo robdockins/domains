@@ -418,7 +418,7 @@ Section cPLT.
       apply cons_elem in H3; destruct H3.
       { eapply PLT.hom_order with c q2; auto. }
       apply nil_elem in H3. elim H3.
-    - apply erel_image_elem in H4.
+    - apply -> erel_image_elem in H4.
       apply PLT.compose_hom_rel in H1.
       destruct H1 as [m [??]].
       simpl in H1.
@@ -1091,16 +1091,16 @@ Arguments cPLT.cplt_hom [hf A B] h.
 Arguments cPLT.ord [hf] X.
 Arguments cPLT.dec [hf] X.
 Arguments cPLT.carrier [hf] X.
-Arguments cPLT.pi1 [hf] [A] [B].
-Arguments cPLT.pi2 [hf] [A] [B].
+Arguments cPLT.pi1 {hf A B}.
+Arguments cPLT.pi2 {hf A B}.
 Arguments cPLT.pair [hf] [C] [A] [B] f g.
-Arguments cPLT.iota1 [hf] [A] [B].
-Arguments cPLT.iota2 [hf] [A] [B].
+Arguments cPLT.iota1 {hf A B}.
+Arguments cPLT.iota2 {hf A B}.
 Arguments cPLT.sum_cases [hf] [C] [A] [B] f g.
 Arguments cPLT.prod [hf] A B.
 Arguments cPLT.sum [hf] A B.
 Arguments cPLT.exp [hf] A B.
-Arguments cPLT.app [hf A B].
+Arguments cPLT.app {hf A B}.
 Arguments cPLT.curry [hf C A B] f.
 Arguments cPLT.pair_map [hf] [A B C D] f g.
 

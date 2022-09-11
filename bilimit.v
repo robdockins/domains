@@ -958,7 +958,7 @@ Section total_fixpoint.
       etransitivity.
       + symmetry.
         apply (Functor.compose F) with 
-          (f:=limset_spoke false nat_dirord kleene_chain_alt (S i))
+          (f0:=limset_spoke false nat_dirord kleene_chain_alt (S i))
           (g:=iter_hom i (S i) (gt_S_le i (S i) (le_S (S i) (S i) (le_refl (S i)))))
           (h:=limset_spoke false nat_dirord kleene_chain_alt j ∘
             iter_hom i j (gt_S_le i j H)).

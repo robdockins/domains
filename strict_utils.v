@@ -47,10 +47,10 @@ Definition strict_curry' (Γ:PLT) (A B:∂PLT)
 
   := η ∘ strict_curry Γ A B f.
 
-Arguments strict_app [A B].
+Arguments strict_app {A B}.
 Arguments strict_curry [Γ A B] f.
 
-Arguments strict_app' [A B].
+Arguments strict_app' {A B}.
 Arguments strict_curry' [Γ A B] f.
 
 Definition semvalue (Γ:PLT) (A:∂PLT) (f:Γ → U A) :=

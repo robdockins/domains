@@ -735,7 +735,7 @@ Section ep_pairs.
       apply embed_rel_elem in H.
       simpl in H.
       unfold choose' in H.
-      match goal with [ _ : appcontext[find_inhabitant' ?A ?X ?Y] |- _ ] =>
+      match goal with [ _ : context[find_inhabitant' ?A ?X ?Y] |- _ ] =>
           destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m.
@@ -753,7 +753,7 @@ Section ep_pairs.
     - destruct a.
       apply embed_rel_elem.
       simpl. unfold choose'.
-      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+      match goal with [ |- context[find_inhabitant' ?A ?X ?Y] ] =>
           destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m.
@@ -779,7 +779,7 @@ Section ep_pairs.
   Proof.
     intros. split; hnf; simpl; intros.
     - unfold choose'.
-      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+      match goal with [ |- context[find_inhabitant' ?A ?X ?Y] ] =>
         destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m.
@@ -798,7 +798,7 @@ Section ep_pairs.
           destruct H0; split; split; auto.
 
     - unfold choose'.
-      match goal with [ |- appcontext[find_inhabitant' ?A ?X ?Y] ] =>
+      match goal with [ |- context[find_inhabitant' ?A ?X ?Y] ] =>
         destruct (find_inhabitant' A X Y); simpl in *
       end.
       unfold embed_image in m.

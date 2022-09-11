@@ -1015,7 +1015,7 @@ Coercion Distributive.initialized : distributive >-> initialized.
 Coercion Distributive.cocartesian : distributive >-> cocartesian.
 
 Notation distrib_law := Distributive.distrib_law_op.
-Arguments distrib_law [X A B C].
+Arguments distrib_law {X A B C}.
 
 (**  Cartesian closed categories, in addition to being cartesian,
      have "internal" hom objects corresponding to each homset called
@@ -1317,13 +1317,13 @@ Section functor.
     }.
 End functor.
 End Functor.
-Arguments Functor.ob_map [C] [D] f X.
-Arguments Functor.hom_map [C] [D] f A B f0.
+Arguments Functor.ob_map [C] [D] f X : rename.
+Arguments Functor.hom_map [C] [D] f A B f0 : rename.
 Arguments Functor.Functor C D _ _ _ _ _.
 Arguments Functor.functor C D.
-Arguments Functor.ident [C] [D] f A f0 _.
-Arguments Functor.compose [C] [D] f A B C0 f0 g h _.
-Arguments Functor.respects [C] [D] f A B f0 g _.
+Arguments Functor.ident [C] [D] f A f0 _ : rename.
+Arguments Functor.compose [C] [D] f A B C0 f0 g h _ : rename.
+Arguments Functor.respects [C] [D] f A B f0 g _ : rename.
 
 Notation functor := Functor.functor.
 Notation Functor := Functor.Functor.

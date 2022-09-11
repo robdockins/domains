@@ -1272,7 +1272,7 @@ Module finprod (FI:FINPROD_INPUT) <: FINPROD.
         apply semidec_true.     
 
         apply (Semidec _ (decset _ (X0 n))).
-        split; intro. apply decset_correct in H.
+        split; intro. apply -> decset_correct in H.
         intro. destruct H as [h [??]]; exists h; split; auto.
         destruct (Hf i n Hnin). apply H1; auto.
         apply decset_correct.
@@ -2454,7 +2454,9 @@ Proof.
   decide equality. apply Adec.
   reflexivity.
   auto.
-Grab Existential Variables.
+
+(* TODO, figure out why this happens and deal with it better... *)
+Unshelve.
   simpl.
   set (q := fresh [Γ']). simpl in q. fold q.
   cut (q ∉ ‖Γ'‖).

@@ -1,6 +1,7 @@
 Require Import QArith.
 Require Import Qminmax.
 Require Import Setoid.
+Require Import Lia.
 
 Lemma Q_dense (q1 q2:Q) :
   q1 < q2 -> exists q', q1 < q' /\ q' < q2.
@@ -103,12 +104,12 @@ Proof.
   right; intros [??].
   assert (q < q).
   apply Qlt_le_trans with (rint_start r); auto.
-  red in H1. abstract omega.
+  red in H1. abstract lia.
   destruct (Qlt_le_dec (rint_end r) q).
   right; intros [??].
   assert (rint_end r < rint_end r).
   apply Qlt_le_trans with q; auto.
-  red in H1. abstract omega.
+  red in H1. abstract lia.
   left. split; auto.
 Defined.
 
@@ -121,11 +122,11 @@ Proof.
   right; intros [??].
   assert (q < q).
   apply Qlt_le_trans with (rint_end r); auto.
-  red in H1. abstract omega.
+  red in H1. abstract lia.
   right; intros [??].
   assert (rint_start r < rint_start r).
   apply Qlt_le_trans with q; auto.
-  red in H1. abstract omega.
+  red in H1. abstract lia.
 Defined.
 
 
@@ -138,11 +139,11 @@ Proof.
   right; intros [??].
   assert (rint_end x < rint_end x).
   eapply Qlt_le_trans; eauto.
-  red in H1; omega.
+  red in H1; lia.
   right; intros [??].
   assert (rint_start y < rint_start y).
   eapply Qlt_le_trans; eauto.
-  red in H1; omega.
+  red in H1; lia.
 Qed.
 
 Program Definition rint_opp (r:rational_interval) : rational_interval
@@ -233,7 +234,7 @@ Proof.
   rewrite (Qopp_involutive b) in q.
   rewrite (Qopp_involutive a) in q.
   assert (a < a). apply Qlt_le_trans with b; auto.
-  exfalso. red in H0. omega.
+  exfalso. red in H0. lia.
 Qed.
 
 
@@ -1189,7 +1190,7 @@ Section mult_correct.
       rewrite Qmult_div_r; intuition.
       assert (0 < 0). 
       rewrite <- H3 at 2. auto.
-      red in H4. omega.
+      red in H4. lia.
 
       destruct (Qlt_le_dec x1 (q/y2)).
       exists (q/y2). exists y2.
@@ -1201,7 +1202,7 @@ Section mult_correct.
       assert (0 < 0). 
       rewrite <- H3 at 2. 
       apply Qlt_le_trans with y1; intuition.
-      red in H4. omega.
+      red in H4. lia.
 
       exists x1. exists y2.
       intuition.
@@ -1220,14 +1221,14 @@ Section mult_correct.
       assert (0 < 0).
       apply Qlt_le_trans with y1; intuition.
       rewrite <- H4. auto.
-      red in H5. omega.
+      red in H5. lia.
       assert (x1 * y2 <= x1 * (q / x1)).
       apply Qmult_le_compat; intuition.
       apply Qle_trans with y1; intuition.
       rewrite Qmult_div_r in H3; intuition.
       assert (0 < 0).
       rewrite <- H4 at 2. auto.
-      red in H5. omega.
+      red in H5. lia.
     Qed.
   End case1.
 
@@ -1253,7 +1254,7 @@ Section mult_correct.
       apply Qlt_le_trans with x1; auto.
       apply Qle_trans with x2; auto.
       rewrite H5. apply Qle_refl.
-      red in H6. omega.
+      red in H6. lia.
     Qed.
   End case2.
 
@@ -1993,7 +1994,6 @@ Proof.
     field_simplify in q.
     apply (Qlt_irrefl x0).
     eapply Qlt_le_trans with (rint_start y); auto.
-    field_simplify; auto.
     apply n. red. rewrite <- q.
     split. apply rint_proper. intuition.
 
@@ -2008,7 +2008,6 @@ Proof.
     field_simplify in q0.
     apply (Qlt_irrefl x0).
     apply Qle_lt_trans with (rint_end y); auto.
-    field_simplify. auto.
     apply n. red. rewrite <- q0.
     split. apply Qle_refl. apply rint_proper.
 

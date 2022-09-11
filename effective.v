@@ -42,7 +42,7 @@ Program Definition effective_Nord : effective_order Ndisc_ord
   := EffectiveOrder Ndisc_ord _ (fun n => Some n) _.
 Next Obligation.
   simpl. unfold Preord.ord_op. simpl.
-  apply N_eq_dec.
+  apply N.eq_dec.
 Qed.
 Next Obligation.
   intros. exists x. auto.

@@ -1,5 +1,6 @@
 Require Import QArith.
 Require Import Setoid.
+Require Import Lia.
 
 Require Import basics.
 Require Import preord.
@@ -369,10 +370,11 @@ Proof.
     + apply rint_ord_test in H1; destruct H1. auto.
 Qed.
 
+Local Obligation Tactic := idtac.
 Program Definition real_plus : (PreRealDom ⊗ PreRealDom)%plt → PreRealDom :=
   PLT.Hom true (PreRealDom ⊗ PreRealDom)%plt PreRealDom real_plus_rel _ _.
 Next Obligation.
-  intros. 
+  intros.
   destruct x. destruct x'.
   rewrite real_plus_rel_elem in H1. rewrite real_plus_rel_elem.
   transitivity y; auto.
@@ -1870,8 +1872,7 @@ Proof.
            *** intros.
                field_simplify.
                **** field_simplify.
-                    ***** apply Qle_refl.
-                    ***** intro. rewrite H12 in q. apply (Qlt_irrefl 0); auto.
+                    apply Qle_refl.
                **** intro. rewrite H12 in q. apply (Qlt_irrefl 0); auto.
         ** apply Qmult_le_compat; intuition.
            unfold q1.
@@ -2681,7 +2682,7 @@ Proof.
         apply Qplus_lt_le_compat; auto.
         apply Qlt_le_weak; auto.
       }
-      red in H5. omega.
+      red in H5. lia.
   
   - red; intros.
     set (ε' := ε / (3#1)).
@@ -2819,7 +2820,7 @@ Proof.
         eapply Qlt_le_trans. apply H2.
         apply Qplus_le_compat; apply Qlt_le_weak; auto.
       } 
-      red in H10. omega.
+      red in H10. lia.
 
     + destruct (Qlt_le_dec (q1+q2) q).
       * exfalso.
@@ -2884,7 +2885,7 @@ Proof.
             + apply Qle_refl.
           - auto.
         } 
-        red in H10. omega.
+        red in H10. lia.
 
       * apply Qle_antisym; auto.
 
@@ -3027,8 +3028,9 @@ Proof.
                     ring_simplify. apply Qle_refl.
 Qed.
 
+
 Lemma terminate_1_univ :
-  id(1) ≈ PLT.terminate true 1.
+  id(1%plt) ≈ PLT.terminate true 1%plt.
 Proof.
   split; hnf; simpl; intros.
   - destruct a.
@@ -3039,7 +3041,6 @@ Proof.
     destruct u. destruct u0.
     apply ident_elem. hnf. auto.
 Qed.
-
 
 Lemma Q_real_mult_compat (q q1 q2:Q) :
   (real_mult ∘ 《 injq q1, injq q2 》 ≈ injq q)%plt <-> q1 * q2 == q.
@@ -3129,10 +3130,10 @@ Proof.
 
   - apply converges_maximal.
     + apply canon_canonical_iff.
-      generalize (injq_canon 1 q).
+      generalize (injq_canon 1%plt q).
       intros.
       apply canon_canonical_iff in H0.
-      transitivity (injq q ∘ PLT.terminate true 1).
+      transitivity (injq q ∘ PLT.terminate true 1%plt).
       * transitivity (injq q ∘ id).
         ** symmetry. apply cat_ident1.
         ** apply cat_respects; auto.
@@ -3144,14 +3145,14 @@ Proof.
            symmetry. apply terminate_1_univ.
         ** apply cat_ident1.
     + apply real_mult_converges.
-      * apply realdom_converges_le with (injq q1 ∘ PLT.terminate true 1).
+      * apply realdom_converges_le with (injq q1 ∘ PLT.terminate true 1%plt).
         ** transitivity (injq q1 ∘ id).
            *** apply eq_ord.
                apply cat_respects; auto.
                symmetry. apply terminate_1_univ.
            *** rewrite (cat_ident1 ∂PLT). auto.
         ** apply injq_converges.
-      * apply realdom_converges_le with (injq q2 ∘ PLT.terminate true 1).
+      * apply realdom_converges_le with (injq q2 ∘ PLT.terminate true 1%plt).
         ** transitivity (injq q2 ∘ id).
            *** apply eq_ord.
                apply cat_respects; auto.
@@ -3188,10 +3189,10 @@ Proof.
   apply converges_maximal.
 
   - apply canon_canonical_iff.
-    generalize (injq_canon 1 (/ q)).
+    generalize (injq_canon 1%plt (/ q)).
     intros.
     apply canon_canonical_iff in H0.
-    transitivity (injq (/ q) ∘ PLT.terminate true 1).
+    transitivity (injq (/ q) ∘ PLT.terminate true 1%plt).
     + transitivity (injq (/ q) ∘ id).
       * symmetry. apply cat_ident1.
       * apply cat_respects; auto.
@@ -3206,7 +3207,7 @@ Proof.
   - destruct (Qcompare_spec q 0).
     * elim H; auto.
     * apply real_recip_neg_converges.
-      ** assert (injq 0 ≈ injq 0 ∘ PLT.terminate true 1).
+      ** assert (injq 0 ≈ injq 0 ∘ PLT.terminate true 1%plt).
          { transitivity (injq 0 ∘ id).
            - rewrite (cat_ident1 ∂PLT). auto.
            - apply cat_respects; auto.
@@ -3215,7 +3216,7 @@ Proof.
          rewrite <- H1.
          apply Q_real_lt_compat. auto.
 
-      ** apply realdom_converges_le with (injq q ∘ PLT.terminate true 1).
+      ** apply realdom_converges_le with (injq q ∘ PLT.terminate true 1%plt).
          *** transitivity (injq q ∘ id).
              **** apply eq_ord.
                   apply cat_respects; auto.
@@ -3223,7 +3224,7 @@ Proof.
              **** rewrite (cat_ident1 ∂PLT). auto.
          *** apply injq_converges.
     * apply real_recip_pos_converges.
-      ** assert (injq 0 ≈ injq 0 ∘ PLT.terminate true 1).
+      ** assert (injq 0 ≈ injq 0 ∘ PLT.terminate true 1%plt).
          { transitivity (injq 0 ∘ id).
            - rewrite (cat_ident1 ∂PLT). auto.
            - apply cat_respects; auto.
@@ -3232,7 +3233,7 @@ Proof.
          rewrite <- H1.
          apply Q_real_lt_compat. auto.
 
-      ** apply realdom_converges_le with (injq q ∘ PLT.terminate true 1).
+      ** apply realdom_converges_le with (injq q ∘ PLT.terminate true 1%plt).
          *** transitivity (injq q ∘ id).
              **** apply eq_ord.
                   apply cat_respects; auto.
@@ -3241,13 +3242,13 @@ Proof.
          *** apply injq_converges.
 
   - hnf; simpl; intros.
-    assert (canonical 1 (real_recip ∘ injq q)).
+    assert (canonical 1%plt (real_recip ∘ injq q)).
     { apply real_recip_canonical.
       apply canon_canonical_iff.
-      generalize (injq_canon 1 q).
+      generalize (injq_canon 1%plt q).
       intros.
       apply canon_canonical_iff in H1.
-      transitivity (injq q ∘ PLT.terminate true 1).
+      transitivity (injq q ∘ PLT.terminate true 1%plt).
       - transitivity (injq q ∘ id).
         + symmetry. apply cat_ident1.
         + apply cat_respects; auto.
